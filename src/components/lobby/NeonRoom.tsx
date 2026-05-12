@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Html, PointerLockControls, Stars } from "@react-three/drei";
+import { Html, PointerLockControls, Stars, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import { isMobileCoarseDevice } from "@/lib/webglRendererPrefs";
 import MobileLobbyMovePad, {
@@ -19,12 +19,14 @@ const MOVE_SPEED = 4.5;
 const WALL_COLOR = "#EAECEE";
 const LOBBY_SCREEN_HTML_Z_INDEX: [number, number] = [10000, 0];
 const LOBBY_SCREEN_BACKGROUND_Z_INDEX: [number, number] = [40, 0];
+const LOBBY_SCREEN_4_CLOUD_MODEL_URL =
+  "https://res.cloudinary.com/dfsabdxup/image/upload/v1778502197/el_corazon_dbhvfn.glb";
 
 const WALL_SCREEN_EMBEDS = [
   "https://onnivers.com",
   "https://web.whatsapp.com/",
   "https://www.youtube.com/embed/kJQP7kiw5Fk",
-  "https://www.youtube.com/embed/RgKAFK5djSk",
+  LOBBY_SCREEN_4_CLOUD_MODEL_URL,
 ] as const;
 
 type LobbyScreenUrls = [string, string, string, string];
@@ -43,7 +45,11 @@ function readStoredLobbyScreenUrls(): LobbyScreenUrls | null {
     if (!Array.isArray(parsed) || parsed.length !== 4 || !parsed.every((value) => typeof value === "string")) {
       return null;
     }
-    return parsed as LobbyScreenUrls;
+    const urls = [...parsed] as LobbyScreenUrls;
+    if (urls[3] === "https://www.youtube.com/embed/RgKAFK5djSk") {
+      urls[3] = LOBBY_SCREEN_4_CLOUD_MODEL_URL;
+    }
+    return urls;
   } catch {
     return null;
   }
@@ -55,6 +61,106 @@ function persistLobbyScreenUrls(urls: LobbyScreenUrls) {
   } catch {
     /* ignore */
   }
+}
+
+function isGlbSource(url: string): boolean {
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+
+  try {
+    const parsed = new URL(trimmed, window.location.origin);
+    const path = decodeURIComponent(parsed.pathname).toLowerCase();
+    if (path.endsWith(".glb") || path.endsWith(".gltf")) return true;
+    return /\.glb(?:$|[?#])/i.test(parsed.href) || /\.gltf(?:$|[?#])/i.test(parsed.href);
+  } catch {
+    const normalized = trimmed.toLowerCase().split("?")[0]?.split("#")[0] ?? "";
+    return normalized.endsWith(".glb") || normalized.endsWith(".gltf");
+  }
+}
+
+function normalizeLobbyScreenUrl(url: string, index: number): string {
+  const trimmed = url.trim();
+  if (!trimmed) return WALL_SCREEN_EMBEDS[index];
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith("//")) return `https:${trimmed}`;
+  return trimmed;
+}
+
+function HoloScreenGltfModel({
+  url,
+  width,
+  height,
+}: {
+  url: string;
+  width: number;
+  height: number;
+}) {
+  const { scene } = useGLTF(url, false, false, (loader) => {
+    loader.setCrossOrigin("anonymous");
+  });
+  const model = useMemo(() => {
+    const root = scene.clone(true);
+    root.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(root);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    root.position.sub(center);
+    const fitScale = Math.min(
+      (width * 0.82) / Math.max(size.x, 1e-6),
+      (height * 0.82) / Math.max(size.y, 1e-6),
+      (width * 0.82) / Math.max(size.z, 1e-6),
+    );
+    root.scale.setScalar(fitScale);
+    root.traverse((child) => {
+      if (!(child instanceof THREE.Mesh)) return;
+      const materials = Array.isArray(child.material) ? child.material : [child.material];
+      materials.forEach((material) => {
+        if (!material) return;
+        material.side = THREE.DoubleSide;
+        material.needsUpdate = true;
+      });
+    });
+    return root;
+  }, [scene, url, width, height]);
+
+  return <primitive object={model} />;
+}
+
+function HoloScreenGltfViewport({
+  url,
+  width,
+  height,
+  screenPointerEvents,
+  onFocus,
+}: {
+  url: string;
+  width: number;
+  height: number;
+  screenPointerEvents: "auto" | "none";
+  onFocus: () => void;
+}) {
+  return (
+    <group position={[0, 0, 0.02]}>
+      <ambientLight intensity={1.05} />
+      <directionalLight position={[2.5, 3.5, 2]} intensity={1.35} />
+      <hemisphereLight intensity={0.45} color="#dffcff" groundColor="#0a0f18" />
+      <Suspense fallback={null}>
+        <HoloScreenGltfModel key={url} url={url} width={width} height={height} />
+      </Suspense>
+      {screenPointerEvents !== "none" ? (
+        <mesh
+          position={[0, 0, 0.03]}
+          onPointerDown={(event) => {
+            event.stopPropagation();
+            onFocus();
+          }}
+        >
+          <planeGeometry args={[width, height]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        </mesh>
+      ) : null}
+    </group>
+  );
 }
 
 const CENTER_SCREEN_EMBED_URL = "https://onnivers.com/nuestras-salas";
@@ -175,51 +281,62 @@ function HoloScreen({
   const htmlScale = (w / embedWidth) * 36.225;
   const htmlZIndexRange = uiOverlayOpen ? LOBBY_SCREEN_BACKGROUND_Z_INDEX : LOBBY_SCREEN_HTML_Z_INDEX;
   const screenPointerEvents = uiOverlayOpen ? "none" : !interactionMode || focused ? "auto" : "none";
+  const showGlbContent = label === 4 && isGlbSource(embedUrl);
 
   return (
     <group position={position} rotation={rotation}>
-      <Html
-        transform
-        position={[0, 0, 0.05]}
-        scale={htmlScale}
-        zIndexRange={htmlZIndexRange}
-        style={{ pointerEvents: screenPointerEvents }}
-      >
-        <div
-          onPointerDownCapture={(event) => {
-            event.stopPropagation();
-            onFocus();
-          }}
-          style={{
-            width: `${embedWidth}px`,
-            background: "#02030a",
-            pointerEvents: screenPointerEvents,
-          }}
+      {!showGlbContent ? (
+        <Html
+          transform
+          position={[0, 0, 0.05]}
+          scale={htmlScale}
+          zIndexRange={htmlZIndexRange}
+          style={{ pointerEvents: screenPointerEvents }}
         >
-          <iframe
-            key={embedUrl}
-            src={embedUrl}
-            width={embedWidth}
-            height={embedHeight}
-            title={`Pantalla ${label}`}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-            sandbox={
-              label === 2
-                ? "allow-forms allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-                : undefined
-            }
+          <div
+            onPointerDownCapture={(event) => {
+              event.stopPropagation();
+              onFocus();
+            }}
             style={{
-              border: "0",
-              display: "block",
               width: `${embedWidth}px`,
-              height: `${embedHeight}px`,
               background: "#02030a",
               pointerEvents: screenPointerEvents,
             }}
-          />
-        </div>
-      </Html>
+          >
+            <iframe
+              key={embedUrl}
+              src={embedUrl}
+              width={embedWidth}
+              height={embedHeight}
+              title={`Pantalla ${label}`}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              sandbox={
+                label === 2
+                  ? "allow-forms allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+                  : undefined
+              }
+              style={{
+                border: "0",
+                display: "block",
+                width: `${embedWidth}px`,
+                height: `${embedHeight}px`,
+                background: "#02030a",
+                pointerEvents: screenPointerEvents,
+              }}
+            />
+          </div>
+        </Html>
+      ) : (
+        <HoloScreenGltfViewport
+          url={embedUrl}
+          width={w}
+          height={h}
+          screenPointerEvents={screenPointerEvents}
+          onFocus={onFocus}
+        />
+      )}
       <Html
         transform
         position={[0, -((h / 2 + 0.35) * 1.1), 0.05]}
@@ -847,12 +964,19 @@ export default function NeonRoom() {
   };
 
   const applyScreenLinks = () => {
-    const next = screenUrlDrafts.map((url, index) => url.trim() || WALL_SCREEN_EMBEDS[index]) as LobbyScreenUrls;
+    const next = screenUrlDrafts.map((url, index) => normalizeLobbyScreenUrl(url, index)) as LobbyScreenUrls;
     setScreenUrls(next);
     setScreenUrlDrafts(next);
     persistLobbyScreenUrls(next);
     setScreenLinksOpen(false);
   };
+
+  useEffect(() => {
+    const screenFourUrl = screenUrls[3];
+    if (isGlbSource(screenFourUrl)) {
+      useGLTF.preload(screenFourUrl);
+    }
+  }, [screenUrls]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -1102,7 +1226,7 @@ export default function NeonRoom() {
                           return next;
                         });
                       }}
-                      placeholder="https://"
+                      placeholder={index === 3 ? "https://.../modelo.glb" : "https://"}
                       className="h-7 w-full rounded-lg border border-cyan-400/35 bg-black/40 px-2 text-[11px] text-cyan-50 outline-none transition placeholder:text-cyan-100/35 focus:border-cyan-300"
                     />
                   </label>
@@ -1152,29 +1276,6 @@ export default function NeonRoom() {
             </p>
             <p className="hidden text-[11px] uppercase tracking-[0.24em] text-cyan-200/55 sm:block">
               Controles en pausa
-            </p>
-          </div>
-        </div>
-      )}
-
-      {focusedScreen !== null && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 border-t border-cyan-300/30 bg-gradient-to-t from-black/94 via-black/82 to-black/40 pb-[max(0.85rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-20px_56px_-26px_rgba(34,211,238,0.55)] backdrop-blur-xl">
-          <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-2 px-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-            <div className="flex items-center gap-3">
-              <span className="rounded-full border border-cyan-300/35 bg-cyan-400/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-100">
-                Pantalla {focusedScreen}
-              </span>
-              <p className="text-sm font-medium text-white/90">Modo interacción activo</p>
-            </div>
-            <p className="text-center text-xs text-cyan-50/80 sm:flex-1 sm:text-sm">
-              Solo esta pantalla recibe clics y teclado
-            </p>
-            <p className="text-xs text-white/65">
-              Pulsa{" "}
-              <span className="rounded-md border border-white/15 bg-white/10 px-1.5 py-0.5 font-mono text-[11px] text-cyan-100">
-                ESC
-              </span>{" "}
-              para salir de la pantalla y volver a moverte
             </p>
           </div>
         </div>
