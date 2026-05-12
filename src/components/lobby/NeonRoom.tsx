@@ -17,6 +17,8 @@ const PLAYER_RADIUS = 0.4;
 const MOVE_SPEED = 4.5;
 
 const WALL_COLOR = "#EAECEE";
+const LOBBY_SCREEN_HTML_Z_INDEX: [number, number] = [10000, 0];
+const LOBBY_SCREEN_BACKGROUND_Z_INDEX: [number, number] = [40, 0];
 
 const WALL_SCREEN_EMBEDS = [
   "https://onnivers.com",
@@ -24,6 +26,36 @@ const WALL_SCREEN_EMBEDS = [
   "https://www.youtube.com/embed/kJQP7kiw5Fk",
   "https://www.youtube.com/embed/RgKAFK5djSk",
 ] as const;
+
+type LobbyScreenUrls = [string, string, string, string];
+
+const LOBBY_SCREEN_URLS_STORAGE_KEY = "onniverso.lobby.screen_urls";
+
+function defaultLobbyScreenUrls(): LobbyScreenUrls {
+  return [...WALL_SCREEN_EMBEDS];
+}
+
+function readStoredLobbyScreenUrls(): LobbyScreenUrls | null {
+  try {
+    const raw = localStorage.getItem(LOBBY_SCREEN_URLS_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed) || parsed.length !== 4 || !parsed.every((value) => typeof value === "string")) {
+      return null;
+    }
+    return parsed as LobbyScreenUrls;
+  } catch {
+    return null;
+  }
+}
+
+function persistLobbyScreenUrls(urls: LobbyScreenUrls) {
+  try {
+    localStorage.setItem(LOBBY_SCREEN_URLS_STORAGE_KEY, JSON.stringify(urls));
+  } catch {
+    /* ignore */
+  }
+}
 
 const CENTER_SCREEN_EMBED_URL = "https://onnivers.com/nuestras-salas";
 
@@ -119,7 +151,7 @@ function HoloScreen({
   focused,
   interactionMode,
   onFocus,
-  onExitFocus,
+  uiOverlayOpen = false,
   width = 8,
   height = 4.5,
   frameColor = "#00ffff",
@@ -131,26 +163,18 @@ function HoloScreen({
   focused: boolean;
   interactionMode: boolean;
   onFocus: () => void;
-  onExitFocus: () => void;
+  uiOverlayOpen?: boolean;
   width?: number;
   height?: number;
   frameColor?: string;
 }) {
-  const [draftUrl, setDraftUrl] = useState(embedUrl);
-  const [activeUrl, setActiveUrl] = useState(embedUrl);
   const w = width;
   const h = height;
   const embedWidth = 800;
   const embedHeight = Math.round((embedWidth * h) / w);
   const htmlScale = (w / embedWidth) * 36.225;
-
-  const loadUrl = () => {
-    const trimmed = draftUrl.trim();
-    if (!trimmed) return;
-    setActiveUrl(trimmed);
-  };
-  const showUrlBar = label === 1;
-  const screenPointerEvents = !interactionMode || focused ? "auto" : "none";
+  const htmlZIndexRange = uiOverlayOpen ? LOBBY_SCREEN_BACKGROUND_Z_INDEX : LOBBY_SCREEN_HTML_Z_INDEX;
+  const screenPointerEvents = uiOverlayOpen ? "none" : !interactionMode || focused ? "auto" : "none";
 
   return (
     <group position={position} rotation={rotation}>
@@ -158,7 +182,7 @@ function HoloScreen({
         transform
         position={[0, 0, 0.05]}
         scale={htmlScale}
-        zIndexRange={[10000, 0]}
+        zIndexRange={htmlZIndexRange}
         style={{ pointerEvents: screenPointerEvents }}
       >
         <div
@@ -172,70 +196,9 @@ function HoloScreen({
             pointerEvents: screenPointerEvents,
           }}
         >
-          {showUrlBar ? (
-            <div
-              style={{
-                display: "flex",
-                gap: "8px",
-                alignItems: "center",
-                padding: "8px",
-                borderBottom: "1px solid rgba(0, 255, 255, 0.25)",
-                background: "rgba(0, 0, 0, 0.72)",
-              }}
-            >
-              <input
-                type="url"
-                value={draftUrl}
-                onChange={(event) => setDraftUrl(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    loadUrl();
-                    return;
-                  }
-                  if (event.key === "Escape") {
-                    event.preventDefault();
-                    onExitFocus();
-                  }
-                }}
-                onFocus={onFocus}
-                placeholder="Pega la URL para esta pantalla"
-                aria-label={`URL de la pantalla ${label}`}
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  height: "34px",
-                  border: "1px solid rgba(0, 255, 255, 0.35)",
-                  borderRadius: "8px",
-                  background: "rgba(2, 6, 14, 0.92)",
-                  color: "#e6fbff",
-                  padding: "0 10px",
-                  fontSize: "13px",
-                  outline: "none",
-                }}
-              />
-              <button
-                type="button"
-                onClick={loadUrl}
-                style={{
-                  height: "34px",
-                  border: "1px solid rgba(0, 255, 255, 0.45)",
-                  borderRadius: "8px",
-                  background: "rgba(0, 255, 255, 0.12)",
-                  color: "#d9fdff",
-                  padding: "0 12px",
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Cargar
-              </button>
-            </div>
-          ) : null}
           <iframe
-            src={activeUrl}
+            key={embedUrl}
+            src={embedUrl}
             width={embedWidth}
             height={embedHeight}
             title={`Pantalla ${label}`}
@@ -259,18 +222,21 @@ function HoloScreen({
       </Html>
       <Html
         transform
-        position={[0, -(h / 2 + 0.35), 0.05]}
-        scale={htmlScale * 0.35}
-        zIndexRange={[10000, 0]}
+        position={[0, -((h / 2 + 0.35) * 1.1), 0.05]}
+        scale={htmlScale * 1.575}
+        zIndexRange={htmlZIndexRange}
         style={{ pointerEvents: "none" }}
       >
         <div
           style={{
-            color: "#ffffff",
-            fontSize: "28px",
-            fontWeight: 700,
+            color: "#020617",
+            fontSize: "86px",
+            fontWeight: 900,
             lineHeight: 1,
             textAlign: "center",
+            letterSpacing: "0.02em",
+            textShadow: "0 0 18px rgba(255,255,255,0.65), 0 2px 10px rgba(15,23,42,0.35)",
+            WebkitTextStroke: "2px rgba(255,255,255,0.75)",
           }}
         >
           {label}
@@ -301,11 +267,13 @@ function HoloScreen({
 function HoloScreens({
   focusedScreen,
   onFocusScreen,
-  onExitScreenFocus,
+  screenUrls,
+  screenLinksOpen,
 }: {
   focusedScreen: number | null;
   onFocusScreen: (label: number) => void;
-  onExitScreenFocus: () => void;
+  screenUrls: LobbyScreenUrls;
+  screenLinksOpen: boolean;
 }) {
   const half = ROOM_SIZE / 2;
   const y = WALL_HEIGHT / 2;
@@ -318,36 +286,38 @@ function HoloScreens({
     label,
     focused: focusedScreen === label,
     interactionMode,
+    uiOverlayOpen: screenLinksOpen,
     onFocus: () => onFocusScreen(label),
-    onExitFocus: onExitScreenFocus,
   });
 
   return (
     <>
       {/* Back wall (-Z) */}
       <HoloScreen
-        {...screenProps(1, WALL_SCREEN_EMBEDS[0], [0, y, -half + off], [0, 0, 0])}
+        {...screenProps(1, screenUrls[0], [0, y, -half + off], [0, 0, 0])}
       />
       {/* Front wall (+Z) */}
       <HoloScreen
-        {...screenProps(2, WALL_SCREEN_EMBEDS[1], [0, y, half - off], [0, Math.PI, 0])}
+        {...screenProps(2, screenUrls[1], [0, y, half - off], [0, Math.PI, 0])}
       />
       {/* Left wall (-X) */}
       <HoloScreen
-        {...screenProps(3, WALL_SCREEN_EMBEDS[2], [-half + off, y, 0], [0, Math.PI / 2, 0])}
+        {...screenProps(3, screenUrls[2], [-half + off, y, 0], [0, Math.PI / 2, 0])}
       />
       {/* Right wall (+X) */}
       <HoloScreen
-        {...screenProps(4, WALL_SCREEN_EMBEDS[3], [half - off, y, 0], [0, -Math.PI / 2, 0])}
+        {...screenProps(4, screenUrls[3], [half - off, y, 0], [0, -Math.PI / 2, 0])}
       />
     </>
   );
 }
 
-function ForcedFloatingVideoScreen() {
+function ForcedFloatingVideoScreen({ screenLinksOpen }: { screenLinksOpen: boolean }) {
+  const htmlZIndexRange = screenLinksOpen ? LOBBY_SCREEN_BACKGROUND_Z_INDEX : LOBBY_SCREEN_HTML_Z_INDEX;
+
   return (
     <group position={[0, 2.25, 0]}>
-      <Html transform position={[0, 0, 0]} scale={0.5} zIndexRange={[10000, 0]}>
+      <Html transform position={[0, 0, 0]} scale={0.5} zIndexRange={htmlZIndexRange}>
         <iframe
           src={CENTER_SCREEN_EMBED_URL}
           width={1024}
@@ -359,7 +329,7 @@ function ForcedFloatingVideoScreen() {
             border: "0",
             display: "block",
             background: "#02030a",
-            pointerEvents: "auto",
+            pointerEvents: screenLinksOpen ? "none" : "auto",
           }}
         />
       </Html>
@@ -752,7 +722,7 @@ function MobileTouchLook({ enabled }: { enabled: boolean }) {
       if (!(target instanceof Element)) return false;
       return Boolean(
         target.closest(
-          "[data-lobby-move-pad], [data-lobby-ui], button, a, input, textarea, select, label, [role='button']",
+          "[data-lobby-move-pad], [data-lobby-ui], [data-lobby-screen-links], button, a, input, textarea, select, label, [role='button']",
         ),
       );
     };
@@ -822,6 +792,13 @@ export default function NeonRoom() {
   const [mixedRealityEnabled, setMixedRealityEnabled] = useState(false);
   const [mixedRealityLoading, setMixedRealityLoading] = useState(false);
   const [mixedRealityError, setMixedRealityError] = useState<string | null>(null);
+  const [screenUrls, setScreenUrls] = useState<LobbyScreenUrls>(
+    () => readStoredLobbyScreenUrls() ?? defaultLobbyScreenUrls(),
+  );
+  const [screenLinksOpen, setScreenLinksOpen] = useState(false);
+  const [screenUrlDrafts, setScreenUrlDrafts] = useState<LobbyScreenUrls>(
+    () => readStoredLobbyScreenUrls() ?? defaultLobbyScreenUrls(),
+  );
   const cameraVideoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const focusedScreenRef = useRef<number | null>(null);
@@ -864,12 +841,17 @@ export default function NeonRoom() {
     setLocked(false);
   };
 
-  const exitScreenFocus = () => {
-    setFocusedScreen(null);
-    setEscapeBarVisible(true);
-    if (document.pointerLockElement) {
-      document.exitPointerLock();
-    }
+  const openScreenLinksPanel = () => {
+    setScreenUrlDrafts(screenUrls);
+    setScreenLinksOpen(true);
+  };
+
+  const applyScreenLinks = () => {
+    const next = screenUrlDrafts.map((url, index) => url.trim() || WALL_SCREEN_EMBEDS[index]) as LobbyScreenUrls;
+    setScreenUrls(next);
+    setScreenUrlDrafts(next);
+    persistLobbyScreenUrls(next);
+    setScreenLinksOpen(false);
   };
 
   useEffect(() => {
@@ -969,27 +951,32 @@ export default function NeonRoom() {
         type="button"
         data-lobby-ui
         onClick={() => navigate("/inicio")}
-        className="pointer-events-auto fixed left-4 top-4 z-20 inline-flex items-center gap-2 rounded-full border border-cyan-300/40 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-100 shadow-[0_0_24px_-8px_rgba(34,211,238,0.75)] backdrop-blur-md transition hover:bg-cyan-500/20"
+        aria-label="Volver al perfil"
+        className="pointer-events-auto fixed left-4 top-4 z-20 inline-flex h-11 w-11 items-center justify-center rounded-full border border-cyan-400/60 bg-slate-950/95 text-cyan-200 shadow-[0_0_28px_-4px_rgba(34,211,238,0.95),inset_0_0_18px_-10px_rgba(34,211,238,0.55)] backdrop-blur-md transition hover:border-cyan-300 hover:bg-slate-900 hover:text-white hover:shadow-[0_0_34px_-2px_rgba(34,211,238,1)]"
         style={{
           top: "max(1rem, env(safe-area-inset-top))",
           left: "max(1rem, env(safe-area-inset-left))",
         }}
       >
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        Volver al perfil
+        <ArrowLeft className="h-5 w-5" aria-hidden />
       </button>
       <button
         type="button"
         data-lobby-ui
         onClick={() => void toggleMixedReality()}
         disabled={mixedRealityLoading}
-        className="pointer-events-auto fixed right-4 top-4 z-20 max-w-[min(92vw,18rem)] rounded-full border border-cyan-300/40 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-100 shadow-[0_0_24px_-8px_rgba(34,211,238,0.75)] backdrop-blur-md transition hover:bg-cyan-500/20 disabled:cursor-wait disabled:opacity-70"
+        aria-label={mixedRealityEnabled ? "Desactivar modo realidad mixta" : "Activar modo realidad mixta"}
+        className={`pointer-events-auto fixed right-4 top-4 z-20 inline-flex h-11 w-11 items-center justify-center rounded-full border bg-slate-950/95 font-display text-xs font-bold tracking-[0.18em] shadow-[0_0_28px_-4px_rgba(34,211,238,0.95),inset_0_0_18px_-10px_rgba(34,211,238,0.55)] backdrop-blur-md transition hover:bg-slate-900 hover:shadow-[0_0_34px_-2px_rgba(34,211,238,1)] disabled:cursor-wait disabled:opacity-70 ${
+          mixedRealityEnabled
+            ? "border-violet-400/70 text-violet-200 hover:border-violet-300 hover:text-white"
+            : "border-cyan-400/60 text-cyan-200 hover:border-cyan-300 hover:text-white"
+        }`}
         style={{
           top: "max(1rem, env(safe-area-inset-top))",
           right: "max(1rem, env(safe-area-inset-right))",
         }}
       >
-        {mixedRealityEnabled ? "Desactivar Modo Realidad Mixta" : "Activar Modo Realidad Mixta"}
+        RM
       </button>
       {mixedRealityError && (
         <p
@@ -1034,9 +1021,10 @@ export default function NeonRoom() {
           <HoloScreens
             focusedScreen={focusedScreen}
             onFocusScreen={focusScreen}
-            onExitScreenFocus={exitScreenFocus}
+            screenUrls={screenUrls}
+            screenLinksOpen={screenLinksOpen}
           />
-          <ForcedFloatingVideoScreen />
+          <ForcedFloatingVideoScreen screenLinksOpen={screenLinksOpen} />
           <NeonAccents />
           <LoungeSet />
           <LoungeSpotlight />
@@ -1060,6 +1048,88 @@ export default function NeonRoom() {
         enabled={isMobileTouch && focusedScreen === null}
         inputRef={mobileMoveInput}
       />
+
+      {focusedScreen === null && (
+        <div className="pointer-events-none fixed bottom-0 right-0 z-[12000] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]">
+          {!screenLinksOpen ? (
+            <button
+              type="button"
+              data-lobby-ui
+              onClick={openScreenLinksPanel}
+              aria-label="Configurar URLs de las pantallas"
+              className="pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-cyan-400/60 bg-slate-950/95 font-display text-[10px] font-bold tracking-[0.12em] text-cyan-200 shadow-[0_0_28px_-4px_rgba(34,211,238,0.95),inset_0_0_18px_-10px_rgba(34,211,238,0.55)] backdrop-blur-md transition hover:border-cyan-300 hover:bg-slate-900 hover:text-white hover:shadow-[0_0_34px_-2px_rgba(34,211,238,1)]"
+            >
+              URLs
+            </button>
+          ) : (
+            <div
+              data-lobby-screen-links
+              data-lobby-ui
+              className="pointer-events-auto w-[min(84vw,15.5rem)] rounded-[1.35rem] border-2 border-cyan-300/55 bg-slate-950/95 p-2.5 shadow-[0_14px_34px_-16px_rgba(34,211,238,0.95),inset_0_0_0_1px_rgba(255,255,255,0.06)] backdrop-blur-xl"
+            >
+              <div className="mb-2 flex items-center gap-2">
+                <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-cyan-200/70 bg-gradient-to-br from-cyan-400/25 via-slate-900 to-slate-950 shadow-[0_0_16px_-4px_rgba(34,211,238,0.95)]">
+                  <span className="h-3.5 w-3.5 rounded-full border border-cyan-100/70 bg-cyan-200/80 shadow-[0_0_10px_rgba(34,211,238,0.9)]" />
+                  <span className="pointer-events-none absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-white/80" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-display text-[10px] font-bold uppercase tracking-[0.14em] text-cyan-100">URLs</p>
+                  <p className="truncate text-[9px] text-cyan-100/55">Sticker de pantallas</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setScreenLinksOpen(false)}
+                  className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-cyan-400/40 text-sm text-cyan-100 transition hover:bg-cyan-500/10"
+                  aria-label="Cerrar configuracion de pantallas"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="space-y-1.5">
+                {screenUrlDrafts.map((url, index) => (
+                  <label key={index} className="block space-y-0.5">
+                    <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-cyan-200/90">
+                      Pantalla {index + 1}
+                    </span>
+                    <input
+                      type="url"
+                      value={url}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        setScreenUrlDrafts((current) => {
+                          const next = [...current] as LobbyScreenUrls;
+                          next[index] = value;
+                          return next;
+                        });
+                      }}
+                      placeholder="https://"
+                      className="h-7 w-full rounded-lg border border-cyan-400/35 bg-black/40 px-2 text-[11px] text-cyan-50 outline-none transition placeholder:text-cyan-100/35 focus:border-cyan-300"
+                    />
+                  </label>
+                ))}
+              </div>
+              <div className="mt-2 flex justify-end gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScreenUrlDrafts(defaultLobbyScreenUrls());
+                  }}
+                  className="rounded-full border border-cyan-400/35 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-cyan-100 transition hover:bg-cyan-500/10"
+                >
+                  Restaurar
+                </button>
+                <button
+                  type="button"
+                  onClick={applyScreenLinks}
+                  className="rounded-full border border-cyan-400/60 bg-cyan-500/15 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-cyan-50 transition hover:bg-cyan-500/25"
+                >
+                  Aplicar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {escapeBarVisible && focusedScreen === null && (
         <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 border-t border-cyan-300/20 bg-gradient-to-t from-black/92 via-black/78 to-black/35 pb-[max(0.85rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-18px_48px_-24px_rgba(34,211,238,0.45)] backdrop-blur-xl">
