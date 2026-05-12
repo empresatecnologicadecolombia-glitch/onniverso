@@ -20,7 +20,7 @@ const WALL_COLOR = "#EAECEE";
 
 const WALL_SCREEN_EMBEDS = [
   "https://onnivers.com",
-  "https://onnivers.com",
+  "https://web.whatsapp.com/",
   "https://www.youtube.com/embed/kJQP7kiw5Fk",
   "https://www.youtube.com/embed/RgKAFK5djSk",
 ] as const;
