@@ -752,7 +752,7 @@ function MobileTouchLook({ enabled }: { enabled: boolean }) {
       if (!(target instanceof Element)) return false;
       return Boolean(
         target.closest(
-          "[data-lobby-move-pad], button, a, input, textarea, select, label, [role='button']",
+          "[data-lobby-move-pad], [data-lobby-ui], button, a, input, textarea, select, label, [role='button']",
         ),
       );
     };
@@ -768,23 +768,6 @@ function MobileTouchLook({ enabled }: { enabled: boolean }) {
       );
     };
 
-    const onPointerDown = (event: PointerEvent) => {
-      if (activePointerId.current !== null || shouldIgnoreTarget(event.target)) return;
-      activePointerId.current = event.pointerId;
-      lastPosition.current = { x: event.clientX, y: event.clientY };
-      canvas.setPointerCapture(event.pointerId);
-      event.preventDefault();
-    };
-
-    const onPointerMove = (event: PointerEvent) => {
-      if (event.pointerId !== activePointerId.current || !lastPosition.current) return;
-      const dx = event.clientX - lastPosition.current.x;
-      const dy = event.clientY - lastPosition.current.y;
-      lastPosition.current = { x: event.clientX, y: event.clientY };
-      applyDelta(dx, dy);
-      event.preventDefault();
-    };
-
     const endPointer = (event: PointerEvent) => {
       if (event.pointerId !== activePointerId.current) return;
       if (canvas.hasPointerCapture(event.pointerId)) {
@@ -794,16 +777,35 @@ function MobileTouchLook({ enabled }: { enabled: boolean }) {
       lastPosition.current = null;
     };
 
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.pointerType === "mouse") return;
+      if (activePointerId.current !== null || shouldIgnoreTarget(event.target)) return;
+      activePointerId.current = event.pointerId;
+      lastPosition.current = { x: event.clientX, y: event.clientY };
+      canvas.setPointerCapture(event.pointerId);
+      event.preventDefault();
+    };
+
+    const onPointerMove = (event: PointerEvent) => {
+      if (event.pointerType === "mouse") return;
+      if (event.pointerId !== activePointerId.current || !lastPosition.current) return;
+      const dx = event.clientX - lastPosition.current.x;
+      const dy = event.clientY - lastPosition.current.y;
+      lastPosition.current = { x: event.clientX, y: event.clientY };
+      applyDelta(dx, dy);
+      event.preventDefault();
+    };
+
     canvas.addEventListener("pointerdown", onPointerDown);
-    canvas.addEventListener("pointermove", onPointerMove);
-    canvas.addEventListener("pointerup", endPointer);
-    canvas.addEventListener("pointercancel", endPointer);
+    document.addEventListener("pointermove", onPointerMove);
+    document.addEventListener("pointerup", endPointer);
+    document.addEventListener("pointercancel", endPointer);
 
     return () => {
       canvas.removeEventListener("pointerdown", onPointerDown);
-      canvas.removeEventListener("pointermove", onPointerMove);
-      canvas.removeEventListener("pointerup", endPointer);
-      canvas.removeEventListener("pointercancel", endPointer);
+      document.removeEventListener("pointermove", onPointerMove);
+      document.removeEventListener("pointerup", endPointer);
+      document.removeEventListener("pointercancel", endPointer);
     };
   }, [camera, enabled, gl]);
 
@@ -965,6 +967,7 @@ export default function NeonRoom() {
       />
       <button
         type="button"
+        data-lobby-ui
         onClick={() => navigate("/inicio")}
         className="pointer-events-auto fixed left-4 top-4 z-20 inline-flex items-center gap-2 rounded-full border border-cyan-300/40 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-100 shadow-[0_0_24px_-8px_rgba(34,211,238,0.75)] backdrop-blur-md transition hover:bg-cyan-500/20"
         style={{
@@ -977,6 +980,7 @@ export default function NeonRoom() {
       </button>
       <button
         type="button"
+        data-lobby-ui
         onClick={() => void toggleMixedReality()}
         disabled={mixedRealityLoading}
         className="pointer-events-auto fixed right-4 top-4 z-20 max-w-[min(92vw,18rem)] rounded-full border border-cyan-300/40 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-100 shadow-[0_0_24px_-8px_rgba(34,211,238,0.75)] backdrop-blur-md transition hover:bg-cyan-500/20 disabled:cursor-wait disabled:opacity-70"
@@ -1041,7 +1045,7 @@ export default function NeonRoom() {
         <FirstPersonController enabled={focusedScreen === null} mobileInputRef={mobileMoveInput} />
         <MobileTouchLook enabled={isMobileTouch && focusedScreen === null} />
 
-        {focusedScreen === null && !isMobileTouch && (
+        {focusedScreen === null && (
           <PointerLockControls
             onLock={() => {
               setLocked(true);
@@ -1065,8 +1069,16 @@ export default function NeonRoom() {
               <p className="text-sm font-semibold tracking-wide text-white">Pearl Room</p>
             </div>
             <p className="text-center text-xs text-white/70 sm:flex-1 sm:text-sm">
-              Pulsa <span className="font-mono text-cyan-100/90">ESC</span> otra vez para ocultar esta barra y seguir
-              moviéndote · <span className="font-mono text-cyan-100/90">WASD</span> mover · ratón mirar
+              {isMobileTouch ? (
+                <>
+                  Arrastra con el dedo para mirar · toca la escena para usar el ratón · pad izquierdo para moverte
+                </>
+              ) : (
+                <>
+                  Pulsa <span className="font-mono text-cyan-100/90">ESC</span> otra vez para ocultar esta barra y
+                  seguir moviéndote · <span className="font-mono text-cyan-100/90">WASD</span> mover · ratón mirar
+                </>
+              )}
             </p>
             <p className="hidden text-[11px] uppercase tracking-[0.24em] text-cyan-200/55 sm:block">
               Controles en pausa
