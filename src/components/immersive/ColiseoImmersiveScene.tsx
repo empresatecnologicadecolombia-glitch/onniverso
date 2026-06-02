@@ -284,21 +284,23 @@ export default function ColiseoImmersiveScene({
             onFollowingChange={setFollowingViewSync}
           />
         ) : null}
-        {pointerLockEnabled ? (
-          <PointerLockControls
-            onLock={() => {
-              if (Date.now() < suppressPointerLockUntilRef.current || screenInteracting) {
-                document.exitPointerLock();
-                setPointerLocked(false);
-                return;
-              }
-              setPointerLocked(true);
-            }}
-            onUnlock={() => setPointerLocked(false)}
-          />
-        ) : (
-          <ImmersiveOrbitControls enabled={orbitControlsEnabled} />
-        )}
+        {!studentViewLocked ? (
+          pointerLockEnabled ? (
+            <PointerLockControls
+              onLock={() => {
+                if (Date.now() < suppressPointerLockUntilRef.current || screenInteracting) {
+                  document.exitPointerLock();
+                  setPointerLocked(false);
+                  return;
+                }
+                setPointerLocked(true);
+              }}
+              onUnlock={() => setPointerLocked(false)}
+            />
+          ) : (
+            <ImmersiveOrbitControls enabled={orbitControlsEnabled} />
+          )
+        ) : null}
       </Canvas>
 
       {isClassTeacher && classSlug.trim() ? (

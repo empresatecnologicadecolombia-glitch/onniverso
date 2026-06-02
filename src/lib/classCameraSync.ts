@@ -4,8 +4,10 @@ export type ClassCameraSyncStatePayload = {
 };
 
 export type ClassCameraOrientationPayload = {
-  yaw: number;
-  pitch: number;
+  qx: number;
+  qy: number;
+  qz: number;
+  qw: number;
   teacherId: string;
 };
 
@@ -14,4 +16,4 @@ export function buildClassCameraSyncChannel(classSlug: string): string {
   return `class-camera-sync-${slug || "main"}`;
 }
 
-export const CLASS_CAMERA_SYNC_MIN_INTERVAL_MS = 50;
+export const CLASS_CAMERA_SYNC_MIN_INTERVAL_MS = 40;

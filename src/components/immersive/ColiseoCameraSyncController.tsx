@@ -29,8 +29,41 @@ export default function ColiseoCameraSyncController({
   const { camera } = useThree();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const lastSentAtRef = useRef(0);
-  const remoteOrientationRef = useRef({ yaw: 0, pitch: 0 });
+  const remoteQuaternionRef = useRef(new THREE.Quaternion());
+  const hasRemoteQuatRef = useRef(false);
   const selfUserIdRef = useRef("");
+  const viewSyncEnabledRef = useRef(viewSyncEnabled);
+
+  useEffect(() => {
+    viewSyncEnabledRef.current = viewSyncEnabled;
+  }, [viewSyncEnabled]);
+
+  const sendOrientation = (channel: ReturnType<typeof supabase.channel>, senderId: string) => {
+    void channel.send({
+      type: "broadcast",
+      event: "view-orientation",
+      payload: {
+        qx: camera.quaternion.x,
+        qy: camera.quaternion.y,
+        qz: camera.quaternion.z,
+        qw: camera.quaternion.w,
+        teacherId: senderId,
+      } satisfies ClassCameraOrientationPayload,
+    });
+  };
+
+  const sendSyncState = (
+    channel: ReturnType<typeof supabase.channel>,
+    enabled: boolean,
+    senderId: string,
+  ) => {
+    void channel.send({
+      type: "broadcast",
+      event: "view-sync-state",
+      payload: { enabled, teacherId: senderId } satisfies ClassCameraSyncStatePayload,
+    });
+    if (enabled) sendOrientation(channel, senderId);
+  };
 
   useEffect(() => {
     if (!classSlug.trim()) return;
@@ -53,42 +86,35 @@ export default function ColiseoCameraSyncController({
           if (!command || command.teacherId === selfUserIdRef.current) return;
           if (isTeacher) return;
           onFollowingChange(command.enabled);
+          if (!command.enabled) hasRemoteQuatRef.current = false;
         })
         .on("broadcast", { event: "view-orientation" }, ({ payload }) => {
           const command = payload as ClassCameraOrientationPayload | null;
           if (!command || command.teacherId === selfUserIdRef.current) return;
           if (isTeacher) return;
-          remoteOrientationRef.current = { yaw: command.yaw, pitch: command.pitch };
+          remoteQuaternionRef.current.set(command.qx, command.qy, command.qz, command.qw);
+          hasRemoteQuatRef.current = true;
         })
-        .subscribe();
+        .subscribe((status) => {
+          if (status !== "SUBSCRIBED" || !channel || cancelled) return;
+          if (isTeacher && teacherId) {
+            sendSyncState(channel, viewSyncEnabledRef.current, teacherId);
+          }
+        });
     };
 
     void setup();
     return () => {
       cancelled = true;
       channelRef.current = null;
+      hasRemoteQuatRef.current = false;
       if (channel) void supabase.removeChannel(channel);
     };
-  }, [classSlug, isTeacher, onFollowingChange]);
+  }, [classSlug, isTeacher, onFollowingChange, teacherId]);
 
   useEffect(() => {
     if (!isTeacher || !channelRef.current || !teacherId) return;
-    void channelRef.current.send({
-      type: "broadcast",
-      event: "view-sync-state",
-      payload: { enabled: viewSyncEnabled, teacherId } satisfies ClassCameraSyncStatePayload,
-    });
-    if (viewSyncEnabled) {
-      void channelRef.current.send({
-        type: "broadcast",
-        event: "view-orientation",
-        payload: {
-          yaw: camera.rotation.y,
-          pitch: camera.rotation.x,
-          teacherId,
-        } satisfies ClassCameraOrientationPayload,
-      });
-    }
+    sendSyncState(channelRef.current, viewSyncEnabled, teacherId);
   }, [camera, isTeacher, teacherId, viewSyncEnabled]);
 
   useFrame(() => {
@@ -99,28 +125,15 @@ export default function ColiseoCameraSyncController({
       const now = performance.now();
       if (now - lastSentAtRef.current < CLASS_CAMERA_SYNC_MIN_INTERVAL_MS) return;
       lastSentAtRef.current = now;
-      void channel.send({
-        type: "broadcast",
-        event: "view-orientation",
-        payload: {
-          yaw: camera.rotation.y,
-          pitch: camera.rotation.x,
-          teacherId,
-        } satisfies ClassCameraOrientationPayload,
-      });
+      sendOrientation(channel, teacherId);
       return;
     }
 
-    if (!isTeacher && followingViewSync) {
-      const target = remoteOrientationRef.current;
-      camera.rotation.y = THREE.MathUtils.lerp(camera.rotation.y, target.yaw, 0.4);
-      camera.rotation.x = THREE.MathUtils.lerp(
-        camera.rotation.x,
-        THREE.MathUtils.clamp(target.pitch, -1.45, 1.45),
-        0.4,
-      );
+    if (!isTeacher && followingViewSync && hasRemoteQuatRef.current) {
+      camera.quaternion.slerp(remoteQuaternionRef.current, 0.42);
+      camera.updateMatrixWorld();
     }
-  });
+  }, 1);
 
   return null;
 }
