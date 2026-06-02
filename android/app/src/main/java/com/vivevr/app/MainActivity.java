@@ -600,12 +600,6 @@ public class MainActivity extends BridgeActivity {
       activity.runOnUiThread(() -> activity.openColiceoActivity());
     }
 
-    /** Coliseo 360° sin pantallas ({@code window.AndroidBridge.openColiseoBareVR()}). */
-    @JavascriptInterface
-    public void openColiseoBareVR() {
-      activity.runOnUiThread(() -> activity.openColiceoBareActivity());
-    }
-
     /** Compat: {@code window.AndroidBridge.openColiseoDirect(url, action)}. */
     @JavascriptInterface
     public void openColiseoDirect(String url, String action) {
@@ -792,12 +786,6 @@ public class MainActivity extends BridgeActivity {
       activity.runOnUiThread(() -> activity.openColiceoActivity());
     }
 
-    /** Coliseo 360° sin pantallas ({@code window.Android.openColiseoBareVR()}). */
-    @JavascriptInterface
-    public void openColiseoBareVR() {
-      activity.runOnUiThread(() -> activity.openColiceoBareActivity());
-    }
-
     /** Compat: {@code window.Android.openColiseoDirect(url, action)}. */
     @JavascriptInterface
     public void openColiseoDirect(String url, String action) {
@@ -967,32 +955,12 @@ public class MainActivity extends BridgeActivity {
     }
   }
 
-  /** Coliseo 360° sin pantallas — misma {@link ColiceoActivity}, ruta bare. */
-  void openColiceoBareActivity() {
-    try {
-      Intent intent = new Intent(this, ColiceoActivity.class);
-      intent.putExtra(ColiceoActivity.EXTRA_PAGE_URL, ColiceoActivity.COLOSSEO_BARE_PAGE_URL);
-      intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-      startActivity(intent);
-    } catch (Exception e) {
-      Toast.makeText(
-              this,
-              "Coliseo VR nativo no disponible en esta compilación.",
-              Toast.LENGTH_LONG)
-          .show();
-    }
-  }
-
   /** Bridge legado: abre Coliseo con URL directa ({@code putExtra("url", url)}). */
   void openColiceoActivity(String url) {
     try {
       Intent intent = new Intent(this, ColiceoActivity.class);
       String trimmed = url != null ? url.trim() : "";
-      if (!trimmed.isEmpty() && trimmed.contains("/coliseo")) {
-        intent.putExtra(ColiceoActivity.EXTRA_PAGE_URL, trimmed);
-      } else {
-        intent.putExtra("url", trimmed);
-      }
+      intent.putExtra("url", trimmed);
       intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
       startActivity(intent);
     } catch (Exception e) {

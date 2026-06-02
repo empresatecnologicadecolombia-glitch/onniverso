@@ -28,8 +28,6 @@ import org.json.JSONObject;
 public class ColiceoActivity extends AppCompatActivity {
 
   public static final String COLOSSEO_PAGE_URL = "https://onnivers.com/coliseo";
-  public static final String COLOSSEO_BARE_PAGE_URL = "https://onnivers.com/coliseo-360-puro";
-  public static final String EXTRA_PAGE_URL = "page_url";
 
   private static final String COLOSSEO_BROWSER_DEFAULT_URL = "https://www.youtube.com/";
   private static final String COLOSSEO_BROWSER_DESKTOP_UA =
@@ -40,8 +38,6 @@ public class ColiceoActivity extends AppCompatActivity {
   private WebView coliseoBrowserWebView;
   private String initialColiseoUrl = COLOSSEO_BROWSER_DEFAULT_URL;
   private String initialColiseoPlaybackId = "";
-  private String contentPageUrl = COLOSSEO_PAGE_URL;
-
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -59,7 +55,7 @@ public class ColiceoActivity extends AppCompatActivity {
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     configureContentWebView(contentWebView);
     contentWebView.addJavascriptInterface(new ColiceoJsApi(), "Android");
-    contentWebView.loadUrl(contentPageUrl);
+    contentWebView.loadUrl(COLOSSEO_PAGE_URL);
     root.addView(contentWebView);
 
     float density = getResources().getDisplayMetrics().density;
@@ -85,16 +81,7 @@ public class ColiceoActivity extends AppCompatActivity {
     if (intent == null) {
       return;
     }
-    String pageUrl = intent.getStringExtra(EXTRA_PAGE_URL);
-    if (pageUrl != null && !pageUrl.trim().isEmpty()) {
-      contentPageUrl = pageUrl.trim();
-    }
     String legacyUrl = intent.getStringExtra("url");
-    if ((pageUrl == null || pageUrl.trim().isEmpty())
-        && legacyUrl != null
-        && legacyUrl.contains("/coliseo")) {
-      contentPageUrl = legacyUrl.trim();
-    }
     String streamUrl = intent.getStringExtra(StreamExtras.STREAM_URL);
     String playbackUrl = intent.getStringExtra(StreamExtras.PLAYBACK_URL);
     String playbackId = intent.getStringExtra(StreamExtras.PLAYBACK_ID);

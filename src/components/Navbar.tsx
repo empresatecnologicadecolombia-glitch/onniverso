@@ -23,17 +23,17 @@ import { APP_APK_DOWNLOAD_URL } from "@/config/appDownload";
 import { LOCKED_NAVBAR_HEIGHT_CLASS, LOCKED_NAVBAR_MENU_OFFSET_CLASS } from "@/config/lockedHomeLayout";
 import { isDesktopWebBrowser } from "@/lib/deviceDetection";
 import { invokeOpenGalleryDirect } from "@/lib/galleryOpenDirect";
-import { GALERIA_AULA_SECTION_HREF } from "@/lib/aulaVirtual";
+import { GALERIA_AULA_SECTION_PATH } from "@/lib/aulaVirtual";
 import { invokeAndroidOnVrClick } from "@/lib/androidLobbyReturn";
 import { isMobileUserAgent } from "@/lib/deviceDetection";
 import { onOpCommand } from "@/lib/opCommandBus";
 
 const NAV_ITEMS: { label: string; path: string; icon: LucideIcon }[] = [
   { label: "ONNIVERSO", path: "/inicio-2", icon: Sparkles },
+  /** Sección galería + tarjeta Aula (solo navegación web; no abre lobby nativo). */
+  { label: "AULA VIRTUAL", path: GALERIA_AULA_SECTION_PATH, icon: Box },
   { label: "CONCIERTOS LIVE", path: "/nuestras-salas", icon: Radio },
   { label: "CONTACTOS", path: "/comunidad", icon: MessageCircle },
-  /** Sección galería + tarjeta Aula (solo navegación web; no abre lobby nativo). */
-  { label: "AULA VIRTUAL", path: GALERIA_AULA_SECTION_HREF, icon: Box },
   { label: "TIENDA", path: "/tienda", icon: ShoppingBag },
   { label: "QUIENES SOMOS", path: "/quienes-somos", icon: Building2 },
 ];

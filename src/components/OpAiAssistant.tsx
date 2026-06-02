@@ -89,6 +89,9 @@ export default function OpAiAssistant() {
   const pendingVoiceRef = useRef("");
 
   const hint = useMemo(() => getOpAssistantHint(location.pathname), [location.pathname]);
+  const isColiseoClassScene = location.pathname.startsWith("/coliseo");
+  const isAulaVirtualScene = location.pathname === "/aula-virtual";
+  const shiftOnniRight = isColiseoClassScene || isAulaVirtualScene;
   const showSocialIcons = location.pathname === "/";
   const voiceSupported = typeof getNativeVoiceBridge()?.startListening === "function";
   const voiceUiEnabled = true;
@@ -111,7 +114,7 @@ export default function OpAiAssistant() {
           setMessages((prev) => [...prev, { role: "assistant", text: shortAnswer }]);
           sessionRef.current.lastAnswer = shortAnswer;
 
-          if (wiki && location.pathname.startsWith("/aula-virtual")) {
+          if (wiki && (location.pathname.startsWith("/aula-virtual") || location.pathname.startsWith("/coliseo"))) {
             publishOnniAulaKnowledge({
               title: wiki.title,
               shortText: wiki.shortText,
@@ -299,7 +302,13 @@ export default function OpAiAssistant() {
   };
 
   return (
-    <div className="pointer-events-none fixed bottom-10 left-4 z-[80] w-[min(92vw,380px)] max-sm:flex max-sm:flex-col max-sm:items-start max-sm:gap-2 sm:bottom-8 sm:left-10 sm:block">
+    <div
+      className={`pointer-events-none fixed z-[80] w-[min(92vw,380px)] max-sm:flex max-sm:flex-col max-sm:items-start max-sm:gap-2 sm:block ${
+        shiftOnniRight
+          ? "bottom-10 left-12 max-sm:left-10 sm:bottom-8 sm:left-[4.5rem]"
+          : "bottom-10 left-4 sm:bottom-8 sm:left-10"
+      }`}
+    >
       {!open ? (
         <button
           type="button"

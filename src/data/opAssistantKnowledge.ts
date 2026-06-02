@@ -1,4 +1,4 @@
-import { GALERIA_AULA_CARD_HASH, GALERIA_AULA_SECTION_PATH } from "@/lib/aulaVirtual";
+import { GALERIA_AULA_SECTION_PATH } from "@/lib/aulaVirtual";
 import { buildAgoraChannel } from "@/lib/agoraRooms";
 import { podcastStreamers } from "@/data/podcastStreamers";
 
@@ -128,7 +128,7 @@ export const OP_ROUTES: OpRouteEntry[] = [
   },
   {
     id: "galeria-aula-card",
-    path: `${GALERIA_AULA_SECTION_PATH}#${GALERIA_AULA_CARD_HASH}`,
+    path: GALERIA_AULA_SECTION_PATH,
     label: "Aula Virtual (tarjeta en galería)",
     description: "Sección del menú que lleva a la tarjeta Aula en Galería 3D.",
     aliases: ["aula tarjeta", "tarjeta aula", "aula en galeria", "seccion aula"],

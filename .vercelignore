@@ -14,6 +14,6 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Vídeos locales grandes (gitignore); no subir en CLI deploy
+# Vídeos: Cloudinary / env (no subir MP4 en deploy)
 public/**/*.mp4
 public/*.mp4

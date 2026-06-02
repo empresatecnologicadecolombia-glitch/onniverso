@@ -13,10 +13,7 @@ import { useAulaVirtualCardChoice } from "@/hooks/useAulaVirtualCardChoice";
 import { COLOSSEO_PATH } from "@/data/coliseoScene";
 import { isAndroidLiveStreamChoicePlatform } from "@/lib/liveStreamOpenDirect";
 import { invokeOpenColiceoDirect } from "@/lib/coliseoOpenDirect";
-import {
-  AULA_VIRTUAL_LOBBY_PATH,
-  GALERIA_AULA_CARD_HASH,
-} from "@/lib/aulaVirtual";
+import { AULA_VIRTUAL_LOBBY_PATH, GALERIA_AULA_CARD_HASH } from "@/lib/aulaVirtual";
 
 const Galeria3DPage = () => {
   const location = useLocation();
@@ -61,10 +58,8 @@ const Galeria3DPage = () => {
   };
 
   useEffect(() => {
-    if (location.hash !== `#${GALERIA_AULA_CARD_HASH}`) return;
-    const el = document.getElementById(GALERIA_AULA_CARD_HASH);
-    el?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [location.hash]);
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [location.pathname]);
 
   return (
     <div className="relative min-h-screen w-full max-w-full overflow-x-clip overflow-y-auto bg-background" data-camera-page-root>

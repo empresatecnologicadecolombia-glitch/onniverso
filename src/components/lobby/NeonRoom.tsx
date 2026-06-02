@@ -426,18 +426,6 @@ function HoloScreen({
         <planeGeometry args={[w, h]} />
         <meshBasicMaterial color="#02030a" toneMapped={false} />
       </mesh>
-      {/* Border lines using thin emissive planes */}
-      {[
-        { p: [0, h / 2, 0.01] as [number, number, number], s: [w, 0.04] as [number, number] },
-        { p: [0, -h / 2, 0.01] as [number, number, number], s: [w, 0.04] as [number, number] },
-        { p: [-w / 2, 0, 0.01] as [number, number, number], s: [0.04, h] as [number, number] },
-        { p: [w / 2, 0, 0.01] as [number, number, number], s: [0.04, h] as [number, number] },
-      ].map((b, i) => (
-        <mesh key={i} position={b.p}>
-          <planeGeometry args={b.s} />
-          <meshBasicMaterial color={frameColor} toneMapped={false} />
-        </mesh>
-      ))}
     </group>
   );
 }
@@ -621,7 +609,7 @@ function AulaVirtualOnniWallChat({
   }, [query]);
 
   return (
-    <group position={[0, y - 0.15, half - 0.04]} rotation={[0, Math.PI, 0]}>
+    <group position={[1.15, y - 0.15, half - 0.04]} rotation={[0, Math.PI, 0]}>
       <Html
         transform
         position={[0, 0, 0.03]}
@@ -1509,7 +1497,7 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
         onClick={() => void toggleMixedReality()}
         disabled={mixedRealityLoading}
         aria-label={mixedRealityEnabled ? "Desactivar modo realidad mixta" : "Activar modo realidad mixta"}
-        className={`pointer-events-auto fixed right-4 top-4 z-20 inline-flex h-11 w-11 items-center justify-center rounded-full border bg-slate-950/95 backdrop-blur-md transition hover:bg-slate-900 disabled:cursor-wait disabled:opacity-70 ${
+        className={`pointer-events-auto fixed top-4 z-20 inline-flex h-11 w-11 items-center justify-center rounded-full border bg-slate-950/95 backdrop-blur-md transition hover:bg-slate-900 disabled:cursor-wait disabled:opacity-70 ${
           mixedRealityEnabled
             ? "border-violet-400/70 text-violet-200 hover:border-violet-300 hover:text-white"
             : isAulaVirtual
@@ -1518,16 +1506,21 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
         }`}
         style={{
           top: "max(1rem, env(safe-area-inset-top))",
-          right: "max(1rem, env(safe-area-inset-right))",
+          right: isAulaVirtual
+            ? "max(5.75rem, calc(env(safe-area-inset-right) + 4.75rem))"
+            : "max(3.25rem, calc(env(safe-area-inset-right) + 2.25rem))",
         }}
       >
         <Camera className="h-5 w-5" aria-hidden />
       </button>
       {mixedRealityError && (
         <p
-          className="pointer-events-none fixed right-4 top-20 z-20 max-w-[min(92vw,18rem)] rounded-xl border border-rose-300/35 bg-black/75 px-3 py-2 text-xs text-rose-100 backdrop-blur-md"
+          className="pointer-events-none fixed top-20 z-20 max-w-[min(92vw,18rem)] rounded-xl border border-rose-300/35 bg-black/75 px-3 py-2 text-xs text-rose-100 backdrop-blur-md"
           style={{
             top: "max(4.5rem, calc(env(safe-area-inset-top) + 3.5rem))",
+            right: isAulaVirtual
+              ? "max(5.75rem, calc(env(safe-area-inset-right) + 4.75rem))"
+              : "max(3.25rem, calc(env(safe-area-inset-right) + 2.25rem))",
           }}
           role="alert"
         >

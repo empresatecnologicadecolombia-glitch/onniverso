@@ -171,20 +171,25 @@ const ColiseoPage = () => {
         onClick={() => void toggleCamera()}
         aria-label={cameraEnabled ? "Desactivar camara" : "Activar camara"}
         title={cameraEnabled ? "Camara activa" : "Activar camara"}
-        className={`fixed right-4 top-4 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full border bg-slate-950/95 backdrop-blur-md transition ${
+        className={`fixed top-4 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full border bg-slate-950/95 backdrop-blur-md transition ${
           cameraEnabled
             ? "border-emerald-400/70 text-emerald-200 shadow-[0_0_24px_-6px_rgba(16,185,129,0.85)] hover:border-emerald-300 hover:text-white"
             : "border-cyan-400/60 text-cyan-200 shadow-[0_0_28px_-4px_rgba(34,211,238,0.95),inset_0_0_18px_-10px_rgba(34,211,238,0.55)] hover:border-cyan-300 hover:bg-slate-900 hover:text-white"
         }`}
         style={{
           top: "max(1rem, env(safe-area-inset-top))",
-          right: "max(1rem, env(safe-area-inset-right))",
+          right: "max(5.75rem, calc(env(safe-area-inset-right) + 4.75rem))",
         }}
       >
         {cameraBusy ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden /> : <Camera className="h-5 w-5" aria-hidden />}
       </button>
       {cameraError && (
-        <p className="pointer-events-none fixed right-4 top-16 z-30 max-w-[min(86vw,320px)] rounded-md border border-rose-400/40 bg-black/75 px-3 py-2 text-[11px] text-rose-200 backdrop-blur-sm">
+        <p
+          className="pointer-events-none fixed top-16 z-30 max-w-[min(86vw,320px)] rounded-md border border-rose-400/40 bg-black/75 px-3 py-2 text-[11px] text-rose-200 backdrop-blur-sm"
+          style={{
+            right: "max(5.75rem, calc(env(safe-area-inset-right) + 4.75rem))",
+          }}
+        >
           {cameraError}
         </p>
       )}

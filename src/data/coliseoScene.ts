@@ -3,18 +3,11 @@ export const COLOSSEO_PANORAMA = "/coliseo.jpg";
 
 export const COLOSSEO_PATH = "/coliseo";
 
-/** Mismo panorama 360° que el Coliseo, sin pantallas flotantes (escena independiente). */
-export const COLOSSEO_BARE_PATH = "/coliseo-360-puro";
-
 /** URL absoluta para Cine / Cine Cam (WebView nativo en Android). */
 export const COLOSSEO_PUBLIC_URL = "https://onnivers.com/coliseo";
 
-/** Coliseo 360° sin pantallas — misma app nativa, otra ruta. */
-export const COLOSSEO_BARE_PUBLIC_URL = "https://onnivers.com/coliseo-360-puro";
-
 export const COLOSSEO_SCENE_TITLE = "Coliseo Romano";
 export const COLOSSEO_SCENE_SUBTITLE = "Sala 360°";
-export const COLOSSEO_BARE_SCENE_SUBTITLE = "Escena 360 VR";
 
 /** Página principal de YouTube en el WebView nativo. */
 export const COLOSSEO_HOME_URL = "https://www.youtube.com/";

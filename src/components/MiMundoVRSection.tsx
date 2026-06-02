@@ -13,10 +13,7 @@ import {
 import { Canvas, useFrame, useLoader, useThree, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import { useNavigate } from "react-router-dom";
-import { Glasses, GraduationCap, Radio } from "lucide-react";
-import { COLOSSEO_BARE_PATH } from "@/data/coliseoScene";
-import { ESCENA_360_VR_TITLE } from "@/data/escena360vrVideos";
-import { invokeOpenColiceoBareDirect } from "@/lib/coliseoOpenDirect";
+import { GraduationCap, Radio } from "lucide-react";
 import { invokeOpenGalleryDirect } from "@/lib/galleryOpenDirect";
 import { LOBBY_IMMERSIVE_PATH } from "@/lib/lobbyImmersive";
 import {
@@ -528,7 +525,7 @@ function useEarthTapPointerDown(
   );
 }
 
-/** Planeta Tierra central: tap abre lobby inmersivo. */
+/** Planeta Tierra central: tap abre lobby inmersivo (sin cambiar esa ruta). */
 function CentralEarth({
   simpleGpu,
   vrStereo,
@@ -745,11 +742,6 @@ const MiMundoVRSection = ({
     navigate(LOBBY_IMMERSIVE_PATH);
   }, [navigate, requestLobbyEntry, vrStereoActive]);
 
-  const onColiseoBareClick = useCallback(() => {
-    if (invokeOpenColiceoBareDirect()) return;
-    navigate(COLOSSEO_BARE_PATH);
-  }, [navigate]);
-
   const onLocalPlayerClick = useCallback(() => {
     if (invokeOpenGalleryDirect()) return;
     navigate("/reproductor-galeria");
@@ -890,15 +882,6 @@ const MiMundoVRSection = ({
                   d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1c.5-1.9.5-5.8.5-5.8s0-3.9-.5-5.8zM9.7 15.6V8.4L16 12l-6.3 3.6z"
                 />
               </svg>
-            </button>
-            <button
-              type="button"
-              onClick={onColiseoBareClick}
-              className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full border border-violet-300/85 bg-[radial-gradient(circle_at_30%_30%,#ddd6fe_0%,#8b5cf6_42%,#5b21b6_100%)] text-white shadow-[0_0_30px_rgba(139,92,246,0.85),0_0_56px_rgba(91,33,182,0.45)] backdrop-blur-md transition hover:scale-105 hover:border-violet-100 hover:brightness-110"
-              aria-label={ESCENA_360_VR_TITLE}
-              title={ESCENA_360_VR_TITLE}
-            >
-              <Glasses className="h-5 w-5" aria-hidden />
             </button>
           </div>
         </>

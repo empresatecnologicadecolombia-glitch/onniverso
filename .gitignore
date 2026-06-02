@@ -13,12 +13,9 @@ dist-ssr
 *.local
 .env
 
-# Vídeos pesados: GitHub bloquea >100 MB; el repo referencia rutas locales o CDN.
+# Vídeos pesados: GitHub bloquea >100 MB; usar CDN o rutas locales.
 public/*.mp4
 public/videos/*.mp4
-!public/videos/acuario.mp4
-!public/videos/espacio2.mp4
-!public/videos/espacio 1.mp4
 
 # Editor directories and files
 .vscode/*

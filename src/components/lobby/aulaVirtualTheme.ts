@@ -19,7 +19,7 @@ export const ROOM_THEMES: Record<ImmersiveRoomVariant, RoomTheme> = {
     wallColor: "#EAECEE",
     ceilingColor: "#F0F0F0",
     floorColor: "#1a1d24",
-    floorGridColor: "#00ffff",
+    floorGridColor: null,
     backgroundColor: "#050510",
     ambientLightIntensity: 0.55,
     directionalLightColor: "#ffffff",
