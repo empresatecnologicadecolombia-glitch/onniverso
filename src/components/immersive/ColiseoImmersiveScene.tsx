@@ -11,10 +11,7 @@ import {
   ImmersiveOrbitControls,
   SPHERE_RADIUS,
 } from "@/components/immersive/equirectSphereCore";
-import ColiseoCameraSyncController from "@/components/immersive/ColiseoCameraSyncController";
 import ColiseoPanoramaSwitcher from "@/components/immersive/ColiseoPanoramaSwitcher";
-import { supabase } from "@/integrations/supabase/client";
-import { Eye, EyeOff } from "lucide-react";
 import {
   DEFAULT_COLISEO_PANORAMA_ID,
   getColiseoPanoramaPreset,
@@ -167,52 +164,17 @@ function ColiseoSceneContent({
   );
 }
 
-type ColiseoImmersiveSceneProps = {
-  mixedRealityActive?: boolean;
-  classSlug?: string;
-  isClassTeacher?: boolean;
-};
-
-export default function ColiseoImmersiveScene({
-  mixedRealityActive = false,
-  classSlug = "",
-  isClassTeacher = false,
-}: ColiseoImmersiveSceneProps) {
+export default function ColiseoImmersiveScene({ mixedRealityActive = false }: { mixedRealityActive?: boolean }) {
   const location = useLocation();
   const useNativeWebView = useMemo(() => isColiseoNativeWebViewAvailable(), []);
   const [pointerLocked, setPointerLocked] = useState(false);
   const [screenInteracting, setScreenInteracting] = useState(false);
-  const [viewSyncEnabled, setViewSyncEnabled] = useState(false);
-  const [followingViewSync, setFollowingViewSync] = useState(false);
-  const [selfUserId, setSelfUserId] = useState("");
   const suppressPointerLockUntilRef = useRef(0);
   const usesPointerLock = useMemo(() => lobbyUsesPointerLockControls(), []);
   const mobileCoarse = useMemo(() => isMobileCoarseDevice(), []);
   const classGlbUrl = useMemo(() => resolveClassGlbUrl(location.search), [location.search]);
   const [panoramaId, setPanoramaId] = useState<ColiseoPanoramaId>(DEFAULT_COLISEO_PANORAMA_ID);
   const panoramaUrl = useMemo(() => getColiseoPanoramaPreset(panoramaId).panoramaUrl, [panoramaId]);
-  const studentViewLocked = !isClassTeacher && followingViewSync;
-  const syncActive = Boolean(classSlug.trim() && (isClassTeacher ? viewSyncEnabled : followingViewSync));
-
-  useEffect(() => {
-    if (!classSlug.trim()) return;
-    let cancelled = false;
-    void (async () => {
-      const { data: authData } = await supabase.auth.getUser();
-      const user = authData.user;
-      if (!user || cancelled) return;
-      setSelfUserId(user.id);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [classSlug]);
-
-  useEffect(() => {
-    if (!followingViewSync) return;
-    if (document.pointerLockElement) document.exitPointerLock();
-    setPointerLocked(false);
-  }, [followingViewSync]);
 
   const handleEscape = useCallback(() => {
     if (document.pointerLockElement) document.exitPointerLock();
@@ -233,9 +195,7 @@ export default function ColiseoImmersiveScene({
     if (document.pointerLockElement) document.exitPointerLock();
   }, []);
 
-  const pointerLockEnabled =
-    isClassTeacher && usesPointerLock && !useNativeWebView && !screenInteracting;
-  const orbitControlsEnabled = !screenInteracting && !studentViewLocked;
+  const pointerLockEnabled = usesPointerLock && !useNativeWebView && !screenInteracting;
 
   useEffect(() => {
     const onWindowPointerDown = (event: PointerEvent) => {
@@ -274,55 +234,22 @@ export default function ColiseoImmersiveScene({
             panoramaUrl={panoramaUrl}
           />
         </Suspense>
-        {classSlug.trim() && selfUserId ? (
-          <ColiseoCameraSyncController
-            classSlug={classSlug}
-            isTeacher={isClassTeacher}
-            viewSyncEnabled={viewSyncEnabled}
-            followingViewSync={followingViewSync}
-            teacherId={isClassTeacher ? selfUserId : ""}
-            onFollowingChange={setFollowingViewSync}
+        {pointerLockEnabled ? (
+          <PointerLockControls
+            onLock={() => {
+              if (Date.now() < suppressPointerLockUntilRef.current || screenInteracting) {
+                document.exitPointerLock();
+                setPointerLocked(false);
+                return;
+              }
+              setPointerLocked(true);
+            }}
+            onUnlock={() => setPointerLocked(false)}
           />
-        ) : null}
-        {!studentViewLocked ? (
-          pointerLockEnabled ? (
-            <PointerLockControls
-              onLock={() => {
-                if (Date.now() < suppressPointerLockUntilRef.current || screenInteracting) {
-                  document.exitPointerLock();
-                  setPointerLocked(false);
-                  return;
-                }
-                setPointerLocked(true);
-              }}
-              onUnlock={() => setPointerLocked(false)}
-            />
-          ) : (
-            <ImmersiveOrbitControls enabled={orbitControlsEnabled} />
-          )
-        ) : null}
+        ) : (
+          <ImmersiveOrbitControls enabled={!screenInteracting} />
+        )}
       </Canvas>
-
-      {isClassTeacher && classSlug.trim() ? (
-        <button
-          type="button"
-          onClick={() => setViewSyncEnabled((value) => !value)}
-          className="pointer-events-auto absolute left-3 z-20 flex items-center gap-1.5 rounded-full border border-cyan-300/35 bg-black/50 px-2.5 py-1 text-[10px] font-semibold text-cyan-50 backdrop-blur-sm hover:bg-black/65"
-          style={{ top: "max(4.5rem, calc(env(safe-area-inset-top) + 3.5rem))" }}
-          title={viewSyncEnabled ? "Desactivar vista sincronizada" : "Activar vista sincronizada para alumnos"}
-        >
-          {viewSyncEnabled ? <Eye className="h-3.5 w-3.5" aria-hidden /> : <EyeOff className="h-3.5 w-3.5" aria-hidden />}
-          {viewSyncEnabled ? "Vista sync ON" : "Vista sync"}
-        </button>
-      ) : null}
-
-      {syncActive && !isClassTeacher ? (
-        <p className="pointer-events-none absolute left-3 z-20 rounded-full border border-cyan-400/25 bg-black/45 px-2 py-0.5 text-[10px] text-cyan-100/90 backdrop-blur-sm"
-          style={{ top: "max(4.5rem, calc(env(safe-area-inset-top) + 3.5rem))" }}
-        >
-          Siguiendo vista del docente
-        </p>
-      ) : null}
 
       {usesPointerLock && !useNativeWebView && pointerLocked && (
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/80 mix-blend-difference" />
@@ -336,15 +263,11 @@ export default function ColiseoImmersiveScene({
       </div>
 
       <p className="pointer-events-none absolute bottom-4 left-1/2 z-10 max-w-md -translate-x-1/2 px-4 text-center text-[11px] text-slate-400">
-        {syncActive && !isClassTeacher
-          ? "Vista guiada por el docente · Clic en pantalla = video"
-          : useNativeWebView
-            ? "Arrastra fuera de la pantalla para girar el Coliseo 360°"
-            : pointerLockEnabled
-              ? "Clic para girar vista 360° · Clic en pantalla = interactuar video"
-              : isClassTeacher && viewSyncEnabled
-                ? "Mueve la vista · los alumnos te siguen · Clic en pantalla = video"
-                : "Arrastra para girar · Clic en pantalla = interactuar video"}
+        {useNativeWebView
+          ? "Arrastra fuera de la pantalla para girar el Coliseo 360°"
+          : pointerLockEnabled
+            ? "Clic para girar vista 360° · Clic en pantalla = interactuar video"
+            : "Arrastra para girar · Clic en pantalla = interactuar video"}
       </p>
     </div>
   );

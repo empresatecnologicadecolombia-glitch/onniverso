@@ -220,11 +220,7 @@ const ColiseoPage = () => {
               }
         }
       />
-      <ColiseoImmersiveScene
-        mixedRealityActive={Boolean(cameraEnabled && cameraStream && cameraReady)}
-        classSlug={classSlug}
-        isClassTeacher={voiceRole === "host"}
-      />
+      <ColiseoImmersiveScene mixedRealityActive={Boolean(cameraEnabled && cameraStream && cameraReady)} />
       <AgoraClassVoiceBridge classSlug={classSlug} role={voiceRole} />
     </div>
   );
