@@ -5,6 +5,11 @@ import {
   useColiseoNativeWebViewSlot,
 } from "@/lib/coliseoNativeWebView";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  getCachedPlaybackUrl,
+  prefetchClassVideoPlaylist,
+  revokeCachedObjectUrl,
+} from "@/lib/classVideoPrefetch";
 
 /**
  * Slot de la pantalla flotante: WebView nativo en Android; vacío visible en PC para revisar posición.
@@ -28,6 +33,8 @@ export default function ColiseoAndroidWebViewSlot({
   const [selfUserId, setSelfUserId] = useState("");
   const [isTeacher, setIsTeacher] = useState(false);
   const [desiredPlayback, setDesiredPlayback] = useState<"play" | "pause" | null>(null);
+  const [playbackSrc, setPlaybackSrc] = useState("");
+  const prevActiveVideoUrlRef = useRef("");
   const useNativeWebView = false;
   const syncContext = useMemo(() => {
     if (typeof window === "undefined") return { classSlug: "" };
@@ -138,6 +145,47 @@ export default function ColiseoAndroidWebViewSlot({
   }, [classVideoUrls.length, videoIndex]);
 
   useEffect(() => {
+    if (!activeVideoUrl) {
+      setPlaybackSrc("");
+      return;
+    }
+    if (prevActiveVideoUrlRef.current && prevActiveVideoUrlRef.current !== activeVideoUrl) {
+      revokeCachedObjectUrl(prevActiveVideoUrlRef.current);
+    }
+    prevActiveVideoUrlRef.current = activeVideoUrl;
+    setPlaybackSrc(activeVideoUrl);
+  }, [activeVideoUrl]);
+
+  useEffect(() => {
+    if (classVideoUrls.length === 0) return;
+    let cancelled = false;
+
+    const tryCachedSrcIfIdle = async (url: string) => {
+      const cached = await getCachedPlaybackUrl(url);
+      if (!cached || cancelled) return;
+      const video = videoRef.current;
+      if (video && (!video.paused || video.currentTime > 1)) return;
+      if (applyingRemoteRef.current) return;
+      setPlaybackSrc(cached);
+    };
+
+    void (async () => {
+      await prefetchClassVideoPlaylist(classVideoUrls, videoIndex);
+      if (!cancelled) await tryCachedSrcIfIdle(activeVideoUrl);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeVideoUrl, classVideoUrls, videoIndex]);
+
+  useEffect(() => {
+    return () => {
+      for (const url of classVideoUrls) revokeCachedObjectUrl(url);
+    };
+  }, [classVideoUrls]);
+
+  useEffect(() => {
     const video = videoRef.current;
     if (!video || !desiredPlayback) return;
     applyingRemoteRef.current = true;
@@ -178,10 +226,10 @@ export default function ColiseoAndroidWebViewSlot({
             <video
               key={activeVideoUrl}
               ref={videoRef}
-              src={activeVideoUrl}
+              src={playbackSrc || activeVideoUrl}
               className="h-full w-full bg-black"
               controls
-              preload="metadata"
+              preload="auto"
               playsInline
               onPlay={() => {
                 if (!isTeacher || applyingRemoteRef.current) return;
