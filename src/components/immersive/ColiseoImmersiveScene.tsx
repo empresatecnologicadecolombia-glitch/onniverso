@@ -11,9 +11,12 @@ import {
   ImmersiveOrbitControls,
   SPHERE_RADIUS,
 } from "@/components/immersive/equirectSphereCore";
+import ColiseoPanoramaSwitcher from "@/components/immersive/ColiseoPanoramaSwitcher";
 import {
-  COLOSSEO_PANORAMA,
-} from "@/data/coliseoScene";
+  DEFAULT_COLISEO_PANORAMA_ID,
+  getColiseoPanoramaPreset,
+  type ColiseoPanoramaId,
+} from "@/data/coliseoPanoramas";
 import { isColiseoNativeWebViewAvailable } from "@/lib/coliseoNativeWebView";
 import {
   MAX_WEBGL_PIXEL_RATIO,
@@ -100,16 +103,20 @@ function ColiseoSceneContent({
   onScreenPointerDown,
   mixedRealityActive,
   classGlbUrl,
+  panoramaUrl,
 }: {
   onScreenPointerDown?: () => void;
   mixedRealityActive: boolean;
   classGlbUrl: string | null;
+  panoramaUrl: string;
 }) {
   const prepareHeartModel = useHeartWallMaterials();
   return (
     <>
       <Suspense fallback={null}>
-        {!mixedRealityActive && <EquirectangularInterior url={COLOSSEO_PANORAMA} />}
+        {!mixedRealityActive && (
+          <EquirectangularInterior key={panoramaUrl} url={panoramaUrl} />
+        )}
       </Suspense>
       <ambientLight intensity={0.68} />
       <ColiseoFloatingWebViewScreen onScreenPointerDown={onScreenPointerDown} />
@@ -166,6 +173,8 @@ export default function ColiseoImmersiveScene({ mixedRealityActive = false }: { 
   const usesPointerLock = useMemo(() => lobbyUsesPointerLockControls(), []);
   const mobileCoarse = useMemo(() => isMobileCoarseDevice(), []);
   const classGlbUrl = useMemo(() => resolveClassGlbUrl(location.search), [location.search]);
+  const [panoramaId, setPanoramaId] = useState<ColiseoPanoramaId>(DEFAULT_COLISEO_PANORAMA_ID);
+  const panoramaUrl = useMemo(() => getColiseoPanoramaPreset(panoramaId).panoramaUrl, [panoramaId]);
 
   const handleEscape = useCallback(() => {
     if (document.pointerLockElement) document.exitPointerLock();
@@ -222,6 +231,7 @@ export default function ColiseoImmersiveScene({ mixedRealityActive = false }: { 
             onScreenPointerDown={handleScreenPointerDown}
             mixedRealityActive={mixedRealityActive}
             classGlbUrl={classGlbUrl}
+            panoramaUrl={panoramaUrl}
           />
         </Suspense>
         {pointerLockEnabled ? (
@@ -244,6 +254,13 @@ export default function ColiseoImmersiveScene({ mixedRealityActive = false }: { 
       {usesPointerLock && !useNativeWebView && pointerLocked && (
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/80 mix-blend-difference" />
       )}
+
+      <div
+        className="absolute bottom-12 z-20"
+        style={{ right: "max(4.5rem, calc(env(safe-area-inset-right) + 3.5rem))" }}
+      >
+        <ColiseoPanoramaSwitcher activeId={panoramaId} onSelect={setPanoramaId} />
+      </div>
 
       <p className="pointer-events-none absolute bottom-4 left-1/2 z-10 max-w-md -translate-x-1/2 px-4 text-center text-[11px] text-slate-400">
         {useNativeWebView

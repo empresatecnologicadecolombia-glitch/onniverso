@@ -1,9 +1,11 @@
 import { Html } from "@react-three/drei";
 import { useMemo } from "react";
+import { isMobileCoarseDevice } from "@/lib/webglRendererPrefs";
 
 const PDF_SCREEN_POSITION: [number, number, number] = [-10.5, 1.35, -0.35];
 const PDF_SCREEN_ROTATION: [number, number, number] = [0, Math.PI / 2, 0];
-const PDF_SCREEN_WIDTH = "min(82vw, 700px)";
+const PDF_SCREEN_WIDTH_DESKTOP = "min(82vw, 700px)";
+const PDF_SCREEN_WIDTH_MOBILE = "min(92vw, 700px)";
 const PDF_SCREEN_HEIGHT = "min(86vh, 760px)";
 const PDF_FALLBACK_URL =
   "https://drive.google.com/file/d/1IA-S_lyyiblp9iGzDx-qAL2AwXp1lIsY/view?usp=drive_link";
@@ -37,6 +39,8 @@ export default function ColiseoFloatingPdfScreen({
   }, []);
 
   const iframeSrc = useMemo(() => buildPdfEmbedUrl(pdfUrl), [pdfUrl]);
+  const mobileCoarse = useMemo(() => isMobileCoarseDevice(), []);
+  const pdfScreenWidth = mobileCoarse ? PDF_SCREEN_WIDTH_MOBILE : PDF_SCREEN_WIDTH_DESKTOP;
 
   return (
     <group position={PDF_SCREEN_POSITION} rotation={PDF_SCREEN_ROTATION}>
@@ -45,7 +49,7 @@ export default function ColiseoFloatingPdfScreen({
         distanceFactor={8.9}
         center
         zIndexRange={[50, 51]}
-        style={{ width: PDF_SCREEN_WIDTH, pointerEvents: "auto" }}
+        style={{ width: pdfScreenWidth, pointerEvents: "auto" }}
       >
         <div
           data-coliseo-screen="true"

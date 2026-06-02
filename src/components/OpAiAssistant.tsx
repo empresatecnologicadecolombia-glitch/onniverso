@@ -305,7 +305,7 @@ export default function OpAiAssistant() {
     <div
       className={`pointer-events-none fixed z-[80] w-[min(92vw,380px)] max-sm:flex max-sm:flex-col max-sm:items-start max-sm:gap-2 sm:block ${
         shiftOnniRight
-          ? "bottom-10 left-12 max-sm:left-10 sm:bottom-8 sm:left-[4.5rem]"
+          ? "bottom-10 left-12 max-sm:bottom-12 max-sm:left-14 sm:bottom-8 sm:left-[4.5rem]"
           : "bottom-10 left-4 sm:bottom-8 sm:left-10"
       }`}
     >
