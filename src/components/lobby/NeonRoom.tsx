@@ -1085,7 +1085,7 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
   const isAulaVirtual = variant === "aula-virtual";
 
   const handleLobbyReturn = useCallback(() => {
-    navigate(isAulaVirtual ? "/3d" : "/");
+    navigate(isAulaVirtual ? "/educacion" : "/");
   }, [isAulaVirtual, navigate]);
 
   const theme = ROOM_THEMES[variant];

@@ -5,6 +5,8 @@ import { useLocation } from "react-router-dom";
 import * as THREE from "three";
 import ColiseoFloatingWebViewScreen from "@/components/immersive/ColiseoFloatingWebViewScreen";
 import ColiseoFloatingPdfScreen from "@/components/immersive/ColiseoFloatingPdfScreen";
+import { ColiseoWallEarth } from "@/components/immersive/ColiseoWallEarth";
+import { ColiseoWallGlb } from "@/components/immersive/coliseoWallGlb";
 import { WallSceneGlb } from "@/components/lobby/lobbyWallGlbScene";
 import {
   EquirectangularInterior,
@@ -68,12 +70,20 @@ function resolveClassGlbUrl(search: string): string | null {
   if (isHeartModelUrl(normalized) || isHeartModelUrl(raw)) {
     return appendGlbCacheBust(HEART_MODEL_URL, search);
   }
+  if (isEarthColiseoUrl(normalized) || isEarthColiseoUrl(raw)) {
+    const asset = raw.startsWith("/") ? raw : normalized;
+    return appendGlbCacheBust(asset, search);
+  }
   // Algunos hosts (p.ej. Cloudinary) sirven GLB sin terminar en ".glb".
   return appendGlbCacheBust(normalized, search);
 }
 
 function isHeartModelUrl(url: string): boolean {
   return /corazon|heart|dbhvfn|19elpBz-mCPcbPMxQq4hQPmmJNc-0JFKo/i.test(url);
+}
+
+function isEarthColiseoUrl(url: string): boolean {
+  return /earth_day|textures\/earth|tierra-lobby|tierra-coliseo|\/earth\//i.test(url);
 }
 
 function useHeartWallMaterials() {
@@ -111,6 +121,7 @@ function ColiseoSceneContent({
   panoramaUrl: string;
 }) {
   const prepareHeartModel = useHeartWallMaterials();
+
   return (
     <>
       <Suspense fallback={null}>
@@ -143,17 +154,25 @@ function ColiseoSceneContent({
             opacity={classGlbUrl ? 0.2 : 0.28}
           />
         </mesh>
+        {classGlbUrl ? (
+          isHeartModelUrl(classGlbUrl) ? (
+            <WallSceneGlb
+              url={classGlbUrl}
+              position={[0, 0, 0]}
+              rotation={[0, 0, 0]}
+              scaleMultiplier={1.12}
+              fitDepth
+              prepareModel={prepareHeartModel}
+            />
+          ) : isEarthColiseoUrl(classGlbUrl) ? (
+            <Suspense fallback={null}>
+              <ColiseoWallEarth />
+            </Suspense>
+          ) : (
+            <ColiseoWallGlb url={classGlbUrl} />
+          )
+        ) : null}
       </group>
-      {classGlbUrl ? (
-        <WallSceneGlb
-          url={classGlbUrl}
-          position={GLB_SLOT_POSITION}
-          rotation={GLB_SLOT_ROTATION}
-          scaleMultiplier={1.12}
-          fitDepth
-          prepareModel={isHeartModelUrl(classGlbUrl) ? prepareHeartModel : undefined}
-        />
-      ) : null}
       <pointLight
         position={[10.1, 2.6, 0.1]}
         intensity={1.85}

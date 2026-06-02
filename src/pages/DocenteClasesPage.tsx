@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import DocenteContentLibraryPanel from "@/components/docente/DocenteContentLibraryPanel";
 
 type AulaCard = {
   id: string;
@@ -856,6 +857,8 @@ export default function DocenteClasesPage() {
                   );
                 })}
               </div>
+
+              <DocenteContentLibraryPanel />
             </>
           )}
         </div>

@@ -1,13 +1,22 @@
 import { isAndroidLiveStreamChoicePlatform } from "@/lib/liveStreamOpenDirect";
 import { invokeOpenModelDirect } from "@/lib/model3dOpenDirect";
 
-/** Sección Galería / Aula en la web (botón del menú navbar). */
+/** Sección Aula Virtual 360 en la web (solo tarjeta Coliseo; botón navbar). */
 export const GALERIA_AULA_SECTION_PATH = "/3d";
 
-/** Ancla de la tarjeta promocional dentro de {@link GALERIA_AULA_SECTION_PATH}. */
-export const GALERIA_AULA_CARD_HASH = "aula-virtual-card";
+/** Sección Educación: lobby 3D, cursos y modelos. */
+export const EDUCACION_SECTION_PATH = "/educacion";
 
-export const GALERIA_AULA_SECTION_HREF = `${GALERIA_AULA_SECTION_PATH}#${GALERIA_AULA_CARD_HASH}`;
+/** Ancla de la tarjeta Lobby Aula 3D dentro de {@link EDUCACION_SECTION_PATH}. */
+export const EDUCACION_LOBBY_CARD_HASH = "aula-virtual-card";
+
+export const EDUCACION_LOBBY_CARD_HREF = `${EDUCACION_SECTION_PATH}#${EDUCACION_LOBBY_CARD_HASH}`;
+
+/** @deprecated Usar {@link EDUCACION_LOBBY_CARD_HASH}. */
+export const GALERIA_AULA_CARD_HASH = EDUCACION_LOBBY_CARD_HASH;
+
+/** @deprecated Usar {@link EDUCACION_LOBBY_CARD_HREF}. */
+export const GALERIA_AULA_SECTION_HREF = EDUCACION_LOBBY_CARD_HREF;
 
 /** Lobby 3D caminable en navegador (botón de la tarjeta en web). */
 export const AULA_VIRTUAL_LOBBY_PATH = "/aula-virtual";

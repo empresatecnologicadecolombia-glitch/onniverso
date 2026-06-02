@@ -5,6 +5,25 @@ import * as THREE from "three";
 
 const WALL_PANEL_WIDTH = 8;
 const WALL_PANEL_HEIGHT = 4.5;
+/** Máxima protrusión hacia la sala (evita modelos alargados que cubren al usuario). */
+const WALL_PANEL_DEPTH = 2.8;
+
+function meshBounds(root: THREE.Object3D): THREE.Box3 {
+  const box = new THREE.Box3();
+  let hasMesh = false;
+  root.traverse((node) => {
+    if (!(node instanceof THREE.Mesh)) return;
+    const meshBox = new THREE.Box3().setFromObject(node);
+    if (!hasMesh) {
+      box.copy(meshBox);
+      hasMesh = true;
+      return;
+    }
+    box.union(meshBox);
+  });
+  if (!hasMesh) box.setFromObject(root);
+  return box;
+}
 
 class GlbErrorBoundary extends Component<{ children: ReactNode; fallback?: ReactNode }, { hasError: boolean }> {
   state = { hasError: false };
@@ -42,20 +61,15 @@ function WallSceneGlbModel({
   const model = useMemo(() => {
     const root = scene.clone(true);
     root.updateMatrixWorld(true);
-    const box = new THREE.Box3().setFromObject(root);
+    const box = meshBounds(root);
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
     root.position.sub(center);
-    const fitScale = fitDepth
-      ? Math.min(
-          (width * 0.92) / Math.max(size.x, 1e-6),
-          (height * 0.92) / Math.max(size.y, 1e-6),
-          (width * 0.92) / Math.max(size.z, 1e-6),
-        )
-      : Math.min(
-          (width * 0.92) / Math.max(size.x, 1e-6),
-          (height * 0.92) / Math.max(size.y, 1e-6),
-        );
+    const fitX = (width * 0.92) / Math.max(size.x, 1e-6);
+    const fitY = (height * 0.92) / Math.max(size.y, 1e-6);
+    const depthLimit = fitDepth ? width * 0.92 : WALL_PANEL_DEPTH * 0.92;
+    const fitZ = depthLimit / Math.max(size.z, 1e-6);
+    const fitScale = Math.min(fitX, fitY, fitZ);
     root.scale.setScalar(fitScale);
     prepareModel?.(root);
     return root;

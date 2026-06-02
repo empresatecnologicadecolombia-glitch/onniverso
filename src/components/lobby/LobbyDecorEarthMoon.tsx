@@ -72,7 +72,7 @@ function LobbyDecorMoon({ simpleGpu }: { simpleGpu: boolean }) {
   );
 }
 
-function LobbyDecorEarth({ simpleGpu }: { simpleGpu: boolean }) {
+export function LobbyDecorEarth({ simpleGpu }: { simpleGpu: boolean }) {
   const earthRef = useRef<THREE.Group>(null);
   const [dayMap, normalMap, specularMap, cloudsMap] = useLoader(THREE.TextureLoader, [
     EARTH_DAY,
