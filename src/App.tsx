@@ -20,6 +20,7 @@ import TeatroHub from "./pages/TeatroHub.tsx";
 import SalaTeatro from "./pages/SalaTeatro.tsx";
 import LobbyGlobalPage from "./pages/LobbyGlobalPage.tsx";
 import ColiseoPage from "./pages/ColiseoPage.tsx";
+import ColiseoBarePage from "./pages/ColiseoBarePage.tsx";
 import DocenteClasesPage from "./pages/DocenteClasesPage.tsx";
 import ClaseVirtualEntryPage from "./pages/ClaseVirtualEntryPage.tsx";
 import LobbyImmersivePage from "./pages/LobbyImmersivePage.tsx";
@@ -300,6 +301,14 @@ const App = () => {
               element={
                 <PrivateRoute>
                   <ColiseoPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/coliseo-360-puro"
+              element={
+                <PrivateRoute>
+                  <ColiseoBarePage />
                 </PrivateRoute>
               }
             />

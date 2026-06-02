@@ -13,9 +13,10 @@ import {
 import { Canvas, useFrame, useLoader, useThree, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import { useNavigate } from "react-router-dom";
-import { GraduationCap, Landmark, Radio } from "lucide-react";
-import { COLOSSEO_PATH } from "@/data/coliseoScene";
-import { invokeOpenColiceoDirect } from "@/lib/coliseoOpenDirect";
+import { Glasses, GraduationCap, Radio } from "lucide-react";
+import { COLOSSEO_BARE_PATH } from "@/data/coliseoScene";
+import { ESCENA_360_VR_TITLE } from "@/data/escena360vrVideos";
+import { invokeOpenColiceoBareDirect } from "@/lib/coliseoOpenDirect";
 import { invokeOpenGalleryDirect } from "@/lib/galleryOpenDirect";
 import { LOBBY_IMMERSIVE_PATH } from "@/lib/lobbyImmersive";
 import {
@@ -744,9 +745,9 @@ const MiMundoVRSection = ({
     navigate(LOBBY_IMMERSIVE_PATH);
   }, [navigate, requestLobbyEntry, vrStereoActive]);
 
-  const onColiseoClick = useCallback(() => {
-    if (invokeOpenColiceoDirect()) return;
-    navigate(COLOSSEO_PATH);
+  const onColiseoBareClick = useCallback(() => {
+    if (invokeOpenColiceoBareDirect()) return;
+    navigate(COLOSSEO_BARE_PATH);
   }, [navigate]);
 
   const onLocalPlayerClick = useCallback(() => {
@@ -892,12 +893,12 @@ const MiMundoVRSection = ({
             </button>
             <button
               type="button"
-              onClick={onColiseoClick}
-              className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full border border-amber-300/85 bg-[radial-gradient(circle_at_30%_30%,#fcd34d_0%,#f59e0b_45%,#92400e_100%)] text-white shadow-[0_0_30px_rgba(251,191,36,0.8),0_0_56px_rgba(245,158,11,0.42)] backdrop-blur-md transition hover:scale-105 hover:border-amber-100 hover:brightness-110"
-              aria-label="Entrar al Coliseo Romano 360°"
-              title="Coliseo Romano 360°"
+              onClick={onColiseoBareClick}
+              className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full border border-violet-300/85 bg-[radial-gradient(circle_at_30%_30%,#ddd6fe_0%,#8b5cf6_42%,#5b21b6_100%)] text-white shadow-[0_0_30px_rgba(139,92,246,0.85),0_0_56px_rgba(91,33,182,0.45)] backdrop-blur-md transition hover:scale-105 hover:border-violet-100 hover:brightness-110"
+              aria-label={ESCENA_360_VR_TITLE}
+              title={ESCENA_360_VR_TITLE}
             >
-              <Landmark className="h-5 w-5" />
+              <Glasses className="h-5 w-5" aria-hidden />
             </button>
           </div>
         </>
