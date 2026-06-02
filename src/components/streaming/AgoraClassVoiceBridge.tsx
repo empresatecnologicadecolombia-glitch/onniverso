@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Mic, MicOff, Radio, Users } from "lucide-react";
+import { Mic, MicOff, PanelRight, Radio } from "lucide-react";
 import AgoraRTC, { type IAgoraRTCClient, type IMicrophoneAudioTrack } from "agora-rtc-sdk-ng";
+import AgoraClassVoiceTeacherPanel from "@/components/streaming/AgoraClassVoiceTeacherPanel";
 import { buildAgoraChannel } from "@/lib/agoraRooms";
-import { fetchAgoraVoiceSession, type AgoraVoiceRole } from "@/lib/agoraClassVoiceToken";
+import { fetchAgoraVoiceTokens, type AgoraVoiceRole } from "@/lib/agoraClassVoiceToken";
+import {
+  buildClassVoiceControlChannel,
+  type ClassVoiceControlPayload,
+} from "@/lib/classVoiceControl";
 import { requestOnniMicrophoneAccess } from "@/lib/requestOnniMicrophone";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -33,15 +38,40 @@ export default function AgoraClassVoiceBridge({ classSlug, role }: AgoraClassVoi
   const [micEnabled, setMicEnabled] = useState(true);
   const [panelOpen, setPanelOpen] = useState(false);
   const [participants, setParticipants] = useState<VoiceParticipant[]>([]);
+  const [grantedSpeakIds, setGrantedSpeakIds] = useState<Set<string>>(() => new Set());
+  const [studentMicReady, setStudentMicReady] = useState(false);
+  const [studentSpeaking, setStudentSpeaking] = useState(false);
+
   const clientRef = useRef<IAgoraRTCClient | null>(null);
   const micTrackRef = useRef<IMicrophoneAudioTrack | null>(null);
+  const hostTokenRef = useRef("");
+  const audienceTokenRef = useRef("");
   const joiningRef = useRef(false);
+  const selfUserIdRef = useRef("");
+  const speakGrantedRef = useRef(false);
+  const controlChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const channelName = useMemo(() => {
     const slug = classSlug.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "-");
     return buildAgoraChannel(`class-voice-${slug || "main"}`);
   }, [classSlug]);
-  const controlChannelName = useMemo(() => `class-voice-presence-${channelName}`, [channelName]);
+  const presenceChannelName = useMemo(() => `class-voice-presence-${channelName}`, [channelName]);
+  const controlChannelName = useMemo(() => buildClassVoiceControlChannel(classSlug), [classSlug]);
+
+  const audienceStudents = useMemo(
+    () => participants.filter((item) => item.role === "audience" && !item.isSelf),
+    [participants],
+  );
+
+  const teacherStudentRows = useMemo(
+    () =>
+      audienceStudents.map((student) => ({
+        userId: student.userId,
+        displayName: student.displayName,
+        speakGranted: grantedSpeakIds.has(student.userId),
+      })),
+    [audienceStudents, grantedSpeakIds],
+  );
 
   const leaveVoice = useCallback(async () => {
     const client = clientRef.current;
@@ -49,6 +79,9 @@ export default function AgoraClassVoiceBridge({ classSlug, role }: AgoraClassVoi
     clientRef.current = null;
     micTrackRef.current = null;
     joiningRef.current = false;
+    speakGrantedRef.current = false;
+    hostTokenRef.current = "";
+    audienceTokenRef.current = "";
     try {
       if (mic) {
         await mic.setEnabled(false).catch(() => undefined);
@@ -58,9 +91,78 @@ export default function AgoraClassVoiceBridge({ classSlug, role }: AgoraClassVoi
       if (client) await client.leave();
     } finally {
       setConnected(false);
+      setStudentMicReady(false);
+      setStudentSpeaking(false);
       setStatus("Voz inactiva");
     }
   }, []);
+
+  const ensureStudentMicTrack = useCallback(async (): Promise<IMicrophoneAudioTrack | null> => {
+    if (micTrackRef.current) return micTrackRef.current;
+    const micPermission = await requestOnniMicrophoneAccess();
+    if (micPermission !== "granted") {
+      setStudentMicReady(false);
+      return null;
+    }
+    const micTrack = await AgoraRTC.createMicrophoneAudioTrack();
+    await micTrack.setEnabled(false);
+    micTrackRef.current = micTrack;
+    setStudentMicReady(true);
+    return micTrack;
+  }, []);
+
+  const revokeStudentSpeak = useCallback(async () => {
+    const client = clientRef.current;
+    const mic = micTrackRef.current;
+    if (!client || role !== "audience") return;
+
+    speakGrantedRef.current = false;
+    setStudentSpeaking(false);
+
+    try {
+      if (mic && client.connectionState === "CONNECTED") {
+        try {
+          await client.unpublish([mic]);
+        } catch {
+          /* ya no publicaba */
+        }
+        await mic.setEnabled(false);
+      }
+      if (client.connectionState === "CONNECTED") {
+        await client.setClientRole("audience");
+        if (audienceTokenRef.current) await client.renewToken(audienceTokenRef.current);
+      }
+    } catch {
+      /* silencioso */
+    }
+    setStatus(studentMicReady ? "Mic listo · esperando permiso del docente" : "Escuchando al docente");
+  }, [role, studentMicReady]);
+
+  const grantStudentSpeak = useCallback(async () => {
+    const client = clientRef.current;
+    if (!client || role !== "audience") return;
+
+    const mic = await ensureStudentMicTrack();
+    if (!mic) {
+      setStatus("Sin permiso de micrófono");
+      toast.error("Activa el micrófono al entrar a la clase (Ajustes del navegador o de la app).");
+      return;
+    }
+
+    try {
+      if (hostTokenRef.current) await client.renewToken(hostTokenRef.current);
+      await client.setClientRole("host");
+      await mic.setEnabled(true);
+      await client.publish([mic]);
+      speakGrantedRef.current = true;
+      setStudentSpeaking(true);
+      setStatus("El docente te escucha");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo activar tu micrófono.";
+      toast.error(message);
+      await revokeStudentSpeak();
+    }
+  }, [ensureStudentMicTrack, revokeStudentSpeak, role]);
 
   const joinVoice = useCallback(async () => {
     if (!role || !classSlug.trim()) {
@@ -74,9 +176,13 @@ export default function AgoraClassVoiceBridge({ classSlug, role }: AgoraClassVoi
       setStatus("Conectando voz...");
       await leaveVoice();
 
-      const session = await fetchAgoraVoiceSession(channelName, role);
+      const tokens = await fetchAgoraVoiceTokens(channelName);
+      hostTokenRef.current = tokens.hostToken;
+      audienceTokenRef.current = tokens.audienceToken;
+
       const client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
       clientRef.current = client;
+      const joinToken = role === "host" ? tokens.hostToken : tokens.audienceToken;
       await client.setClientRole(role === "host" ? "host" : "audience");
 
       client.on("user-published", async (user, mediaType) => {
@@ -84,7 +190,7 @@ export default function AgoraClassVoiceBridge({ classSlug, role }: AgoraClassVoi
         if (mediaType === "audio") user.audioTrack?.play();
       });
 
-      await client.join(session.appId, session.channelName, session.token, null);
+      await client.join(tokens.appId, tokens.channelName, joinToken, null);
 
       if (role === "host") {
         const micPermission = await requestOnniMicrophoneAccess();
@@ -93,12 +199,20 @@ export default function AgoraClassVoiceBridge({ classSlug, role }: AgoraClassVoi
         }
         const micTrack = await AgoraRTC.createMicrophoneAudioTrack();
         micTrackRef.current = micTrack;
-        await micTrack.setEnabled(micEnabled);
+        await micTrack.setEnabled(true);
         await client.publish([micTrack]);
+        setMicEnabled(true);
+        setStatus("Micrófono del docente activo");
+      } else {
+        const mic = await ensureStudentMicTrack();
+        if (mic) {
+          setStatus("Mic listo · esperando permiso del docente");
+        } else {
+          setStatus("Escuchando al docente · micrófono no disponible");
+        }
       }
 
       setConnected(true);
-      setStatus(role === "host" ? "Micrófono del docente activo" : "Escuchando al docente");
     } catch (error) {
       const message = error instanceof Error ? error.message : "No se pudo iniciar Agora Voice.";
       setConnected(false);
@@ -108,7 +222,7 @@ export default function AgoraClassVoiceBridge({ classSlug, role }: AgoraClassVoi
     } finally {
       joiningRef.current = false;
     }
-  }, [channelName, classSlug, leaveVoice, micEnabled, role]);
+  }, [channelName, classSlug, ensureStudentMicTrack, leaveVoice, role]);
 
   useEffect(() => {
     void joinVoice();
@@ -121,7 +235,6 @@ export default function AgoraClassVoiceBridge({ classSlug, role }: AgoraClassVoi
     if (!role || !classSlug.trim()) return;
     let cancelled = false;
     let presenceChannel: ReturnType<typeof supabase.channel> | null = null;
-    let selfUserId = "";
 
     const normalizeRole = (value: unknown): AgoraVoiceRole =>
       value === "host" || value === "audience" ? value : "audience";
@@ -148,7 +261,7 @@ export default function AgoraClassVoiceBridge({ classSlug, role }: AgoraClassVoi
             displayName,
             role: normalizeRole(payload.voice_role),
             joinedAt,
-            isSelf: userId === selfUserId,
+            isSelf: userId === selfUserIdRef.current,
           });
         });
       });
@@ -164,7 +277,7 @@ export default function AgoraClassVoiceBridge({ classSlug, role }: AgoraClassVoi
       const { data: authData } = await supabase.auth.getUser();
       const user = authData.user;
       if (!user || cancelled) return;
-      selfUserId = user.id;
+      selfUserIdRef.current = user.id;
 
       const { data: profileData } = await supabase
         .from("profiles")
@@ -182,7 +295,7 @@ export default function AgoraClassVoiceBridge({ classSlug, role }: AgoraClassVoi
         user.email ||
         user.id;
 
-      presenceChannel = supabase.channel(controlChannelName, {
+      presenceChannel = supabase.channel(presenceChannelName, {
         config: { presence: { key: user.id } },
       });
 
@@ -209,8 +322,75 @@ export default function AgoraClassVoiceBridge({ classSlug, role }: AgoraClassVoi
       void supabase.removeChannel(presenceChannel);
       setParticipants([]);
       setPanelOpen(false);
+      setGrantedSpeakIds(new Set());
     };
-  }, [classSlug, controlChannelName, role]);
+  }, [classSlug, presenceChannelName, role]);
+
+  useEffect(() => {
+    if (!role || !classSlug.trim()) return;
+    let cancelled = false;
+    let controlChannel: ReturnType<typeof supabase.channel> | null = null;
+
+    const setupControl = async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData.user;
+      if (!user || cancelled) return;
+      if (!selfUserIdRef.current) selfUserIdRef.current = user.id;
+
+      controlChannel = supabase.channel(controlChannelName);
+      controlChannelRef.current = controlChannel;
+
+      controlChannel
+        .on("broadcast", { event: "voice-control" }, ({ payload }) => {
+          const command = payload as ClassVoiceControlPayload | null;
+          if (!command?.targetUserId || !command.action) return;
+          if (command.targetUserId !== selfUserIdRef.current) return;
+          if (role !== "audience") return;
+
+          if (command.action === "grant_speak") {
+            void grantStudentSpeak();
+            return;
+          }
+          if (command.action === "revoke_speak") {
+            void revokeStudentSpeak();
+          }
+        })
+        .subscribe();
+    };
+
+    void setupControl();
+    return () => {
+      cancelled = true;
+      controlChannelRef.current = null;
+      if (controlChannel) void supabase.removeChannel(controlChannel);
+    };
+  }, [classSlug, controlChannelName, grantStudentSpeak, revokeStudentSpeak, role]);
+
+  const broadcastVoiceControl = useCallback(
+    async (targetUserId: string, action: ClassVoiceControlPayload["action"]) => {
+      const teacherId = selfUserIdRef.current;
+      if (!teacherId || !controlChannelRef.current) return;
+      await controlChannelRef.current.send({
+        type: "broadcast",
+        event: "voice-control",
+        payload: { action, targetUserId, teacherId } satisfies ClassVoiceControlPayload,
+      });
+    },
+    [],
+  );
+
+  const toggleStudentSpeak = useCallback(
+    (userId: string, grant: boolean) => {
+      setGrantedSpeakIds((prev) => {
+        const next = new Set(prev);
+        if (grant) next.add(userId);
+        else next.delete(userId);
+        return next;
+      });
+      void broadcastVoiceControl(userId, grant ? "grant_speak" : "revoke_speak");
+    },
+    [broadcastVoiceControl],
+  );
 
   const toggleMic = async () => {
     if (role !== "host") return;
@@ -225,56 +405,48 @@ export default function AgoraClassVoiceBridge({ classSlug, role }: AgoraClassVoi
   if (!role || !classSlug.trim()) return null;
 
   return (
-    <div className="fixed bottom-14 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-cyan-400/35 bg-black/55 px-3 py-2 text-[11px] text-cyan-100 backdrop-blur-md">
-      <Radio className="h-3.5 w-3.5" aria-hidden />
-      <span>{connected ? status : "Voz conectando..."}</span>
+    <>
       {role === "host" && (
-        <>
-          <button
-            type="button"
-            onClick={() => setPanelOpen((prev) => !prev)}
-            className="inline-flex items-center gap-1 rounded-full border border-cyan-300/40 bg-cyan-500/15 px-2 py-1 text-[10px] font-semibold text-cyan-50 transition hover:bg-cyan-500/30"
-            title="Ver alumnos conectados"
-          >
-            <Users className="h-3.5 w-3.5" aria-hidden />
-            <span>{participants.filter((item) => item.role === "audience").length}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => void toggleMic()}
-            className="inline-flex items-center rounded-full border border-cyan-300/40 bg-cyan-500/15 px-2 py-1 text-[10px] font-semibold text-cyan-50 transition hover:bg-cyan-500/30"
-            title={micEnabled ? "Silenciar micrófono" : "Activar micrófono"}
-          >
-            {micEnabled ? <Mic className="h-3.5 w-3.5" aria-hidden /> : <MicOff className="h-3.5 w-3.5" aria-hidden />}
-          </button>
-        </>
+        <AgoraClassVoiceTeacherPanel
+          open={panelOpen}
+          onClose={() => setPanelOpen(false)}
+          students={teacherStudentRows}
+          onToggleStudentSpeak={toggleStudentSpeak}
+        />
       )}
-      {role === "host" && panelOpen && (
-        <div className="absolute bottom-12 left-1/2 z-40 w-[min(92vw,320px)] -translate-x-1/2 rounded-xl border border-cyan-400/35 bg-slate-950/95 p-3 text-xs text-cyan-100 shadow-[0_0_28px_-8px_rgba(34,211,238,0.8)]">
-          <p className="mb-2 font-semibold">Conectados en clase ({participants.length})</p>
-          {participants.length === 0 ? (
-            <p className="text-cyan-200/70">Aun no hay usuarios conectados.</p>
-          ) : (
-            <div className="max-h-44 space-y-1 overflow-y-auto pr-1">
-              {participants.map((participant) => (
-                <div
-                  key={`${participant.userId}-${participant.joinedAt}`}
-                  className="flex items-center justify-between rounded border border-cyan-400/20 bg-cyan-950/25 px-2 py-1"
-                >
-                  <span className="truncate pr-2">
-                    {participant.displayName}
-                    {participant.isSelf ? " (tu)" : ""}
-                  </span>
-                  <span className="uppercase text-[10px] tracking-wide text-cyan-200/80">
-                    {participant.role === "host" ? "docente" : "alumno"}
-                  </span>
-                </div>
-              ))}
-            </div>
+
+      <div className="pointer-events-none fixed bottom-14 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2">
+        <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-cyan-400/35 bg-black/55 px-3 py-2 text-[11px] text-cyan-100 backdrop-blur-md">
+          <Radio className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          <span className="max-w-[52vw] truncate sm:max-w-none">{connected ? status : "Voz conectando..."}</span>
+          {role === "host" && (
+            <>
+              <button
+                type="button"
+                onClick={() => setPanelOpen((prev) => !prev)}
+                className="inline-flex items-center gap-1 rounded-full border border-cyan-300/40 bg-cyan-500/15 px-2 py-1 text-[10px] font-semibold text-cyan-50 transition hover:bg-cyan-500/30"
+                title="Panel de alumnos"
+              >
+                <PanelRight className="h-3.5 w-3.5" aria-hidden />
+                <span>{audienceStudents.length}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => void toggleMic()}
+                className="inline-flex items-center rounded-full border border-cyan-300/40 bg-cyan-500/15 px-2 py-1 text-[10px] font-semibold text-cyan-50 transition hover:bg-cyan-500/30"
+                title={micEnabled ? "Silenciar micrófono" : "Activar micrófono"}
+              >
+                {micEnabled ? <Mic className="h-3.5 w-3.5" aria-hidden /> : <MicOff className="h-3.5 w-3.5" aria-hidden />}
+              </button>
+            </>
+          )}
+          {role === "audience" && studentSpeaking && (
+            <span className="rounded-full border border-emerald-400/35 bg-emerald-500/15 px-2 py-0.5 text-[10px] text-emerald-100">
+              Hablando
+            </span>
           )}
         </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 }
-

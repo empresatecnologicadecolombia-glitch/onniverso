@@ -41,19 +41,33 @@ async function invokeAgoraToken(channelName: string): Promise<AgoraTokenResponse
   return json;
 }
 
+export type AgoraVoiceTokens = {
+  appId: string;
+  channelName: string;
+  hostToken: string;
+  audienceToken: string;
+};
+
+export async function fetchAgoraVoiceTokens(channelName: string): Promise<AgoraVoiceTokens> {
+  const payload = await invokeAgoraToken(channelName);
+  const appId = payload.appId?.trim() ?? "";
+  const normalizedChannel = payload.channelName?.trim() ?? "";
+  const hostToken = payload.hostToken?.trim() ?? "";
+  const audienceToken = payload.audienceToken?.trim() ?? "";
+
+  if (!appId) throw new Error("Falta App ID para Agora Voice.");
+  if (!normalizedChannel) throw new Error("Canal de voz inválido.");
+  if (!hostToken || !audienceToken) throw new Error("No se recibieron tokens de voz.");
+
+  return { appId, channelName: normalizedChannel, hostToken, audienceToken };
+}
+
 export async function fetchAgoraVoiceSession(
   channelName: string,
   role: AgoraVoiceRole,
 ): Promise<AgoraVoiceSession> {
-  const payload = await invokeAgoraToken(channelName);
-  const appId = payload.appId?.trim() ?? "";
-  const normalizedChannel = payload.channelName?.trim() ?? "";
-  const token = role === "host" ? payload.hostToken?.trim() ?? "" : payload.audienceToken?.trim() ?? "";
-
-  if (!appId) throw new Error("Falta App ID para Agora Voice.");
-  if (!normalizedChannel) throw new Error("Canal de voz inválido.");
-  if (!token) throw new Error("No se recibió token de voz para el rol solicitado.");
-
-  return { appId, channelName: normalizedChannel, token };
+  const tokens = await fetchAgoraVoiceTokens(channelName);
+  const token = role === "host" ? tokens.hostToken : tokens.audienceToken;
+  return { appId: tokens.appId, channelName: tokens.channelName, token };
 }
 

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { invokeOpenColiceoDirect } from "@/lib/coliseoOpenDirect";
 import { COLOSSEO_PATH } from "@/data/coliseoScene";
 import { stashColiseoClassLaunch } from "@/lib/coliseoClassLaunch";
+import { onniMicDeniedMessage, requestOnniMicrophoneAccess } from "@/lib/requestOnniMicrophone";
 
 type Aula = {
   id: string;
@@ -253,8 +254,15 @@ export default function ClaseVirtualEntryPage() {
     await load();
   };
 
-  const enterClassroom = () => {
+  const enterClassroom = async () => {
     if (!canEnter) return;
+    const isDocente = Boolean(aula && currentUserId && aula.docente_id === currentUserId);
+    if (!isDocente) {
+      const micPermission = await requestOnniMicrophoneAccess();
+      if (micPermission !== "granted") {
+        toast.error(onniMicDeniedMessage());
+      }
+    }
     stashColiseoClassLaunch(classUrl);
     if (invokeOpenColiceoDirect()) return;
     navigate(classUrl);
