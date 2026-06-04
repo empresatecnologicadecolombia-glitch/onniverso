@@ -208,11 +208,15 @@ public class MainActivity extends BridgeActivity {
     String url = modelUrl != null ? modelUrl.trim() : "";
     String act = action != null ? action.trim() : "";
     if (isLobbyImmersiveStereoTarget(url, act)) {
-      launchImmersiveStereoDirect(resolveLobbyImmersiveStereoUrl(url));
+      launchLobbyImmersiveStereoDirect();
       return;
     }
     if (!url.isEmpty() && (url.startsWith("http://") || url.startsWith("https://"))) {
-      launchImmersiveStereoDirect(url);
+      if (url.toLowerCase(java.util.Locale.ROOT).contains("lobby-inmersivo")) {
+        launchLobbyImmersiveStereoDirect();
+      } else {
+        launchImmersiveStereoDirect(url);
+      }
       return;
     }
     launchAulaVirtualDirect();
@@ -263,9 +267,23 @@ public class MainActivity extends BridgeActivity {
     }
   }
 
-  /** Tierra en inicio: mismo estéreo que el birrete, URL {@code /lobby-inmersivo}. */
+  /**
+   * Tierra: pantalla dividida = {@link LobbyVrActivity} (mismo {@link StereoContainer} que el aula,
+   * URL lobby en assets o producción). No reutilizar {@link AulaVirtualActivity} (URL del aula).
+   */
   void launchLobbyImmersiveStereoDirect() {
-    launchImmersiveStereoDirect(AulaVirtualActivity.LOBBY_IMMERSIVE_URL);
+    try {
+      Intent intent = new Intent();
+      intent.setClassName(getPackageName(), NATIVE_ACTIVITY_LOBBY_VR);
+      intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+      startActivity(intent);
+    } catch (Exception e) {
+      Toast.makeText(
+              this,
+              "Lobby VR estéreo no disponible en esta compilación.",
+              Toast.LENGTH_LONG)
+          .show();
+    }
   }
 
   private void launchAulaVirtualDirect() {
