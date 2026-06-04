@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  canOnniFallbackToNativeVoice,
   getOnniVoiceMode,
   isNativeVoiceAvailable,
   markPreferNativeVoice,
@@ -30,7 +31,7 @@ export function useOnniChatVoice() {
   }, [voiceMode]);
 
   const switchToNativeVoice = useCallback(() => {
-    if (!isNativeVoiceAvailable()) return false;
+    if (!canOnniFallbackToNativeVoice()) return false;
     markPreferNativeVoice();
     setVoiceMode("native");
     return true;

@@ -1,3 +1,4 @@
+import { detectDeviceKind, isAndroidNativeApp } from "@/lib/deviceDetection";
 import { isOnniVoiceSupported, pickOnniSpanishVoice } from "@/lib/onniVoice";
 
 export type OnniVoiceMode = "web" | "native" | "none";
@@ -38,6 +39,7 @@ export function prefersNativeVoiceFallback(): boolean {
 }
 
 export function markPreferNativeVoice(): void {
+  if (isOnniDesktopEnvironment()) return;
   try {
     sessionStorage.setItem(ONNI_VOICE_USE_NATIVE_KEY, "1");
   } catch {
@@ -45,8 +47,22 @@ export function markPreferNativeVoice(): void {
   }
 }
 
-/** Prioriza voz del navegador; si falla en la sesión, queda en nativa (APK). */
+/** PC con navegador (aunque exista un puente Android de prueba en window). */
+export function isOnniDesktopEnvironment(): boolean {
+  if (typeof window === "undefined") return false;
+  if (isAndroidNativeApp()) return false;
+  return detectDeviceKind() === "desktop";
+}
+
+export function canOnniFallbackToNativeVoice(): boolean {
+  return !isOnniDesktopEnvironment() && isNativeVoiceAvailable();
+}
+
+/** Escritorio → siempre web; móvil/APK → web primero, nativa si falló en la sesión. */
 export function getOnniVoiceMode(): OnniVoiceMode {
+  if (isOnniDesktopEnvironment()) {
+    return isOnniVoiceSupported() ? "web" : "none";
+  }
   if (prefersNativeVoiceFallback() && isNativeVoiceAvailable()) return "native";
   if (isOnniVoiceSupported()) return "web";
   if (isNativeVoiceAvailable()) return "native";
@@ -130,14 +146,17 @@ export function speakOnniAnswer(
   onPreferNative?: () => void,
 ): boolean {
   if (mode === "web") {
+    if (isOnniDesktopEnvironment()) {
+      return speakWithWebVoice(text);
+    }
     const fallback = () => {
-      if (!isNativeVoiceAvailable()) return;
+      if (!canOnniFallbackToNativeVoice()) return;
       markPreferNativeVoice();
       onPreferNative?.();
       speakWithNativeVoice(text);
     };
     const started = speakWithWebVoice(text, fallback);
-    if (!started && isNativeVoiceAvailable()) {
+    if (!started && canOnniFallbackToNativeVoice()) {
       fallback();
       return true;
     }
