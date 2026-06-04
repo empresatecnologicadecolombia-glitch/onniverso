@@ -7,6 +7,7 @@ import ColiseoFloatingWebViewScreen from "@/components/immersive/ColiseoFloating
 import ColiseoFloatingPdfScreen from "@/components/immersive/ColiseoFloatingPdfScreen";
 import { ColiseoWallEarth } from "@/components/immersive/ColiseoWallEarth";
 import { ColiseoWallGlb } from "@/components/immersive/coliseoWallGlb";
+import { isEarthMoonLobbyGlbUrl } from "@/components/immersive/coliseoWallGlbMaterials";
 import { WallSceneGlb } from "@/components/lobby/lobbyWallGlbScene";
 import {
   EquirectangularInterior,
@@ -121,6 +122,10 @@ function ColiseoSceneContent({
   panoramaUrl: string;
 }) {
   const prepareHeartModel = useHeartWallMaterials();
+  const earthMoonOnWall = Boolean(classGlbUrl && isEarthMoonLobbyGlbUrl(classGlbUrl));
+  const catalogGlbOnWall = Boolean(
+    classGlbUrl && !isHeartModelUrl(classGlbUrl) && !isEarthColiseoUrl(classGlbUrl),
+  );
 
   return (
     <>
@@ -129,7 +134,7 @@ function ColiseoSceneContent({
           <EquirectangularInterior key={panoramaUrl} url={panoramaUrl} />
         )}
       </Suspense>
-      <ambientLight intensity={0.68} />
+      <ambientLight intensity={earthMoonOnWall ? 0.88 : 0.68} />
       <ColiseoFloatingWebViewScreen onScreenPointerDown={onScreenPointerDown} />
       <ColiseoFloatingPdfScreen onScreenPointerDown={onScreenPointerDown} />
       <group position={GLB_SLOT_POSITION} rotation={GLB_SLOT_ROTATION}>
@@ -154,6 +159,12 @@ function ColiseoSceneContent({
             opacity={classGlbUrl ? 0.2 : 0.28}
           />
         </mesh>
+        {catalogGlbOnWall ? (
+          <>
+            <pointLight position={[0, 0.55, 1.35]} intensity={earthMoonOnWall ? 3.2 : 2.1} distance={5.5} color="#fffaf5" />
+            <pointLight position={[-0.9, 0.1, 0.75]} intensity={earthMoonOnWall ? 1.6 : 1} distance={4.2} color="#b8e4ff" />
+          </>
+        ) : null}
         {classGlbUrl ? (
           isHeartModelUrl(classGlbUrl) ? (
             <WallSceneGlb

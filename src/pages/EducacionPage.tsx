@@ -58,16 +58,6 @@ const EducacionPage = () => {
               accent="border-amber-400/40 bg-amber-500/10 text-amber-100"
             />
 
-            <div className="mb-10 rounded-xl border border-cyan-400/30 bg-cyan-500/10 p-4 backdrop-blur-sm">
-              <h2 className="font-display text-lg font-semibold text-cyan-100">Panel Docente de Clases</h2>
-              <p className="mt-1 text-sm text-cyan-50/90">
-                Crea y configura tu clase virtual (MP4, PDF y GLB), luego comparte el enlace con tus estudiantes.
-              </p>
-              <Button asChild className="mt-3">
-                <Link to="/docente-clases">Abrir panel docente</Link>
-              </Button>
-            </div>
-
             <article
               id={EDUCACION_LOBBY_CARD_HASH}
               className="mb-10 scroll-mt-28 overflow-hidden rounded-2xl border border-amber-400/35 bg-gradient-to-br from-amber-500/10 via-card/50 to-cyan-500/10 p-5 backdrop-blur-xl sm:p-6"

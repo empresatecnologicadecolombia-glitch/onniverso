@@ -3,6 +3,10 @@ import { useFrame } from "@react-three/fiber";
 import { Component, Suspense, useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
 import {
+  isEarthMoonLobbyGlbUrl,
+  prepareEarthMoonLobbyColiseoMaterials,
+} from "@/components/immersive/coliseoWallGlbMaterials";
+import {
   COLISEO_CATALOG_GLB_OFFSET,
   buildColiseoWallModel,
 } from "@/components/immersive/coliseoWallGlbNormalize";
@@ -38,7 +42,10 @@ function ColiseoWallGlbModel({
   });
 
   const prepared = useMemo(() => {
-    const baked = buildColiseoWallModel(scene, prepareModel);
+    const applyMaterials =
+      prepareModel ??
+      (isEarthMoonLobbyGlbUrl(url) ? prepareEarthMoonLobbyColiseoMaterials : undefined);
+    const baked = buildColiseoWallModel(scene, applyMaterials);
     if (!baked) {
       console.warn("[ColiseoWallGlb] Modelo no válido para la pared del Coliseo:", url);
     }

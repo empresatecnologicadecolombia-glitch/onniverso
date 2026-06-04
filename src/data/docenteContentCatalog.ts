@@ -55,6 +55,8 @@ const CORAZON_GLB =
   "https://res.cloudinary.com/dmbpk37l5/image/upload/v1780439269/el_corazon_dbhvfn_wjwe5k.glb";
 const GEOQUIMICO_GLB =
   "https://res.cloudinary.com/dmbpk37l5/image/upload/v1780439309/modelo_geoquimico_lwbh6v_s3hcjj.glb";
+const EARTH_MOON_LOBBY_GLB =
+  "https://res.cloudinary.com/dmbpk37l5/image/upload/v1780542025/earth_moon_lobby_daifrb.glb";
 const TIERRA_TEXTURE = publicAssetUrl("assets/textures/earth/earth_day_4096.jpg");
 
 export const DOCENTE_CATALOG_ELEMENTS_3D: DocenteCatalogElement3dItem[] = [
@@ -88,11 +90,11 @@ export const DOCENTE_CATALOG_ELEMENTS_3D: DocenteCatalogElement3dItem[] = [
     badge: "Elemento 3D",
   },
   {
-    id: "tierra-coliseo",
-    title: "Tierra (globo terráqueo)",
+    id: "tierra-luna-lobby",
+    title: "Tierra y Luna (lobby)",
     description:
-      "Mismo globo que en Mi Mundo: aparece en el marco de la pared del Coliseo, junto al corazón. Copia el enlace y pégalo en el campo GLB de la clase.",
-    resourceUrl: TIERRA_TEXTURE,
+      "Modelo 3D del planeta con la Luna en órbita, como en el lobby inmersivo. Ideal para astronomía y ciencias de la Tierra en la pared del Coliseo.",
+    resourceUrl: EARTH_MOON_LOBBY_GLB,
     imageUrl: TIERRA_TEXTURE,
     badge: "Elemento 3D",
   },
