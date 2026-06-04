@@ -166,6 +166,7 @@ export default function OpAiAssistant() {
           message: trimmed,
           contextPath: location.pathname,
         });
+        const asksAboutGemini = /\b(gemini|ia externa|conectad[ao]?\s+a?\s*gemini)\b/i.test(trimmed);
         if (geminiAnswer) {
           if (location.pathname.startsWith("/aula-virtual") || location.pathname.startsWith("/coliseo")) {
             publishOnniAulaKnowledge({
@@ -177,6 +178,13 @@ export default function OpAiAssistant() {
           }
           appendAssistantAnswer(setMessages, sessionRef, geminiAnswer);
           return geminiAnswer;
+        }
+
+        if (asksAboutGemini) {
+          const fallbackGemini =
+            "Sí, estoy conectada a Google Gemini para preguntas libres. Ahora mismo la API no respondió (cuota o red); inténtalo de nuevo en un minuto.";
+          appendAssistantAnswer(setMessages, sessionRef, fallbackGemini);
+          return fallbackGemini;
         }
 
         const wikiTopic = extractWikipediaTopic(trimmed);

@@ -53,7 +53,7 @@ function buildDevSystemPrompt(contextPath: string): string {
 
 /** Solo desarrollo local si VITE_GEMINI_API_KEY está en .env.local (no usar en producción). */
 async function askOnniGeminiDevDirect(body: OnniGeminiRequest, apiKey: string): Promise<OnniGeminiResponse> {
-  const model = "gemini-2.0-flash";
+  const model = "gemini-2.5-flash";
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
     {

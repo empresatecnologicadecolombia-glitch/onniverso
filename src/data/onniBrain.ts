@@ -24,7 +24,7 @@ export function getOnniIntroduction(): string {
   return [
     "¡Hola! Soy Onni, tu copiloto en OnniVerso.",
     "Te ayudo por texto con lobby, salas, conciertos, MP4 local, menú y dudas.",
-    'Escribe aquí, por ejemplo: «llévame al lobby», «¿dónde estoy?» o «ayuda».',
+    'Escribe aquí, por ejemplo: «llévame al lobby», «¿dónde estoy?» o cualquier pregunta (uso Google Gemini).',
   ].join("\n");
 }
 
@@ -86,9 +86,9 @@ export const ONNI_FAQ: FaqEntry[] = [
   },
   {
     id: "gemini-ia",
-    patterns: [/\b(gemini|chatgpt|openai|ia externa)\b/],
+    patterns: [/\b(gemini|chatgpt|openai|ia externa|conectad[ao]?\s+a?\s*gemini)\b/],
     answer:
-      "Por ahora yo funciono con reglas y conocimiento de OnniVerso (rápido y sin costo). Más adelante se puede conectar una IA externa; hoy no la uso.",
+      "Sí: para preguntas libres uso Google Gemini. Los comandos de la app (lobby, conciertos, menú, ayuda) siguen con reglas rápidas de OnniVerso.",
   },
   {
     id: "favorito",
