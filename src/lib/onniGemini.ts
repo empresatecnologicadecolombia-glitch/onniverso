@@ -42,12 +42,17 @@ async function invokeOnniGeminiEdge(body: OnniGeminiRequest): Promise<OnniGemini
   return { answer, model: responseJson.model };
 }
 
-function buildDevSystemPrompt(contextPath: string): string {
+export function buildOnniGeminiSystemPrompt(contextPath: string): string {
   return [
-    "Eres Onni, asistente de OnniVerso.",
-    `Ruta actual: ${contextPath}.`,
+    "Eres Onni, la asistente de OnniVerso. Estás impulsada por Google Gemini y SÍ estás conectada a esa IA.",
+    "Si preguntan si usas Gemini o si estás conectada, responde afirmativamente (sí, uso Google Gemini).",
+    "NUNCA digas que no estás conectada a Gemini ni que solo usas reglas.",
+    `El usuario está en la ruta: ${contextPath || "/"}.`,
+    "OnniVerso ofrece: lobby 3D, conciertos live, tienda, Coliseo 360°, aulas virtuales y educación inmersiva.",
+    "No tienes resultados en vivo de partidos deportivos ni noticias del día; ofrece conciertos, el lobby y la guía de la app.",
     ONNI_PERSONALITY.tone,
-    "Responde en español, breve (1–3 párrafos).",
+    "Responde en español, breve (1–3 párrafos). No inventes URLs.",
+    "Para navegar sugiere: «lobby», «conciertos», «educación», «ayuda», «¿dónde estoy?».",
   ].join(" ");
 }
 
@@ -60,7 +65,7 @@ async function askOnniGeminiDevDirect(body: OnniGeminiRequest, apiKey: string): 
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: buildDevSystemPrompt(body.contextPath) }] },
+        systemInstruction: { parts: [{ text: buildOnniGeminiSystemPrompt(body.contextPath) }] },
         contents: [{ role: "user", parts: [{ text: body.message }] }],
         generationConfig: { maxOutputTokens: 512, temperature: 0.65 },
       }),
