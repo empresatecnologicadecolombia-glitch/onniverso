@@ -1,7 +1,8 @@
-import { isDesktopWebBrowser } from "@/lib/deviceDetection";
 import { isOnniVoiceSupported, pickOnniSpanishVoice } from "@/lib/onniVoice";
 
 export type OnniVoiceMode = "web" | "native" | "none";
+
+const ONNI_VOICE_USE_NATIVE_KEY = "onniverso.onni.voiceUseNative";
 
 type NativeVoiceBridge = {
   startListening?: () => void;
@@ -23,15 +24,52 @@ export function getNativeVoiceBridge(): NativeVoiceBridge | null {
   return null;
 }
 
-/** Escritorio → voz del navegador; APK Android → puente nativo si existe. */
-export function getOnniVoiceMode(): OnniVoiceMode {
-  if (isDesktopWebBrowser() && isOnniVoiceSupported()) return "web";
+export function isNativeVoiceAvailable(): boolean {
   const native = getNativeVoiceBridge();
-  if (typeof native?.speak === "function" && typeof native?.startListening === "function") {
-    return "native";
+  return typeof native?.speak === "function" && typeof native?.startListening === "function";
+}
+
+export function prefersNativeVoiceFallback(): boolean {
+  try {
+    return sessionStorage.getItem(ONNI_VOICE_USE_NATIVE_KEY) === "1";
+  } catch {
+    return false;
   }
+}
+
+export function markPreferNativeVoice(): void {
+  try {
+    sessionStorage.setItem(ONNI_VOICE_USE_NATIVE_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Prioriza voz del navegador; si falla en la sesión, queda en nativa (APK). */
+export function getOnniVoiceMode(): OnniVoiceMode {
+  if (prefersNativeVoiceFallback() && isNativeVoiceAvailable()) return "native";
   if (isOnniVoiceSupported()) return "web";
+  if (isNativeVoiceAvailable()) return "native";
   return "none";
+}
+
+export function startNativeVoiceListening(): boolean {
+  const bridge = getNativeVoiceBridge();
+  if (typeof bridge?.startListening !== "function") return false;
+  try {
+    bridge.startListening();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function stopNativeVoiceListening(): void {
+  try {
+    getNativeVoiceBridge()?.stopListening?.();
+  } catch {
+    /* ignore */
+  }
 }
 
 let cachedWebVoice: SpeechSynthesisVoice | null = null;
@@ -50,7 +88,7 @@ if (typeof window !== "undefined" && "speechSynthesis" in window) {
   };
 }
 
-export function speakWithWebVoice(text: string): boolean {
+export function speakWithWebVoice(text: string, onFailed?: () => void): boolean {
   if (!isOnniVoiceSupported() || !text.trim()) return false;
   const clean = text.replace(/\n+/g, ". ").trim();
   if (!clean) return false;
@@ -63,6 +101,7 @@ export function speakWithWebVoice(text: string): boolean {
   utterance.pitch = 1;
   utterance.volume = 1;
   if (voice) utterance.voice = voice;
+  utterance.onerror = () => onFailed?.();
   window.speechSynthesis.speak(utterance);
   return true;
 }
@@ -85,8 +124,25 @@ export function speakWithNativeVoice(text: string): boolean {
   }
 }
 
-export function speakOnniAnswer(text: string, mode: OnniVoiceMode): boolean {
-  if (mode === "web") return speakWithWebVoice(text);
+export function speakOnniAnswer(
+  text: string,
+  mode: OnniVoiceMode,
+  onPreferNative?: () => void,
+): boolean {
+  if (mode === "web") {
+    const fallback = () => {
+      if (!isNativeVoiceAvailable()) return;
+      markPreferNativeVoice();
+      onPreferNative?.();
+      speakWithNativeVoice(text);
+    };
+    const started = speakWithWebVoice(text, fallback);
+    if (!started && isNativeVoiceAvailable()) {
+      fallback();
+      return true;
+    }
+    return started;
+  }
   if (mode === "native") return speakWithNativeVoice(text);
   return false;
 }

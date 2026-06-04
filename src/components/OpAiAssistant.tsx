@@ -20,44 +20,8 @@ import {
 } from "@/lib/homeSocialRedesConfig";
 import { openHomeSocialRedes } from "@/lib/homeSocialRedesOpen";
 import { useOnniChatVoice } from "@/hooks/useOnniChatVoice";
-import { getNativeVoiceBridge } from "@/lib/onniVoiceRuntime";
 
 type UiMessage = { role: "user" | "assistant"; text: string };
-type VoiceDetail = string | { text?: string; transcript?: string; final?: boolean; isFinal?: boolean };
-type VoiceErrorDetail = string | { code?: string; message?: string };
-
-function parseVoiceResult(detail: unknown): { text: string; isFinal: boolean } {
-  if (typeof detail === "string") {
-    return { text: detail.trim(), isFinal: true };
-  }
-  if (detail && typeof detail === "object") {
-    const payload = detail as VoiceDetail;
-    const text =
-      typeof payload.text === "string"
-        ? payload.text.trim()
-        : typeof payload.transcript === "string"
-          ? payload.transcript.trim()
-          : "";
-    const isFinal =
-      typeof payload.isFinal === "boolean"
-        ? payload.isFinal
-        : typeof payload.final === "boolean"
-          ? payload.final
-          : true;
-    return { text, isFinal };
-  }
-  return { text: "", isFinal: false };
-}
-
-function parseVoiceError(detail: unknown): string {
-  if (typeof detail === "string") return detail;
-  if (detail && typeof detail === "object") {
-    const payload = detail as VoiceErrorDetail;
-    if (typeof payload.message === "string" && payload.message.trim()) return payload.message.trim();
-    if (typeof payload.code === "string" && payload.code.trim()) return `Error de voz: ${payload.code.trim()}`;
-  }
-  return "No se pudo activar la voz nativa en este momento.";
-}
 
 function appendAssistantAnswer(
   setMessages: Dispatch<SetStateAction<UiMessage[]>>,
@@ -87,7 +51,7 @@ export default function OpAiAssistant() {
     voiceListening,
     setVoiceListening,
     speakAnswer,
-    startVoiceCaptureWeb,
+    startVoiceCapture,
     stopVoiceCapture,
     canListen,
     canSpeak,
@@ -201,101 +165,39 @@ export default function OpAiAssistant() {
     [location.pathname, navigate, speakAnswer],
   );
 
-  useEffect(() => {
-    if (voiceMode !== "native") return;
-
-    const onVoiceStart = () => {
-      pendingVoiceRef.current = "";
-      setVoiceListening(true);
-    };
-    const onVoiceResult = (event: Event) => {
-      const custom = event as CustomEvent<unknown>;
-      const { text: transcript, isFinal } = parseVoiceResult(custom.detail);
-      if (!transcript) return;
-      pendingVoiceRef.current = transcript;
-      setText(transcript);
-      if (isFinal) {
-        pendingVoiceRef.current = "";
+  const voiceCallbacks = useMemo(
+    () => ({
+      onTranscript: (transcript: string) => {
         setText("");
         void runCommand(transcript);
-      }
-    };
-    const onVoiceEnd = () => {
-      setVoiceListening(false);
-      const transcript = pendingVoiceRef.current.trim();
-      pendingVoiceRef.current = "";
-      setText("");
-      if (transcript) void runCommand(transcript);
-    };
-    const onVoiceError = (event: Event) => {
-      const custom = event as CustomEvent<unknown>;
-      setVoiceListening(false);
-      pendingVoiceRef.current = "";
-      const errorText = parseVoiceError(custom.detail);
-      setMessages((prev) => [...prev, { role: "assistant", text: errorText }]);
-    };
+      },
+      onError: (errorText: string) => {
+        setMessages((prev) => [...prev, { role: "assistant", text: errorText }]);
+      },
+      onFallbackToNative: () => {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            text: "La voz del navegador no respondió; uso la voz nativa de la app.",
+          },
+        ]);
+      },
+    }),
+    [runCommand],
+  );
 
-    window.addEventListener("voice:start", onVoiceStart);
-    window.addEventListener("voice:result", onVoiceResult);
-    window.addEventListener("voice:end", onVoiceEnd);
-    window.addEventListener("voice:error", onVoiceError);
-    return () => {
-      window.removeEventListener("voice:start", onVoiceStart);
-      window.removeEventListener("voice:result", onVoiceResult);
-      window.removeEventListener("voice:end", onVoiceEnd);
-      window.removeEventListener("voice:error", onVoiceError);
-    };
-  }, [runCommand, voiceMode]);
-
-  const startVoiceCapture = useCallback(() => {
+  const handleStartVoiceCapture = useCallback(() => {
     pendingVoiceRef.current = "";
     setText("");
-
-    if (voiceMode === "web") {
-      const started = startVoiceCaptureWeb(
-        (transcript) => {
-          setText("");
-          void runCommand(transcript);
-        },
-        (errorText) => {
-          setMessages((prev) => [...prev, { role: "assistant", text: errorText }]);
-        },
-      );
-      if (!started) return;
-      return;
-    }
-
-    const voiceBridge = getNativeVoiceBridge();
-    if (typeof voiceBridge?.startListening !== "function") {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", text: "No encuentro voz disponible en este dispositivo." },
-      ]);
-      return;
-    }
-    try {
-      voiceBridge.startListening();
-    } catch {
-      setVoiceListening(false);
-    }
-  }, [runCommand, startVoiceCaptureWeb, voiceMode]);
+    startVoiceCapture(voiceCallbacks);
+  }, [startVoiceCapture, voiceCallbacks]);
 
   const stopVoiceCaptureHandler = useCallback(() => {
-    if (voiceMode === "web") {
-      const transcript = stopVoiceCapture();
-      setText("");
-      if (transcript) void runCommand(transcript);
-      return;
-    }
-
-    const voiceBridge = getNativeVoiceBridge();
-    try {
-      voiceBridge?.stopListening?.();
-      setVoiceListening(false);
-    } catch {
-      setVoiceListening(false);
-    }
-  }, [runCommand, stopVoiceCapture, voiceMode]);
+    const transcript = stopVoiceCapture();
+    setText("");
+    if (transcript) void runCommand(transcript);
+  }, [runCommand, stopVoiceCapture]);
 
   const onSpeakLastAnswer = useCallback(() => {
     const textToSpeak = sessionRef.current.lastAnswer?.trim();
@@ -393,7 +295,7 @@ export default function OpAiAssistant() {
                   variant={voiceListening ? "secondary" : "outline"}
                   onPointerDown={(event) => {
                     event.preventDefault();
-                    startVoiceCapture();
+                    handleStartVoiceCapture();
                   }}
                   onPointerUp={(event) => {
                     event.preventDefault();
