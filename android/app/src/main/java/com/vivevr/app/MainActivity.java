@@ -830,6 +830,12 @@ public class MainActivity extends BridgeActivity {
       activity.runOnUiThread(() -> activity.launchLobbyImmersiveStereoDirect());
     }
 
+    /** Mismo que {@link AndroidBridge#openModelDirect} (Tierra puede usar {@code window.Android}). */
+    @JavascriptInterface
+    public void openModelDirect(String modelUrl, String action) {
+      activity.runOnUiThread(() -> activity.deliverModelDirectToNative(modelUrl, action));
+    }
+
     /** @deprecated Usar {@link #openLobbyStereoSplit}. */
     @JavascriptInterface
     public void openLobbyImmersiveStereo() {

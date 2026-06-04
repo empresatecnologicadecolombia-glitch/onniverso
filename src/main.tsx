@@ -64,6 +64,7 @@ declare global {
       openLobbyDirect?: (clipUrl?: string) => void;
       openLobbyStereoSplit?: () => void;
       openLobbyImmersiveStereo?: () => void;
+      openModelDirect?: (modelUrl: string, action: string) => void;
       /** Lobby Pantalla 2 — WebView nativo YouTube sobre el slot 3D. */
       showLobbyPantalla2WebView?(): void;
       hideLobbyPantalla2WebView?(): void;
