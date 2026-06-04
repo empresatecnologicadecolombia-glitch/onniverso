@@ -11,6 +11,11 @@ import { toast } from "sonner";
 import { getSiteUrl } from "@/lib/siteUrl";
 import { isOAuthReturnUrl } from "@/lib/oauthAuth";
 import OAuthProviderButtons from "@/components/auth/OAuthProviderButtons";
+import { ensureProfileRowForUser } from "@/lib/profile";
+import {
+  clearPendingOAuthRegisterRole,
+  readPendingOAuthRegisterRole,
+} from "@/lib/registerAppRole";
 
 const glassPanel =
   "rounded-2xl border border-border/50 bg-card/40 p-8 shadow-[0_0_45px_-12px_hsl(var(--primary)/0.45)] backdrop-blur-xl";
@@ -25,19 +30,40 @@ const WelcomeUniversePage = () => {
   useEffect(() => {
     if (!oauthReturning) return;
 
+    let handled = false;
+
+    const finishOAuthSignIn = (user: NonNullable<Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"]>["user"]) => {
+      if (handled) return;
+      handled = true;
+
+      const pendingRole = readPendingOAuthRegisterRole();
+      void ensureProfileRowForUser(user)
+        .then(() => {
+          if (pendingRole === "docente") {
+            toast.success("Cuenta docente creada. Ya puedes gestionar tus aulas.");
+          } else {
+            toast.success("Bienvenido al universo");
+          }
+          navigate("/", { replace: true });
+        })
+        .catch((err) => {
+          console.warn("[profiles] OAuth ensureProfileRowForUser:", err);
+          clearPendingOAuthRegisterRole();
+          toast.error("Entraste con Google, pero no pudimos guardar tu tipo de cuenta. Contacta soporte.");
+          navigate("/", { replace: true });
+        });
+    };
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && session?.user) {
-        toast.success("Bienvenido al universo");
-        navigate("/", { replace: true });
+        finishOAuthSignIn(session.user);
       }
     });
 
     void supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        navigate("/", { replace: true });
-      }
+      if (session?.user) finishOAuthSignIn(session.user);
     });
 
     return () => subscription.unsubscribe();

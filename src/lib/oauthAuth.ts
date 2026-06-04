@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getSiteUrl } from "@/lib/siteUrl";
+import { setPendingOAuthRegisterRole, type RegisterAppRole } from "@/lib/registerAppRole";
 
 /** URL de retorno tras OAuth (debe estar en Supabase Auth → Redirect URLs). */
 export function getOAuthRedirectUrl(): string {
@@ -14,7 +15,10 @@ export function isOAuthReturnUrl(): boolean {
 }
 
 /** Inicia sesión o registro con Google (redirección PKCE de Supabase). */
-export async function signInWithOAuthProvider(): Promise<void> {
+export async function signInWithOAuthProvider(registerRole?: RegisterAppRole): Promise<void> {
+  if (registerRole) {
+    setPendingOAuthRegisterRole(registerRole);
+  }
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {

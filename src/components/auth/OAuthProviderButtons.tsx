@@ -5,10 +5,13 @@ import { signInWithOAuthProvider } from "@/lib/oauthAuth";
 import { formatSupabaseAuthError } from "@/lib/supabaseErrors";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import type { RegisterAppRole } from "@/lib/registerAppRole";
 
 type OAuthProviderButtonsProps = {
   disabled?: boolean;
   className?: string;
+  /** Tipo de cuenta elegido en /registro (se aplica al volver de Google). */
+  registerRole?: RegisterAppRole;
   /** Si devuelve false, no inicia OAuth (p. ej. términos no aceptados). */
   onBeforeSignIn?: () => boolean;
 };
@@ -36,7 +39,7 @@ function GoogleIcon({ className }: { className?: string }) {
   );
 }
 
-const OAuthProviderButtons = ({ disabled, className, onBeforeSignIn }: OAuthProviderButtonsProps) => {
+const OAuthProviderButtons = ({ disabled, className, registerRole, onBeforeSignIn }: OAuthProviderButtonsProps) => {
   const [busy, setBusy] = useState(false);
 
   const handleGoogle = async () => {
@@ -45,7 +48,7 @@ const OAuthProviderButtons = ({ disabled, className, onBeforeSignIn }: OAuthProv
 
     setBusy(true);
     try {
-      await signInWithOAuthProvider();
+      await signInWithOAuthProvider(registerRole);
     } catch (err: unknown) {
       toast.error(formatSupabaseAuthError(err));
       setBusy(false);

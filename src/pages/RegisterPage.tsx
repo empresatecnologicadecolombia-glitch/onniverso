@@ -13,11 +13,12 @@ import { toast } from "sonner";
 import { getSiteUrl } from "@/lib/siteUrl";
 import RegisterTermsAcceptance from "@/components/auth/RegisterTermsAcceptance";
 import OAuthProviderButtons from "@/components/auth/OAuthProviderButtons";
+import type { RegisterAppRole } from "@/lib/registerAppRole";
 
 const glassPanel =
   "rounded-2xl border border-border/50 bg-card/40 p-8 shadow-[0_0_45px_-12px_hsl(var(--primary)/0.45)] backdrop-blur-xl";
 
-type RegisterRole = "particular" | "estudiante" | "docente";
+type RegisterRole = RegisterAppRole;
 
 const RegisterPage = () => {
   const [fullName, setFullName] = useState("");
@@ -78,14 +79,18 @@ const RegisterPage = () => {
       if (user && session) {
         if (avatarFile) {
           const url = await uploadAvatar(user.id, avatarFile);
-          await upsertProfile({ userId: user.id, fullName: fullName.trim(), avatarUrl: url, appRole: registerRole });
+          await upsertProfile({ userId: user.id, fullName: fullName.trim(), avatarUrl: url, registerRole });
         } else {
-          await upsertProfile({ userId: user.id, fullName: fullName.trim(), avatarUrl: null, appRole: registerRole });
+          await upsertProfile({ userId: user.id, fullName: fullName.trim(), avatarUrl: null, registerRole });
         }
       }
 
       if (session) {
-        toast.success("¡Cuenta lista! Entrando al universo…");
+        toast.success(
+          registerRole === "docente"
+            ? "¡Cuenta docente lista! Entrando al universo…"
+            : "¡Cuenta lista! Entrando al universo…",
+        );
         navigate("/", { replace: true });
       } else {
         toast.success("Revisa tu correo para confirmar la cuenta. Luego podrás iniciar sesión.");
@@ -133,7 +138,41 @@ const RegisterPage = () => {
             disabled={loading}
           />
 
+          <div className="mt-4 space-y-2">
+            <Label>Tipo de cuenta</Label>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <Button
+                type="button"
+                variant={registerRole === "particular" ? "hero" : "outline"}
+                className="w-full"
+                onClick={() => setRegisterRole("particular")}
+                disabled={loading}
+              >
+                Particular
+              </Button>
+              <Button
+                type="button"
+                variant={registerRole === "estudiante" ? "hero" : "outline"}
+                className="w-full"
+                onClick={() => setRegisterRole("estudiante")}
+                disabled={loading}
+              >
+                Estudiante
+              </Button>
+              <Button
+                type="button"
+                variant={registerRole === "docente" ? "hero" : "outline"}
+                className="w-full"
+                onClick={() => setRegisterRole("docente")}
+                disabled={loading}
+              >
+                Docente
+              </Button>
+            </div>
+          </div>
+
           <OAuthProviderButtons
+            registerRole={registerRole}
             disabled={loading || !termsAccepted}
             className="mt-4"
             onBeforeSignIn={() => {
@@ -224,39 +263,6 @@ const RegisterPage = () => {
                   autoComplete="new-password"
                   className="border-border/50 bg-black/25 pl-10 backdrop-blur-sm"
                 />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Tipo de cuenta</Label>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                <Button
-                  type="button"
-                  variant={registerRole === "particular" ? "hero" : "outline"}
-                  className="w-full"
-                  onClick={() => setRegisterRole("particular")}
-                  disabled={loading}
-                >
-                  Particular
-                </Button>
-                <Button
-                  type="button"
-                  variant={registerRole === "estudiante" ? "hero" : "outline"}
-                  className="w-full"
-                  onClick={() => setRegisterRole("estudiante")}
-                  disabled={loading}
-                >
-                  Estudiante
-                </Button>
-                <Button
-                  type="button"
-                  variant={registerRole === "docente" ? "hero" : "outline"}
-                  className="w-full"
-                  onClick={() => setRegisterRole("docente")}
-                  disabled={loading}
-                >
-                  Docente
-                </Button>
               </div>
             </div>
 

@@ -1,5 +1,12 @@
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  clearPendingOAuthRegisterRole,
+  isRegisterAppRole,
+  profileFromRegisterRole,
+  readPendingOAuthRegisterRole,
+  type RegisterAppRole,
+} from "@/lib/registerAppRole";
 
 const AVATAR_BUCKET = "avatars";
 
@@ -19,13 +26,20 @@ export async function ensureProfileRowForUser(user: User): Promise<void> {
     "";
   const fromEmail = user.email?.split("@")[0]?.trim() ?? "";
   const fullName = fromMeta || fromEmail || "Usuario";
+  const pendingOAuthRole = readPendingOAuthRegisterRole();
   const metadataRole = typeof meta.app_role === "string" ? meta.app_role.trim().toLowerCase() : "";
-  const appRole =
-    metadataRole === "docente" || metadataRole === "estudiante" || metadataRole === "particular"
-      ? metadataRole
-      : undefined;
+  const registerChoice: RegisterAppRole | null =
+    pendingOAuthRole ??
+    (isRegisterAppRole(metadataRole) ? metadataRole : null);
 
-  await upsertProfile({ userId: user.id, fullName, appRole });
+  if (registerChoice) {
+    const { appRole, teacherRequestPending } = profileFromRegisterRole(registerChoice);
+    await upsertProfile({ userId: user.id, fullName, appRole, teacherRequestPending });
+    if (pendingOAuthRole) clearPendingOAuthRegisterRole();
+    return;
+  }
+
+  await upsertProfile({ userId: user.id, fullName });
 }
 
 export async function uploadAvatar(userId: string, file: File): Promise<string> {
@@ -45,14 +59,25 @@ export async function upsertProfile(params: {
   userId: string;
   fullName: string;
   avatarUrl?: string | null;
+  /** Elección en formulario de registro (se normaliza a rol permitido en BD). */
+  registerRole?: RegisterAppRole;
+  /** Rol directo en BD (particular | estudiante | docente en registro). */
   appRole?: "particular" | "estudiante" | "docente";
+  teacherRequestPending?: boolean;
 }) {
+  const fromRegister =
+    params.registerRole !== undefined ? profileFromRegisterRole(params.registerRole) : null;
+  const appRole = fromRegister?.appRole ?? params.appRole;
+  const teacherRequestPending =
+    fromRegister?.teacherRequestPending ?? params.teacherRequestPending;
+
   const payload: {
     id: string;
     full_name: string;
     updated_at: string;
     avatar_url?: string | null;
     app_role?: "particular" | "estudiante" | "docente";
+    teacher_request_pending?: boolean;
   } = {
     id: params.userId,
     full_name: params.fullName,
@@ -61,8 +86,11 @@ export async function upsertProfile(params: {
   if (params.avatarUrl !== undefined) {
     payload.avatar_url = params.avatarUrl;
   }
-  if (params.appRole !== undefined) {
-    payload.app_role = params.appRole;
+  if (appRole !== undefined) {
+    payload.app_role = appRole;
+  }
+  if (teacherRequestPending === true) {
+    payload.teacher_request_pending = true;
   }
 
   const { error } = await supabase.from("profiles" as any).upsert(payload as any, { onConflict: "id" });
