@@ -47,7 +47,6 @@ export default function OpAiAssistant() {
   const pendingVoiceRef = useRef("");
 
   const {
-    voiceMode,
     voiceListening,
     setVoiceListening,
     speakAnswer,
@@ -55,7 +54,6 @@ export default function OpAiAssistant() {
     stopVoiceCapture,
     canListen,
     canSpeak,
-    voiceLabel,
   } = useOnniChatVoice();
 
   const hint = useMemo(() => getOpAssistantHint(location.pathname), [location.pathname]);
@@ -249,9 +247,6 @@ export default function OpAiAssistant() {
             <OnniAvatar size="md" state="idle" className="mt-0.5" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-cyan-100">Onni</p>
-              <p className="text-[10px] text-muted-foreground">
-                Asistente por voz y texto · {voiceLabel}
-              </p>
             </div>
             <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>
               Cerrar

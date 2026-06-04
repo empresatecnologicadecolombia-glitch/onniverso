@@ -46,7 +46,7 @@ export const DOCENTE_CATALOG_VIDEOS: DocenteCatalogVideoItem[] = [
     description:
       "Segunda presentación VR: refuerza el flujo docente–alumno, recursos en sala y uso del Coliseo como aula en vivo.",
     videoUrl: PRESENTACION_VR_2,
-    imageUrl: cloudinaryVideoPosterUrl(PRESENTACION_VR_2),
+    imageUrl: publicAssetUrl("2.jpeg"),
     badge: "Educación inmersiva",
   },
 ];
@@ -89,8 +89,7 @@ export const DOCENTE_CATALOG_ELEMENTS_3D: DocenteCatalogElement3dItem[] = [
       "Modelo 3D de anatomía humana (28 MB en el servidor). Copia el enlace y pégalo en el GLB de la clase: mismo archivo para docente y estudiantes.",
     localGlbPath: ANATOMIA_HUMANA_LOCAL,
     resourceUrl: publicLocalGlbUrl(ANATOMIA_HUMANA_LOCAL),
-    imageUrl:
-      "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1200&q=80",
+    imageUrl: encodeURI(publicAssetUrl("assets/anatomia 2.png")),
     badge: "Elemento 3D",
   },
   {
