@@ -7,7 +7,10 @@ import ColiseoFloatingWebViewScreen from "@/components/immersive/ColiseoFloating
 import ColiseoFloatingPdfScreen from "@/components/immersive/ColiseoFloatingPdfScreen";
 import { ColiseoWallEarth } from "@/components/immersive/ColiseoWallEarth";
 import { ColiseoWallGlb } from "@/components/immersive/coliseoWallGlb";
-import { isEarthMoonLobbyGlbUrl } from "@/components/immersive/coliseoWallGlbMaterials";
+import {
+  isAnatomiaHumanaGlbUrl,
+  isEarthMoonLobbyGlbUrl,
+} from "@/components/immersive/coliseoWallGlbMaterials";
 import { WallSceneGlb } from "@/components/lobby/lobbyWallGlbScene";
 import {
   EquirectangularInterior,
@@ -125,9 +128,13 @@ function ColiseoSceneContent({
 }) {
   const prepareHeartModel = useHeartWallMaterials();
   const earthMoonOnWall = Boolean(classGlbUrl && isEarthMoonLobbyGlbUrl(classGlbUrl));
+  const anatomiaOnWall = Boolean(classGlbUrl && isAnatomiaHumanaGlbUrl(classGlbUrl));
   const catalogGlbOnWall = Boolean(
     classGlbUrl && !isHeartModelUrl(classGlbUrl) && !isEarthColiseoUrl(classGlbUrl),
   );
+  const ambientIntensity = earthMoonOnWall ? 0.88 : anatomiaOnWall ? 0.78 : 0.68;
+  const keyLightIntensity = earthMoonOnWall ? 3.2 : anatomiaOnWall ? 2.75 : 2.1;
+  const fillLightIntensity = earthMoonOnWall ? 1.6 : anatomiaOnWall ? 1.35 : 1;
 
   return (
     <>
@@ -136,7 +143,7 @@ function ColiseoSceneContent({
           <EquirectangularInterior key={panoramaUrl} url={panoramaUrl} />
         )}
       </Suspense>
-      <ambientLight intensity={earthMoonOnWall ? 0.88 : 0.68} />
+      <ambientLight intensity={ambientIntensity} />
       <ColiseoFloatingWebViewScreen onScreenPointerDown={onScreenPointerDown} />
       <ColiseoFloatingPdfScreen onScreenPointerDown={onScreenPointerDown} />
       <group position={GLB_SLOT_POSITION} rotation={GLB_SLOT_ROTATION}>
@@ -167,8 +174,11 @@ function ColiseoSceneContent({
         ) : null}
         {catalogGlbOnWall ? (
           <>
-            <pointLight position={[0, 0.55, 1.35]} intensity={earthMoonOnWall ? 3.2 : 2.1} distance={5.5} color="#fffaf5" />
-            <pointLight position={[-0.9, 0.1, 0.75]} intensity={earthMoonOnWall ? 1.6 : 1} distance={4.2} color="#b8e4ff" />
+            <pointLight position={[0, 0.55, 1.35]} intensity={keyLightIntensity} distance={5.5} color="#fffaf5" />
+            <pointLight position={[-0.9, 0.1, 0.75]} intensity={fillLightIntensity} distance={4.2} color="#b8e4ff" />
+            {anatomiaOnWall ? (
+              <pointLight position={[0.35, -0.15, 1.05]} intensity={1.1} distance={4.5} color="#ffe8d6" />
+            ) : null}
           </>
         ) : null}
         {classGlbUrl ? (

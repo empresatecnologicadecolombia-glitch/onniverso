@@ -11,6 +11,7 @@ import {
   isEarthMoonLobbyGlbUrl,
   isGeoquimicoGlbUrl,
   orientAnatomiaHumanaStanding,
+  prepareAnatomiaHumanaColiseoMaterials,
   prepareEarthMoonLobbyColiseoMaterials,
 } from "@/components/immersive/coliseoWallGlbMaterials";
 import type { BuildColiseoWallModelOptions } from "@/components/immersive/coliseoWallGlbNormalize";
@@ -67,7 +68,10 @@ function ColiseoWallGlbModel({
     const baked = buildColiseoWallModel(
       scene,
       (root) => {
-        if (anatomia) orientAnatomiaHumanaStanding(root);
+        if (anatomia) {
+          orientAnatomiaHumanaStanding(root);
+          prepareAnatomiaHumanaColiseoMaterials(root);
+        }
         if (earthMoon) prepareEarthMoonLobbyColiseoMaterials(root);
         prepareModel?.(root);
       },

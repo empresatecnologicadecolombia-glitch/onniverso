@@ -64,7 +64,7 @@ function fixTextureColorSpace(tex: THREE.Texture | null | undefined): void {
   tex.needsUpdate = true;
 }
 
-function brightenGlbMaterial(mat: THREE.Material): THREE.Material {
+function brightenGlbMaterial(mat: THREE.Material, strength = 1): THREE.Material {
   if (mat instanceof THREE.MeshBasicMaterial) {
     const clone = mat.clone();
     fixTextureColorSpace(clone.map);
@@ -80,28 +80,37 @@ function brightenGlbMaterial(mat: THREE.Material): THREE.Material {
     if (clone.map) {
       clone.emissiveMap = clone.map;
       clone.emissive.setHex(0xffffff);
-      clone.emissiveIntensity = 0.45;
+      clone.emissiveIntensity = 0.45 * strength;
     } else {
       clone.emissive.copy(clone.color);
-      clone.emissiveIntensity = 0.22;
+      clone.emissiveIntensity = 0.22 * strength;
     }
     clone.roughness = Math.min(clone.roughness ?? 0.85, 0.45);
     clone.metalness = Math.min(clone.metalness ?? 0, 0.05);
-    if (!clone.map) clone.color.multiplyScalar(1.4);
+    if (!clone.map) clone.color.multiplyScalar(1 + 0.4 * strength);
     return clone;
   }
 
   return mat;
 }
 
-/** El GLB de lobby trae texturas oscuras bajo la luz tenue del Coliseo. */
-export function prepareEarthMoonLobbyColiseoMaterials(root: THREE.Object3D): void {
+function applyBrighterColiseoMaterials(root: THREE.Object3D, strength = 1): void {
   root.traverse((node) => {
     if (!(node instanceof THREE.Mesh)) return;
     if (Array.isArray(node.material)) {
-      node.material = node.material.map((mat) => brightenGlbMaterial(mat));
+      node.material = node.material.map((mat) => brightenGlbMaterial(mat, strength));
       return;
     }
-    node.material = brightenGlbMaterial(node.material);
+    node.material = brightenGlbMaterial(node.material, strength);
   });
+}
+
+/** El GLB de lobby trae texturas oscuras bajo la luz tenue del Coliseo. */
+export function prepareEarthMoonLobbyColiseoMaterials(root: THREE.Object3D): void {
+  applyBrighterColiseoMaterials(root, 1);
+}
+
+/** Anatomía humana: mismo tratamiento con un poco más de brillo en materiales. */
+export function prepareAnatomiaHumanaColiseoMaterials(root: THREE.Object3D): void {
+  applyBrighterColiseoMaterials(root, 1.28);
 }
