@@ -23,8 +23,14 @@ function callNativeOpenLobby(clipUrl: string): boolean {
 }
 
 /**
- * Abre lobby nativo (WebView Capacitor + selector con clip en APK).
- * {@param clipUrl} MP4/HLS para {@link SelectorActivity} en escena split; por defecto clip 360° del lobby.
+ * Tierra en inicio / APK: lobby inmersivo en {@code LobbyVrActivity} (estéreo nativo), directo.
+ */
+export function invokeOpenLobbyStereoDirect(): boolean {
+  return callNativeOpenLobby("");
+}
+
+/**
+ * Abre lobby nativo. Con {@param clipUrl} vacío → solo estéreo; con URL → legacy selector (si se usa).
  */
 export function invokeOpenLobbyDirect(clipUrl = LOBBY_EARTH_DEFAULT_CLIP_URL): boolean {
   return callNativeOpenLobby(clipUrl);

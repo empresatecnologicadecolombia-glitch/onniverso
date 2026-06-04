@@ -1,11 +1,14 @@
-import { invokeOpenLobbyDirect, hasAndroidNativeBridge } from "@/lib/lobbyOpenDirect";
+import {
+  hasAndroidNativeBridge,
+  invokeOpenLobbyStereoDirect,
+} from "@/lib/lobbyOpenDirect";
 
 export const LOBBY_IMMERSIVE_PATH = "/lobby-inmersivo";
 export const LOBBY_OPEN_TRANSITION_MS = 320;
 
-/** APK: solo puente nativo. Nunca cambia URL del WebView. */
+/** APK: {@code LobbyVrActivity} estéreo (Tierra / inicio). */
 export function openLobbyImmersiveOnAndroid(): boolean {
-  return invokeOpenLobbyDirect();
+  return invokeOpenLobbyStereoDirect();
 }
 
 export function shouldUseWebLobbyRoute(): boolean {

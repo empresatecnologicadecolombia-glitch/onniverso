@@ -935,23 +935,13 @@ public class MainActivity extends BridgeActivity {
   }
 
   /**
-   * Tierra / lobby nativo: carga {@value #LOBBY_IMMERSIVE_URL} en el WebView Capacitor (puentes
-   * Android.* del lobby) y, si hay clip, abre {@link SelectorActivity} en escena split.
+   * Tierra / lobby: {@link LobbyVrActivity} en {@link StereoContainer} (VR estéreo nativo).
+   * Sin modal; sin abrir {@link SelectorActivity} encima (clip vacío desde inicio).
    */
   private void launchLobbyVrDirect(String clipUrl) {
     String clip = clipUrl != null ? clipUrl.trim() : "";
     if (!clip.isEmpty()) {
       activeAudiencePlaybackUrl = clip;
-    }
-
-    Bridge bridge = getBridge();
-    WebView mainWebView = bridge != null ? bridge.getWebView() : null;
-    if (mainWebView != null) {
-      openLobbyImmersive(mainWebView);
-      if (!clip.isEmpty()) {
-        openAudienceSelector("split", clip, null);
-      }
-      return;
     }
 
     try {
@@ -962,13 +952,10 @@ public class MainActivity extends BridgeActivity {
         intent.putExtra(StreamExtras.STREAM_URL, clip);
       }
       startActivity(intent);
-      if (!clip.isEmpty()) {
-        openAudienceSelector("split", clip, null);
-      }
     } catch (Exception e) {
       Toast.makeText(
               this,
-              "Lobby VR nativo no disponible en esta compilación.",
+              "Lobby VR estéreo no disponible en esta compilación.",
               Toast.LENGTH_LONG)
           .show();
     }

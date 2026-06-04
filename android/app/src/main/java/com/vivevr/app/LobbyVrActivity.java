@@ -1,40 +1,36 @@
 package com.vivevr.app;
 
-import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
-import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
 
 /**
- * Lobby inmersivo (respaldo si el WebView Capacitor no está listo): assets locales o
- * {@value #LOBBY_IMMERSIVE_URL}.
+ * Lobby inmersivo VR estéreo: {@link StereoContainer} → {@value #LOBBY_IMMERSIVE_PRODUCTION_URL}
+ * (o bundle local en assets si existe).
  */
 public class LobbyVrActivity extends AppCompatActivity {
 
   public static final String LOBBY_IMMERSIVE_URL = "https://localhost/lobby-inmersivo";
+  public static final String LOBBY_IMMERSIVE_PRODUCTION_URL = "https://onnivers.com/lobby-inmersivo";
   private static final String LOBBY_ASSET_ENTRY = "file:///android_asset/public/lobby-inmersivo/index.html";
 
+  private StereoContainer stereoContainer;
   private WebView webView;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-
-    String clipFromIntent = "";
-    if (getIntent() != null && getIntent().getStringExtra(StreamExtras.STREAM_URL) != null) {
-      clipFromIntent = getIntent().getStringExtra(StreamExtras.STREAM_URL).trim();
-    }
 
     FrameLayout root = new FrameLayout(this);
     root.setLayoutParams(
@@ -42,15 +38,16 @@ public class LobbyVrActivity extends AppCompatActivity {
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     root.setBackgroundColor(0xff000000);
 
-    webView = new WebView(this);
-    webView.setLayoutParams(
+    stereoContainer = new StereoContainer(this);
+    stereoContainer.setLayoutParams(
         new FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    root.addView(stereoContainer);
+
+    webView = stereoContainer.getWebView();
     configureWebView(webView);
     webView.addJavascriptInterface(new LobbyReturnJsApi(this), "Android");
-    String lobbyUrl = resolveLobbyEntryUrl();
-    webView.loadUrl(lobbyUrl);
-    root.addView(webView);
+    webView.loadUrl(resolveLobbyEntryUrl());
 
     float density = getResources().getDisplayMetrics().density;
     int margin = (int) (12f * density);
@@ -81,19 +78,6 @@ public class LobbyVrActivity extends AppCompatActivity {
     root.addView(closeBtn);
 
     setContentView(root);
-
-    if (!clipFromIntent.isEmpty() && StreamUrlResolver.isPlayableHttpUrl(clipFromIntent)) {
-      try {
-        Intent selector = new Intent(this, SelectorActivity.class);
-        selector.putExtra(SelectorActivity.EXTRA_PREFERRED_SCENE, "split");
-        selector.putExtra(StreamExtras.STREAM_URL, clipFromIntent);
-        selector.putExtra(SelectorActivity.EXTRA_PLAYBACK_URL, clipFromIntent);
-        selector.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        startActivity(selector);
-      } catch (Exception ignored) {
-        Toast.makeText(this, "No se pudo abrir el selector con el clip.", Toast.LENGTH_SHORT).show();
-      }
-    }
   }
 
   private String resolveLobbyEntryUrl() {
@@ -105,7 +89,7 @@ public class LobbyVrActivity extends AppCompatActivity {
     } catch (Exception ignored) {
       // fallback
     }
-    return LOBBY_IMMERSIVE_URL;
+    return LOBBY_IMMERSIVE_PRODUCTION_URL;
   }
 
   private void configureWebView(WebView wv) {
@@ -133,13 +117,11 @@ public class LobbyVrActivity extends AppCompatActivity {
       webView.destroy();
       webView = null;
     }
+    stereoContainer = null;
     super.onDestroy();
   }
 
-  /**
-   * Puente mínimo para salir del lobby: {@code window.Android.onVrClick()} o
-   * {@code window.Android.openSelector()} cierran esta Activity y vuelven al menú (Tierra).
-   */
+  /** Salida del lobby: {@code window.Android.onVrClick()} cierra y vuelve al inicio. */
   private static final class LobbyReturnJsApi {
 
     private final LobbyVrActivity activity;

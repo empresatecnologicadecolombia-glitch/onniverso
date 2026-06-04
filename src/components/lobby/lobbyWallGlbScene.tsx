@@ -87,6 +87,8 @@ export function WallSceneGlb({
   spin = true,
   spinSpeed = 0.35,
   prepareModel,
+  panelWidth = WALL_PANEL_WIDTH,
+  panelHeight = WALL_PANEL_HEIGHT,
 }: {
   url: string;
   position: [number, number, number];
@@ -99,6 +101,9 @@ export function WallSceneGlb({
   /** Velocidad de giro en rad/s (Tierra del lobby ≈ 0.08). */
   spinSpeed?: number;
   prepareModel?: (root: THREE.Object3D) => void;
+  /** Marco del slot en la pared (por defecto panel grande). */
+  panelWidth?: number;
+  panelHeight?: number;
 }) {
   const spinRef = useRef<THREE.Group>(null);
 
@@ -115,8 +120,8 @@ export function WallSceneGlb({
             <WallSceneGlbModel
               key={url}
               url={url}
-              width={WALL_PANEL_WIDTH}
-              height={WALL_PANEL_HEIGHT}
+              width={panelWidth}
+              height={panelHeight}
               fitDepth={fitDepth}
               prepareModel={prepareModel}
             />

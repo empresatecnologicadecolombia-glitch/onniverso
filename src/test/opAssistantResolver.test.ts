@@ -71,16 +71,16 @@ describe("resolveOpCommand", () => {
     expect(r.answer.toLowerCase()).toContain("lobby");
   });
 
-  it("en lobby cambia video de youtube por texto", () => {
+  it("en lobby ya no cambia video de youtube (anatomia 3D en pared 4)", () => {
     const r = resolveOpCommand("cambia el video a gasolina daddy yankee", "/lobby-inmersivo");
-    expect(r.command?.type).toBe("lobby.screen4.youtube.set");
-    expect((r.command as { embedUrl?: string } | undefined)?.embedUrl).toContain("youtube.com/embed");
+    expect(r.command).toBeUndefined();
+    expect(r.answer.toLowerCase()).toMatch(/anatom|youtube/);
   });
 
-  it("fuera del lobby no habilita cambio de video youtube", () => {
+  it("fuera del lobby informa anatomia en lugar de youtube", () => {
     const r = resolveOpCommand("cambia el video a gasolina daddy yankee", "/nuestras-salas");
     expect(r.command).toBeUndefined();
-    expect(r.answer.toLowerCase()).toContain("lobby");
+    expect(r.answer.toLowerCase()).toMatch(/anatom|lobby/);
   });
 
   it("ayuda incluye reproductor", () => {

@@ -375,22 +375,12 @@ function matchLobby(text: string, textRaw: string, onLobbyPage: boolean): OpReso
   if (!lobbyContext) return null;
 
   if (asksLobbyYoutube) {
-    if (!onLobbyPage) {
-      return {
-        answer: sayOnni("Esa función de cambiar videos solo está activa dentro del lobby inmersivo."),
-      };
-    }
-
-    const target = extractLobbyYoutubeTarget(textRaw);
-    if (!target) {
-      return {
-        answer: sayOnni("Dime el nombre o el link. Ejemplo: «cambia el video a Gasolina Daddy Yankee»."),
-      };
-    }
-
     return {
-      command: { type: "lobby.screen4.youtube.set", embedUrl: target.embedUrl, sourceLabel: target.sourceLabel },
-      answer: sayOnni(`Listo, actualicé el video del lobby a: ${target.sourceLabel}.`),
+      answer: sayOnni(
+        onLobbyPage
+          ? "En el lobby la pared izquierda ya no es YouTube: muestra el modelo 3D de anatomía humana."
+          : "Esa pantalla de YouTube del lobby fue reemplazada por anatomía humana 3D. Entra al lobby inmersivo para verla.",
+      ),
     };
   }
 
@@ -402,7 +392,9 @@ function matchLobby(text: string, textRaw: string, onLobbyPage: boolean): OpReso
       return { command: { type: "lobby.focusScreen", screen: 3 }, answer: sayOnni("Listo, pantalla 3.") };
     }
     if (/\b(cuatro|4|cuarta)\b/.test(text)) {
-      return { command: { type: "lobby.focusScreen", screen: 4 }, answer: sayOnni("Listo, pantalla 4.") };
+      return {
+        answer: sayOnni("La pantalla 4 del lobby es anatomía humana en 3D en la pared izquierda."),
+      };
     }
     if (/\b(salir|cerrar|quitar|atras)\b/.test(text)) {
       return { command: { type: "lobby.unfocusScreen" }, answer: sayOnni("Listo, salí de la pantalla.") };

@@ -16,7 +16,7 @@ import { useNavigate } from "react-router-dom";
 import { GraduationCap, Radio } from "lucide-react";
 import { invokeOpenGalleryDirect } from "@/lib/galleryOpenDirect";
 import { LOBBY_IMMERSIVE_PATH } from "@/lib/lobbyImmersive";
-import { invokeOpenLobbyDirect } from "@/lib/lobbyOpenDirect";
+import { invokeOpenLobbyStereoDirect } from "@/lib/lobbyOpenDirect";
 import { isAndroidLiveStreamChoicePlatform } from "@/lib/liveStreamOpenDirect";
 import {
   getRoomMode,
@@ -738,7 +738,7 @@ const MiMundoVRSection = ({
   );
   const handleLobbyOpen = useCallback(() => {
     if (vrStereoActive) return;
-    if (isAndroidLiveStreamChoicePlatform() && invokeOpenLobbyDirect()) return;
+    if (isAndroidLiveStreamChoicePlatform() && invokeOpenLobbyStereoDirect()) return;
     navigate(LOBBY_IMMERSIVE_PATH);
   }, [navigate, vrStereoActive]);
 
