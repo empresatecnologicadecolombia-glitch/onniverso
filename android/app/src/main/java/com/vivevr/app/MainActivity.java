@@ -405,7 +405,7 @@ public class MainActivity extends BridgeActivity {
               return false;
             }
             if (isLobbyDeepLink(target)) {
-              launchLobbyVrDirect();
+              launchLobbyVrDirect(null);
               return true;
             }
             if (!isPlaybackTarget(target)) {
@@ -571,12 +571,17 @@ public class MainActivity extends BridgeActivity {
     }
 
     /**
-     * Tierra/Luna o acceso al lobby → {@link LobbyVrActivity} (doble ventana). La actividad
-     * nativa ya conoce la URL y la configuración; no se pasa ningún parámetro desde JS.
+     * Tierra/Luna (inicio): lobby inmersivo en el WebView Capacitor + clip al
+     * {@link SelectorActivity} (split). {@code clipUrl} = MP4/HLS opcional.
      */
     @JavascriptInterface
     public void openLobbyDirect() {
-      activity.runOnUiThread(() -> activity.launchLobbyVrDirect());
+      openLobbyDirect(null);
+    }
+
+    @JavascriptInterface
+    public void openLobbyDirect(String clipUrl) {
+      activity.runOnUiThread(() -> activity.launchLobbyVrDirect(clipUrl));
     }
 
     /**
@@ -724,13 +729,18 @@ public class MainActivity extends BridgeActivity {
     /** Coincide con {@code window.Android.openLobby()} desde el botón Lobby del perfil. */
     @JavascriptInterface
     public void openLobby() {
-      activity.runOnUiThread(() -> activity.launchLobbyVrDirect());
+      activity.runOnUiThread(() -> activity.launchLobbyVrDirect(null));
     }
 
-    /** Coincide con {@code window.Android.openLobbyDirect()} (Tierra; sin URL). */
+    /** Coincide con {@code window.Android.openLobbyDirect(clipUrl)} (Tierra en inicio). */
     @JavascriptInterface
     public void openLobbyDirect() {
-      activity.runOnUiThread(() -> activity.launchLobbyVrDirect());
+      openLobbyDirect(null);
+    }
+
+    @JavascriptInterface
+    public void openLobbyDirect(String clipUrl) {
+      activity.runOnUiThread(() -> activity.launchLobbyVrDirect(clipUrl));
     }
 
     /**
@@ -924,13 +934,37 @@ public class MainActivity extends BridgeActivity {
     return true;
   }
 
-  /** {@link AndroidBridge#openLobbyDirect} — abre LobbyVrActivity sin URL. */
-  private void launchLobbyVrDirect() {
+  /**
+   * Tierra / lobby nativo: carga {@value #LOBBY_IMMERSIVE_URL} en el WebView Capacitor (puentes
+   * Android.* del lobby) y, si hay clip, abre {@link SelectorActivity} en escena split.
+   */
+  private void launchLobbyVrDirect(String clipUrl) {
+    String clip = clipUrl != null ? clipUrl.trim() : "";
+    if (!clip.isEmpty()) {
+      activeAudiencePlaybackUrl = clip;
+    }
+
+    Bridge bridge = getBridge();
+    WebView mainWebView = bridge != null ? bridge.getWebView() : null;
+    if (mainWebView != null) {
+      openLobbyImmersive(mainWebView);
+      if (!clip.isEmpty()) {
+        openAudienceSelector("split", clip, null);
+      }
+      return;
+    }
+
     try {
       Intent intent = new Intent();
       intent.setClassName(getPackageName(), NATIVE_ACTIVITY_LOBBY_VR);
       intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+      if (!clip.isEmpty()) {
+        intent.putExtra(StreamExtras.STREAM_URL, clip);
+      }
       startActivity(intent);
+      if (!clip.isEmpty()) {
+        openAudienceSelector("split", clip, null);
+      }
     } catch (Exception e) {
       Toast.makeText(
               this,

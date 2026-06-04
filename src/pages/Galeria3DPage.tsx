@@ -6,8 +6,6 @@ import Footer from "@/components/Footer";
 import SectionHeader from "@/components/salas/SectionHeader";
 import BackToProfileHomeButton from "@/components/BackToProfileHomeButton";
 import { Button } from "@/components/ui/button";
-import { COLOSSEO_PATH } from "@/data/coliseoScene";
-import { invokeOpenColiceoDirect } from "@/lib/coliseoOpenDirect";
 
 const Galeria3DPage = () => {
   const location = useLocation();
@@ -42,11 +40,6 @@ const Galeria3DPage = () => {
     const slug = resolveClassSlug(classLinkInput);
     if (!slug) return;
     navigate(`/clase/${encodeURIComponent(slug)}`);
-  };
-
-  const handleColiseoOpen = () => {
-    if (invokeOpenColiceoDirect()) return;
-    navigate(COLOSSEO_PATH);
   };
 
   useEffect(() => {
@@ -106,16 +99,7 @@ const Galeria3DPage = () => {
                     Espacio educativo inmersivo donde se reciben clases virtuales en tiempo real,
                     dictadas por el docente para estudiantes conectados desde web o app.
                   </p>
-                  <Button
-                    type="button"
-                    variant="heroOutline"
-                    size="sm"
-                    className="mt-4 touch-manipulation"
-                    onClick={handleColiseoOpen}
-                  >
-                    Entrar al Coliseo
-                  </Button>
-                  <Button asChild variant="outline" size="sm" className="mt-2 touch-manipulation">
+                  <Button asChild variant="outline" size="sm" className="mt-4 touch-manipulation">
                     <Link to="/docente-clases">Panel docente (crear clase)</Link>
                   </Button>
                   <Button

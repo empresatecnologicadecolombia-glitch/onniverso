@@ -1,5 +1,6 @@
 package com.vivevr.app;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.ViewGroup;
 import android.webkit.PermissionRequest;
@@ -9,23 +10,31 @@ import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
 
 /**
- * Lobby inmersivo (Tierra / doble ventana): WebView dedicado → {@value #LOBBY_IMMERSIVE_URL}.
+ * Lobby inmersivo (respaldo si el WebView Capacitor no está listo): assets locales o
+ * {@value #LOBBY_IMMERSIVE_URL}.
  */
 public class LobbyVrActivity extends AppCompatActivity {
 
   public static final String LOBBY_IMMERSIVE_URL = "https://localhost/lobby-inmersivo";
+  private static final String LOBBY_ASSET_ENTRY = "file:///android_asset/public/lobby-inmersivo/index.html";
 
   private WebView webView;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+
+    String clipFromIntent = "";
+    if (getIntent() != null && getIntent().getStringExtra(StreamExtras.STREAM_URL) != null) {
+      clipFromIntent = getIntent().getStringExtra(StreamExtras.STREAM_URL).trim();
+    }
 
     FrameLayout root = new FrameLayout(this);
     root.setLayoutParams(
@@ -39,7 +48,8 @@ public class LobbyVrActivity extends AppCompatActivity {
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     configureWebView(webView);
     webView.addJavascriptInterface(new LobbyReturnJsApi(this), "Android");
-    webView.loadUrl(LOBBY_IMMERSIVE_URL);
+    String lobbyUrl = resolveLobbyEntryUrl();
+    webView.loadUrl(lobbyUrl);
     root.addView(webView);
 
     float density = getResources().getDisplayMetrics().density;
@@ -71,6 +81,31 @@ public class LobbyVrActivity extends AppCompatActivity {
     root.addView(closeBtn);
 
     setContentView(root);
+
+    if (!clipFromIntent.isEmpty() && StreamUrlResolver.isPlayableHttpUrl(clipFromIntent)) {
+      try {
+        Intent selector = new Intent(this, SelectorActivity.class);
+        selector.putExtra(SelectorActivity.EXTRA_PREFERRED_SCENE, "split");
+        selector.putExtra(StreamExtras.STREAM_URL, clipFromIntent);
+        selector.putExtra(SelectorActivity.EXTRA_PLAYBACK_URL, clipFromIntent);
+        selector.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(selector);
+      } catch (Exception ignored) {
+        Toast.makeText(this, "No se pudo abrir el selector con el clip.", Toast.LENGTH_SHORT).show();
+      }
+    }
+  }
+
+  private String resolveLobbyEntryUrl() {
+    try {
+      String[] entries = getAssets().list("public/lobby-inmersivo");
+      if (entries != null && entries.length > 0) {
+        return LOBBY_ASSET_ENTRY;
+      }
+    } catch (Exception ignored) {
+      // fallback
+    }
+    return LOBBY_IMMERSIVE_URL;
   }
 
   private void configureWebView(WebView wv) {

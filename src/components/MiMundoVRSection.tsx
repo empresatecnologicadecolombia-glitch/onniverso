@@ -16,13 +16,14 @@ import { useNavigate } from "react-router-dom";
 import { GraduationCap, Radio } from "lucide-react";
 import { invokeOpenGalleryDirect } from "@/lib/galleryOpenDirect";
 import { LOBBY_IMMERSIVE_PATH } from "@/lib/lobbyImmersive";
+import { invokeOpenLobbyDirect } from "@/lib/lobbyOpenDirect";
+import { isAndroidLiveStreamChoicePlatform } from "@/lib/liveStreamOpenDirect";
 import {
   getRoomMode,
   type MiMundoEnvironmentId,
 } from "@/data/miMundoEnvironments";
 import { AULA_VIRTUAL_LOBBY_PATH } from "@/lib/aulaVirtual";
 import { useAulaVirtualCardChoice } from "@/hooks/useAulaVirtualCardChoice";
-import { useLobbyCardChoice } from "@/hooks/useLobbyCardChoice";
 import {
   MAX_WEBGL_PIXEL_RATIO,
   VR_STEREO_PIXEL_RATIO,
@@ -705,7 +706,6 @@ const MiMundoVRSection = ({
 }: MiMundoVRSectionProps) => {
   const navigate = useNavigate();
   const { requestAulaVirtualEntry, dialog: aulaVirtualCardDialog } = useAulaVirtualCardChoice();
-  const { requestLobbyEntry, dialog: lobbyCardDialog } = useLobbyCardChoice();
   const [profileSaving, setProfileSaving] = useState(false);
   const vrStereoActive = useVrModeActive();
   const environmentId = useMemo<MiMundoEnvironmentId>(() => "lobby", []);
@@ -738,9 +738,9 @@ const MiMundoVRSection = ({
   );
   const handleLobbyOpen = useCallback(() => {
     if (vrStereoActive) return;
-    if (requestLobbyEntry()) return;
+    if (isAndroidLiveStreamChoicePlatform() && invokeOpenLobbyDirect()) return;
     navigate(LOBBY_IMMERSIVE_PATH);
-  }, [navigate, requestLobbyEntry, vrStereoActive]);
+  }, [navigate, vrStereoActive]);
 
   const onLocalPlayerClick = useCallback(() => {
     if (invokeOpenGalleryDirect()) return;
@@ -777,7 +777,6 @@ const MiMundoVRSection = ({
       className="relative h-full w-full max-w-full overflow-x-clip overflow-y-hidden bg-black"
     >
       {aulaVirtualCardDialog}
-      {lobbyCardDialog}
       <div className="absolute inset-0 z-[1] overflow-hidden">
         <div className="absolute inset-0 h-full w-full overflow-hidden">
         <Canvas

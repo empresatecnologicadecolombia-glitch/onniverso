@@ -19,8 +19,8 @@ declare global {
       openSalaDirect?: (salaUrl: string, action: string) => void;
       /** Abre AulaVirtualActivity nativa (estéreo); parámetros legacy ignorados. */
       openModelDirect?: (modelUrl: string, action: string) => void;
-      /** Abre LobbyVrActivity nativa (doble ventana); sin URL. */
-      openLobbyDirect?: () => void;
+      /** Abre lobby inmersivo nativo; opcional URL MP4/HLS para SelectorActivity (split). */
+      openLobbyDirect?: (clipUrl?: string) => void;
       /** Abre reproductor galería nativo; sin URL. */
       openGalleryDirect?: () => void;
       /** Sala Coliseo 360° nativa ({@link ColiceoActivity}). */
@@ -56,8 +56,8 @@ declare global {
       /** Live Cam — payload Agora: appId|canal|token de la sesión activa. */
       abrirCamLive?(agoraPayload: string): void;
       openLobby?(): void;
-      /** Mismo que {@code AndroidBridge.openLobbyDirect} (Tierra / lobby nativo). */
-      openLobbyDirect?: () => void;
+      /** Mismo que {@code AndroidBridge.openLobbyDirect} (Tierra / lobby nativo + clip al selector). */
+      openLobbyDirect?: (clipUrl?: string) => void;
       /** Lobby Pantalla 2 — WebView nativo YouTube sobre el slot 3D. */
       showLobbyPantalla2WebView?(): void;
       hideLobbyPantalla2WebView?(): void;

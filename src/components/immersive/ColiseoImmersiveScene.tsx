@@ -5,7 +5,7 @@ import { useLocation } from "react-router-dom";
 import * as THREE from "three";
 import ColiseoFloatingWebViewScreen from "@/components/immersive/ColiseoFloatingWebViewScreen";
 import ColiseoFloatingPdfScreen from "@/components/immersive/ColiseoFloatingPdfScreen";
-import { ColiseoWallEarth } from "@/components/immersive/ColiseoWallEarth";
+import { ColiseoWallEarthMoon } from "@/components/immersive/ColiseoWallEarthMoon";
 import { ColiseoWallGlb } from "@/components/immersive/coliseoWallGlb";
 import {
   isAnatomiaHumanaGlbUrl,
@@ -127,14 +127,20 @@ function ColiseoSceneContent({
   panoramaUrl: string;
 }) {
   const prepareHeartModel = useHeartWallMaterials();
-  const earthMoonOnWall = Boolean(classGlbUrl && isEarthMoonLobbyGlbUrl(classGlbUrl));
+  const lobbyEarthOnWall = Boolean(
+    classGlbUrl && (isEarthColiseoUrl(classGlbUrl) || isEarthMoonLobbyGlbUrl(classGlbUrl)),
+  );
   const anatomiaOnWall = Boolean(classGlbUrl && isAnatomiaHumanaGlbUrl(classGlbUrl));
   const catalogGlbOnWall = Boolean(
-    classGlbUrl && !isHeartModelUrl(classGlbUrl) && !isEarthColiseoUrl(classGlbUrl),
+    classGlbUrl &&
+      !isHeartModelUrl(classGlbUrl) &&
+      !isEarthColiseoUrl(classGlbUrl) &&
+      !isEarthMoonLobbyGlbUrl(classGlbUrl),
   );
-  const ambientIntensity = earthMoonOnWall ? 0.88 : anatomiaOnWall ? 0.78 : 0.68;
-  const keyLightIntensity = earthMoonOnWall ? 3.2 : anatomiaOnWall ? 2.75 : 2.1;
-  const fillLightIntensity = earthMoonOnWall ? 1.6 : anatomiaOnWall ? 1.35 : 1;
+  const wallModelLights = catalogGlbOnWall || lobbyEarthOnWall;
+  const ambientIntensity = lobbyEarthOnWall ? 0.96 : anatomiaOnWall ? 0.78 : 0.68;
+  const keyLightIntensity = lobbyEarthOnWall ? 3.65 : anatomiaOnWall ? 2.75 : 2.1;
+  const fillLightIntensity = lobbyEarthOnWall ? 1.9 : anatomiaOnWall ? 1.35 : 1;
 
   return (
     <>
@@ -172,12 +178,15 @@ function ColiseoSceneContent({
             </mesh>
           </>
         ) : null}
-        {catalogGlbOnWall ? (
+        {wallModelLights ? (
           <>
             <pointLight position={[0, 0.55, 1.35]} intensity={keyLightIntensity} distance={5.5} color="#fffaf5" />
             <pointLight position={[-0.9, 0.1, 0.75]} intensity={fillLightIntensity} distance={4.2} color="#b8e4ff" />
             {anatomiaOnWall ? (
               <pointLight position={[0.35, -0.15, 1.05]} intensity={1.1} distance={4.5} color="#ffe8d6" />
+            ) : null}
+            {lobbyEarthOnWall ? (
+              <pointLight position={[0.2, 0.25, 0.9]} intensity={1.15} distance={5} color="#fff4e6" />
             ) : null}
           </>
         ) : null}
@@ -191,9 +200,9 @@ function ColiseoSceneContent({
               fitDepth
               prepareModel={prepareHeartModel}
             />
-          ) : isEarthColiseoUrl(classGlbUrl) ? (
+          ) : lobbyEarthOnWall ? (
             <Suspense fallback={null}>
-              <ColiseoWallEarth />
+              <ColiseoWallEarthMoon />
             </Suspense>
           ) : (
             <ColiseoWallGlb url={classGlbUrl} />
