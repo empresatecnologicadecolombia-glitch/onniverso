@@ -4,6 +4,12 @@ export function isEarthMoonLobbyGlbUrl(url: string): boolean {
   return /earth_moon_lobby|daifrb/i.test(url);
 }
 
+/** Opciones de encaje en el marco del Coliseo para el GLB Tierra-Luna del lobby. */
+export const EARTH_MOON_LOBBY_COLISEO_BUILD_OPTIONS = {
+  skipAutoOrient: true,
+  rotationFix: [Math.PI, 0, 0] as [number, number, number],
+};
+
 function fixTextureColorSpace(tex: THREE.Texture | null | undefined): void {
   if (!tex) return;
   tex.colorSpace = THREE.SRGBColorSpace;

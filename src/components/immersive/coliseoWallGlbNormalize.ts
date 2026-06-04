@@ -80,15 +80,28 @@ export function orientColiseoWallModel(root: THREE.Object3D): void {
   }
 }
 
+export type BuildColiseoWallModelOptions = {
+  /** El GLB de Tierra-Luna ya viene orientado; la heurística general lo voltea. */
+  skipAutoOrient?: boolean;
+  /** Corrección fija tras centrar (p. ej. modelo exportado boca abajo). */
+  rotationFix?: [number, number, number];
+};
+
 export function buildColiseoWallModel(
   source: THREE.Object3D,
   prepareModel?: (root: THREE.Object3D) => void,
+  options?: BuildColiseoWallModelOptions,
 ): THREE.Object3D | null {
   const baked = bakeMeshesToGroup(source);
   if (!baked) return null;
 
   centerObjectAtOrigin(baked);
-  orientColiseoWallModel(baked);
+  if (!options?.skipAutoOrient) {
+    orientColiseoWallModel(baked);
+  }
+  if (options?.rotationFix) {
+    baked.rotation.set(...options.rotationFix);
+  }
   centerObjectAtOrigin(baked);
 
   prepareModel?.(baked);
