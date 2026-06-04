@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Mic, MicOff, Send, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import HomeSocialRedesRow from "@/components/HomeSocialRedesRow";
 import { dispatchOpCommand } from "@/lib/opCommandBus";
 import { getOnniIntroduction } from "@/data/onniBrain";
 import { getOpAssistantHint, resolveOpCommand } from "@/lib/opAssistantResolver";
+import { askOnniGemini, isOnniNavigationResult } from "@/lib/onniGemini";
 import { invokeOpenGalleryDirect } from "@/lib/galleryOpenDirect";
 import { invokeOpenColiceoDirect } from "@/lib/coliseoOpenDirect";
 import { publishOnniAulaKnowledge } from "@/lib/onniAulaKnowledgeBoard";
@@ -75,6 +76,27 @@ function getNativeVoiceBridge(): NativeVoiceBridge | null {
   return null;
 }
 
+function speakOnniAnswer(text: string) {
+  const voiceBridge = getNativeVoiceBridge();
+  if (typeof voiceBridge?.speak !== "function") return;
+  try {
+    voiceBridge.stopSpeaking?.();
+    voiceBridge.speak(text);
+  } catch {
+    /* ignore voice bridge failures */
+  }
+}
+
+function appendAssistantAnswer(
+  setMessages: Dispatch<SetStateAction<UiMessage[]>>,
+  sessionRef: MutableRefObject<{ lastAnswer?: string }>,
+  answer: string,
+) {
+  sessionRef.current.lastAnswer = answer;
+  setMessages((prev) => [...prev, { role: "assistant", text: answer }]);
+  speakOnniAnswer(answer);
+}
+
 export default function OpAiAssistant() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -104,85 +126,83 @@ export default function OpAiAssistant() {
       setMessages((prev) => [...prev, { role: "user", text: trimmed }]);
       setProcessing(true);
 
-      const wikiTopic = extractWikipediaTopic(trimmed);
-      if (wikiTopic) {
-        try {
-          const wiki = await fetchWikipediaSummary(wikiTopic);
-          const shortAnswer = wiki
-            ? `${wiki.title}: ${wiki.shortText}`
-            : "No encontré un resultado claro en Wikipedia para eso. Prueba con otro nombre.";
-          setMessages((prev) => [...prev, { role: "assistant", text: shortAnswer }]);
-          sessionRef.current.lastAnswer = shortAnswer;
-
-          if (wiki && (location.pathname.startsWith("/aula-virtual") || location.pathname.startsWith("/coliseo"))) {
-            publishOnniAulaKnowledge({
-              title: wiki.title,
-              shortText: wiki.shortText,
-              fullText: wiki.fullText,
-              sourceUrl: wiki.canonicalUrl,
-            });
-          }
-
-          const voiceBridge = getNativeVoiceBridge();
-          if (typeof voiceBridge?.speak === "function") {
-            try {
-              voiceBridge.stopSpeaking?.();
-              voiceBridge.speak(shortAnswer);
-            } catch {
-              /* ignore voice bridge failures */
-            }
-          }
-          return shortAnswer;
-        } catch {
-          const failAnswer = "Ahora mismo no pude consultar Wikipedia. Inténtalo de nuevo en unos segundos.";
-          setMessages((prev) => [...prev, { role: "assistant", text: failAnswer }]);
-          sessionRef.current.lastAnswer = failAnswer;
-          return failAnswer;
-        } finally {
-          setProcessing(false);
-        }
-      }
-
       try {
         const result = resolveOpCommand(trimmed, location.pathname, {
           lastAnswer: sessionRef.current.lastAnswer,
         });
-        sessionRef.current.lastAnswer = result.answer;
 
-        if (result.navigateBack) {
-          navigate(-1);
-        } else if (result.navigateTo) {
-          if (result.navigateTo === "/reproductor-galeria" && invokeOpenGalleryDirect()) {
-            // Mantener exactamente la misma experiencia del icono de inicio en Android.
-          } else if (result.navigateTo === "/coliseo" && invokeOpenColiceoDirect()) {
-            // Mantener exactamente la misma experiencia del icono Coliseo en Android.
-          } else if (result.navigateTo.startsWith("home-social:")) {
-            const iconId = result.navigateTo.replace("home-social:", "").trim() as HomeSocialIconId;
-            const icons = loadHomeSocialRedesConfig();
-            openHomeSocialRedes(getHomeSocialUrl(icons, iconId, "redes"));
-          } else {
-            const [path, hash] = result.navigateTo.split("#");
-            if (hash) {
-              navigate(path);
-              window.setTimeout(() => {
-                document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
-              }, 400);
+        if (isOnniNavigationResult(result)) {
+          sessionRef.current.lastAnswer = result.answer;
+
+          if (result.navigateBack) {
+            navigate(-1);
+          } else if (result.navigateTo) {
+            if (result.navigateTo === "/reproductor-galeria" && invokeOpenGalleryDirect()) {
+              // Mantener exactamente la misma experiencia del icono de inicio en Android.
+            } else if (result.navigateTo === "/coliseo" && invokeOpenColiceoDirect()) {
+              // Mantener exactamente la misma experiencia del icono Coliseo en Android.
+            } else if (result.navigateTo.startsWith("home-social:")) {
+              const iconId = result.navigateTo.replace("home-social:", "").trim() as HomeSocialIconId;
+              const icons = loadHomeSocialRedesConfig();
+              openHomeSocialRedes(getHomeSocialUrl(icons, iconId, "redes"));
             } else {
-              navigate(result.navigateTo);
+              const [path, hash] = result.navigateTo.split("#");
+              if (hash) {
+                navigate(path);
+                window.setTimeout(() => {
+                  document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 400);
+              } else {
+                navigate(result.navigateTo);
+              }
             }
           }
+          if (result.command) dispatchOpCommand(result.command);
+          appendAssistantAnswer(setMessages, sessionRef, result.answer);
+          return result.answer;
         }
-        if (result.command) dispatchOpCommand(result.command);
-        setMessages((prev) => [...prev, { role: "assistant", text: result.answer }]);
-        const voiceBridge = getNativeVoiceBridge();
-        if (typeof voiceBridge?.speak === "function") {
+
+        const geminiAnswer = await askOnniGemini({
+          message: trimmed,
+          contextPath: location.pathname,
+        });
+        if (geminiAnswer) {
+          if (location.pathname.startsWith("/aula-virtual") || location.pathname.startsWith("/coliseo")) {
+            publishOnniAulaKnowledge({
+              title: trimmed.slice(0, 60),
+              shortText: geminiAnswer.slice(0, 280),
+              fullText: geminiAnswer,
+              sourceUrl: "https://ai.google.dev/gemini-api/docs",
+            });
+          }
+          appendAssistantAnswer(setMessages, sessionRef, geminiAnswer);
+          return geminiAnswer;
+        }
+
+        const wikiTopic = extractWikipediaTopic(trimmed);
+        if (wikiTopic) {
           try {
-            voiceBridge.stopSpeaking?.();
-            voiceBridge.speak(result.answer);
+            const wiki = await fetchWikipediaSummary(wikiTopic);
+            const shortAnswer = wiki
+              ? `${wiki.title}: ${wiki.shortText}`
+              : "No encontré un resultado claro en Wikipedia para eso. Prueba con otro nombre.";
+            if (wiki && (location.pathname.startsWith("/aula-virtual") || location.pathname.startsWith("/coliseo"))) {
+              publishOnniAulaKnowledge({
+                title: wiki.title,
+                shortText: wiki.shortText,
+                fullText: wiki.fullText,
+                sourceUrl: wiki.canonicalUrl,
+              });
+            }
+            appendAssistantAnswer(setMessages, sessionRef, shortAnswer);
+            return shortAnswer;
           } catch {
-            /* ignore voice bridge failures */
+            /* Wikipedia falló; seguimos con la respuesta local */
           }
         }
+
+        sessionRef.current.lastAnswer = result.answer;
+        appendAssistantAnswer(setMessages, sessionRef, result.answer);
         return result.answer;
       } finally {
         setProcessing(false);
@@ -348,7 +368,7 @@ export default function OpAiAssistant() {
             <Input
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="conciertos, lobby, ayuda o: quien fue Simón Bolívar"
+              placeholder="conciertos, lobby, ayuda o pregunta libre"
             />
             {voiceUiEnabled && (
               <>
