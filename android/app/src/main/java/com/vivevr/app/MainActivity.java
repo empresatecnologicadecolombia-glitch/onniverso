@@ -212,35 +212,37 @@ public class MainActivity extends BridgeActivity {
     launchAulaVirtualDirect();
   }
 
-  /** Mismo arranque que {@link #launchAulaVirtualDirect} pero {@link LobbyVrActivity} + lobby URL. */
-  private void launchLobbyImmersiveStereoDirect() {
+  /**
+   * Pantalla dividida estéreo ({@link AulaVirtualActivity} + {@link StereoContainer}).
+   * {@code url} = {@link AulaVirtualActivity#AULA_VIRTUAL_URL} o {@link AulaVirtualActivity#LOBBY_IMMERSIVE_URL}.
+   */
+  private void launchImmersiveStereoDirect(String url) {
+    String target = url != null ? url.trim() : "";
+    if (target.isEmpty()) {
+      target = AulaVirtualActivity.AULA_VIRTUAL_URL;
+    }
     try {
       Intent intent = new Intent();
-      intent.setClassName(getPackageName(), NATIVE_ACTIVITY_LOBBY_VR);
+      intent.setClassName(getPackageName(), NATIVE_ACTIVITY_AULA_VIRTUAL);
+      intent.putExtra(ImmersiveStereoExtras.EXTRA_URL, target);
       intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
       startActivity(intent);
     } catch (Exception e) {
       Toast.makeText(
               this,
-              "Lobby VR estéreo no disponible en esta compilación.",
+              "Visor estéreo no disponible en esta compilación.",
               Toast.LENGTH_LONG)
           .show();
     }
   }
 
+  /** Tierra en inicio: mismo estéreo que el birrete, URL {@code /lobby-inmersivo}. */
+  void launchLobbyImmersiveStereoDirect() {
+    launchImmersiveStereoDirect(AulaVirtualActivity.LOBBY_IMMERSIVE_URL);
+  }
+
   private void launchAulaVirtualDirect() {
-    try {
-      Intent intent = new Intent();
-      intent.setClassName(getPackageName(), NATIVE_ACTIVITY_AULA_VIRTUAL);
-      intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-      startActivity(intent);
-    } catch (Exception e) {
-      Toast.makeText(
-              this,
-              "Aula Virtual nativa no disponible en esta compilación.",
-              Toast.LENGTH_LONG)
-          .show();
-    }
+    launchImmersiveStereoDirect(AulaVirtualActivity.AULA_VIRTUAL_URL);
   }
 
   private void openStreamPlayerDirect(String playbackUrl, String playbackId, String preferredScene) {
@@ -605,6 +607,12 @@ public class MainActivity extends BridgeActivity {
       activity.runOnUiThread(() -> activity.launchLobbyVrDirect(clipUrl));
     }
 
+    /** Tierra en inicio: estéreo nativo con {@code /lobby-inmersivo} (sin pasar por aula). */
+    @JavascriptInterface
+    public void openLobbyImmersiveStereo() {
+      activity.runOnUiThread(() -> activity.launchLobbyImmersiveStereoDirect());
+    }
+
     /**
      * Navbar REPRODUCTOR GALERIA → actividad nativa del reproductor. La app ya conoce la
      * configuración; no se pasa ningún parámetro desde JS.
@@ -762,6 +770,12 @@ public class MainActivity extends BridgeActivity {
     @JavascriptInterface
     public void openLobbyDirect(String clipUrl) {
       activity.runOnUiThread(() -> activity.launchLobbyVrDirect(clipUrl));
+    }
+
+    /** Tierra: estéreo + {@code /lobby-inmersivo}. */
+    @JavascriptInterface
+    public void openLobbyImmersiveStereo() {
+      activity.runOnUiThread(() -> activity.launchLobbyImmersiveStereoDirect());
     }
 
     /**

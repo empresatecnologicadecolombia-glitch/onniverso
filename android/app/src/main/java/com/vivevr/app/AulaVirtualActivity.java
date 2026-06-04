@@ -15,11 +15,13 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.button.MaterialButton;
 
 /**
- * Aula Virtual estéreo: un WebView en {@link StereoContainer} → {@value #AULA_VIRTUAL_URL}.
+ * Visor estéreo nativo ({@link StereoContainer}): Aula Virtual por defecto; la Tierra pasa
+ * {@link ImmersiveStereoExtras#EXTRA_URL} con {@value #LOBBY_IMMERSIVE_URL}.
  */
 public class AulaVirtualActivity extends AppCompatActivity {
 
   public static final String AULA_VIRTUAL_URL = "https://onnivers.com/aula-virtual";
+  public static final String LOBBY_IMMERSIVE_URL = "https://onnivers.com/lobby-inmersivo";
 
   private StereoContainer stereoContainer;
   private WebView webView;
@@ -42,7 +44,7 @@ public class AulaVirtualActivity extends AppCompatActivity {
 
     webView = stereoContainer.getWebView();
     configureWebView(webView);
-    webView.loadUrl(AULA_VIRTUAL_URL);
+    webView.loadUrl(resolveStereoUrl());
 
     float density = getResources().getDisplayMetrics().density;
     int margin = (int) (12f * density);
@@ -60,6 +62,16 @@ public class AulaVirtualActivity extends AppCompatActivity {
     root.addView(closeBtn);
 
     setContentView(root);
+  }
+
+  private String resolveStereoUrl() {
+    if (getIntent() != null) {
+      String extra = getIntent().getStringExtra(ImmersiveStereoExtras.EXTRA_URL);
+      if (extra != null && !extra.trim().isEmpty()) {
+        return extra.trim();
+      }
+    }
+    return AULA_VIRTUAL_URL;
   }
 
   private void configureWebView(WebView wv) {

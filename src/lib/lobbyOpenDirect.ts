@@ -1,19 +1,32 @@
-/** Acción Android: mismo puente que el birrete, pero carga /lobby-inmersivo en estéreo. */
+/** Acción legacy por si algún build antiguo solo expone openModelDirect. */
 export const OPEN_LOBBY_IMMERSIVE_STEREO_ACTION = "OPEN_LOBBY_IMMERSIVE";
+
+export const LOBBY_IMMERSIVE_PRODUCTION_URL = "https://onnivers.com/lobby-inmersivo";
 
 /** Hay puente nativo inyectado por MainActivity (APK). */
 export function hasAndroidNativeBridge(): boolean {
   return typeof window.AndroidBridge !== "undefined" || typeof window.Android !== "undefined";
 }
 
-function callNativeOpenLobbyLegacy(clipUrl: string): boolean {
-  const url = clipUrl.trim();
+/**
+ * Tierra en inicio (APK): misma pantalla dividida estéreo que el birrete, pero URL del lobby.
+ * Usa {@code openLobbyImmersiveStereo} — no {@code openModelDirect} (ese abre el aula).
+ */
+export function invokeOpenLobbyStereoDirect(): boolean {
+  if (window.AndroidBridge?.openLobbyImmersiveStereo) {
+    window.AndroidBridge.openLobbyImmersiveStereo();
+    return true;
+  }
+  if (window.Android?.openLobbyImmersiveStereo) {
+    window.Android.openLobbyImmersiveStereo();
+    return true;
+  }
   if (window.AndroidBridge?.openLobbyDirect) {
-    window.AndroidBridge.openLobbyDirect(url);
+    window.AndroidBridge.openLobbyDirect("");
     return true;
   }
   if (window.Android?.openLobbyDirect) {
-    window.Android.openLobbyDirect(url);
+    window.Android.openLobbyDirect("");
     return true;
   }
   if (window.Android?.openLobby) {
@@ -21,20 +34,4 @@ function callNativeOpenLobbyLegacy(clipUrl: string): boolean {
     return true;
   }
   return false;
-}
-
-/**
- * Tierra en inicio (APK): mismo mecanismo estéreo que el birrete Aula Virtual
- * ({@code openModelDirect} → actividad nativa con {@link StereoContainer}), ruta lobby.
- */
-export function invokeOpenLobbyStereoDirect(): boolean {
-  if (window.AndroidBridge?.openModelDirect) {
-    window.AndroidBridge.openModelDirect("", OPEN_LOBBY_IMMERSIVE_STEREO_ACTION);
-    return true;
-  }
-  if (window.Android?.openModelDirect) {
-    window.Android.openModelDirect("", OPEN_LOBBY_IMMERSIVE_STEREO_ACTION);
-    return true;
-  }
-  return callNativeOpenLobbyLegacy("");
 }
