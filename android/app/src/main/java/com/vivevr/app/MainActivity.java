@@ -607,10 +607,11 @@ public class MainActivity extends BridgeActivity {
       activity.runOnUiThread(() -> activity.launchLobbyVrDirect(clipUrl));
     }
 
-    /** Tierra en inicio: estéreo nativo con {@code /lobby-inmersivo} (sin pasar por aula). */
+    /** Tierra: mismo {@link AulaVirtualActivity} estéreo que {@link #openModelDirect}, URL lobby. */
     @JavascriptInterface
     public void openLobbyImmersiveStereo() {
-      activity.runOnUiThread(() -> activity.launchLobbyImmersiveStereoDirect());
+      activity.runOnUiThread(
+          () -> activity.deliverModelDirectToNative("", "OPEN_LOBBY_IMMERSIVE"));
     }
 
     /**
@@ -772,10 +773,11 @@ public class MainActivity extends BridgeActivity {
       activity.runOnUiThread(() -> activity.launchLobbyVrDirect(clipUrl));
     }
 
-    /** Tierra: estéreo + {@code /lobby-inmersivo}. */
+    /** Tierra: mismo estéreo que birrete Aula ({@link AulaVirtualActivity}), URL lobby. */
     @JavascriptInterface
     public void openLobbyImmersiveStereo() {
-      activity.runOnUiThread(() -> activity.launchLobbyImmersiveStereoDirect());
+      activity.runOnUiThread(
+          () -> activity.deliverModelDirectToNative("", "OPEN_LOBBY_IMMERSIVE"));
     }
 
     /**
@@ -969,9 +971,16 @@ public class MainActivity extends BridgeActivity {
     return true;
   }
 
-  /** Tierra en inicio: lobby inmersivo estéreo ({@link LobbyVrActivity}). */
+  /**
+   * Tierra / {@link AndroidBridge#openLobbyDirect}: mismo visor estéreo que birrete Aula
+   * ({@link AulaVirtualActivity}); si hay {@code clipUrl} también abre {@link SelectorActivity}.
+   */
   private void launchLobbyVrDirect(String clipUrl) {
     launchLobbyImmersiveStereoDirect();
+    String clip = clipUrl != null ? clipUrl.trim() : "";
+    if (!clip.isEmpty()) {
+      openAudienceSelector("split", clip, null);
+    }
   }
 
   /** {@link AndroidBridge#openColiceo} — sala Coliseo 360° nativa. */
