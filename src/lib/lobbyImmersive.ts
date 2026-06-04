@@ -1,7 +1,4 @@
-import {
-  hasAndroidNativeBridge,
-  invokeOpenLobbyStereoDirect,
-} from "@/lib/lobbyOpenDirect";
+import { hasAndroidNativeBridge, invokeOpenLobbyStereoDirect } from "@/lib/lobbyOpenDirect";
 
 export const LOBBY_IMMERSIVE_PATH = "/lobby-inmersivo";
 export const LOBBY_OPEN_TRANSITION_MS = 320;

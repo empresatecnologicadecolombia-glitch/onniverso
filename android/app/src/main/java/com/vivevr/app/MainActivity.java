@@ -204,7 +204,28 @@ public class MainActivity extends BridgeActivity {
    * {@link AulaVirtualActivity} (estéreo, un solo WebView). Los parámetros legacy se ignoran.
    */
   private void deliverModelDirectToNative(String modelUrl, String action) {
+    String act = action != null ? action.trim() : "";
+    if ("OPEN_LOBBY_IMMERSIVE".equalsIgnoreCase(act) || act.contains("LOBBY_IMMERSIVE")) {
+      launchLobbyImmersiveStereoDirect();
+      return;
+    }
     launchAulaVirtualDirect();
+  }
+
+  /** Mismo arranque que {@link #launchAulaVirtualDirect} pero {@link LobbyVrActivity} + lobby URL. */
+  private void launchLobbyImmersiveStereoDirect() {
+    try {
+      Intent intent = new Intent();
+      intent.setClassName(getPackageName(), NATIVE_ACTIVITY_LOBBY_VR);
+      intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+      startActivity(intent);
+    } catch (Exception e) {
+      Toast.makeText(
+              this,
+              "Lobby VR estéreo no disponible en esta compilación.",
+              Toast.LENGTH_LONG)
+          .show();
+    }
   }
 
   private void launchAulaVirtualDirect() {
@@ -934,31 +955,9 @@ public class MainActivity extends BridgeActivity {
     return true;
   }
 
-  /**
-   * Tierra / lobby: {@link LobbyVrActivity} en {@link StereoContainer} (VR estéreo nativo).
-   * Sin modal; sin abrir {@link SelectorActivity} encima (clip vacío desde inicio).
-   */
+  /** Tierra en inicio: lobby inmersivo estéreo ({@link LobbyVrActivity}). */
   private void launchLobbyVrDirect(String clipUrl) {
-    String clip = clipUrl != null ? clipUrl.trim() : "";
-    if (!clip.isEmpty()) {
-      activeAudiencePlaybackUrl = clip;
-    }
-
-    try {
-      Intent intent = new Intent();
-      intent.setClassName(getPackageName(), NATIVE_ACTIVITY_LOBBY_VR);
-      intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-      if (!clip.isEmpty()) {
-        intent.putExtra(StreamExtras.STREAM_URL, clip);
-      }
-      startActivity(intent);
-    } catch (Exception e) {
-      Toast.makeText(
-              this,
-              "Lobby VR estéreo no disponible en esta compilación.",
-              Toast.LENGTH_LONG)
-          .show();
-    }
+    launchLobbyImmersiveStereoDirect();
   }
 
   /** {@link AndroidBridge#openColiceo} — sala Coliseo 360° nativa. */

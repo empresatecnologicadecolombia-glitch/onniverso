@@ -47,7 +47,11 @@ export function invokeOpenModelDirect(
     window.AndroidBridge.openModelDirect("", "");
     return true;
   }
-  toast.error("AndroidBridge.openModelDirect no disponible.");
+  if (typeof window.Android?.openModelDirect === "function") {
+    window.Android.openModelDirect("", "");
+    return true;
+  }
+  toast.error("Puente nativo openModelDirect no disponible.");
   return false;
 }
 

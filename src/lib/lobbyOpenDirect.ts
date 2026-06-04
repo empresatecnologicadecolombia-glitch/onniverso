@@ -1,11 +1,12 @@
-import { LOBBY_EARTH_DEFAULT_CLIP_URL } from "@/lib/lobbyEarthClip";
+/** Acción Android: mismo puente que el birrete, pero carga /lobby-inmersivo en estéreo. */
+export const OPEN_LOBBY_IMMERSIVE_STEREO_ACTION = "OPEN_LOBBY_IMMERSIVE";
 
 /** Hay puente nativo inyectado por MainActivity (APK). */
 export function hasAndroidNativeBridge(): boolean {
   return typeof window.AndroidBridge !== "undefined" || typeof window.Android !== "undefined";
 }
 
-function callNativeOpenLobby(clipUrl: string): boolean {
+function callNativeOpenLobbyLegacy(clipUrl: string): boolean {
   const url = clipUrl.trim();
   if (window.AndroidBridge?.openLobbyDirect) {
     window.AndroidBridge.openLobbyDirect(url);
@@ -23,15 +24,17 @@ function callNativeOpenLobby(clipUrl: string): boolean {
 }
 
 /**
- * Tierra en inicio / APK: lobby inmersivo en {@code LobbyVrActivity} (estéreo nativo), directo.
+ * Tierra en inicio (APK): mismo mecanismo estéreo que el birrete Aula Virtual
+ * ({@code openModelDirect} → actividad nativa con {@link StereoContainer}), ruta lobby.
  */
 export function invokeOpenLobbyStereoDirect(): boolean {
-  return callNativeOpenLobby("");
-}
-
-/**
- * Abre lobby nativo. Con {@param clipUrl} vacío → solo estéreo; con URL → legacy selector (si se usa).
- */
-export function invokeOpenLobbyDirect(clipUrl = LOBBY_EARTH_DEFAULT_CLIP_URL): boolean {
-  return callNativeOpenLobby(clipUrl);
+  if (window.AndroidBridge?.openModelDirect) {
+    window.AndroidBridge.openModelDirect("", OPEN_LOBBY_IMMERSIVE_STEREO_ACTION);
+    return true;
+  }
+  if (window.Android?.openModelDirect) {
+    window.Android.openModelDirect("", OPEN_LOBBY_IMMERSIVE_STEREO_ACTION);
+    return true;
+  }
+  return callNativeOpenLobbyLegacy("");
 }
