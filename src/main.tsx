@@ -21,7 +21,9 @@ declare global {
       openModelDirect?: (modelUrl: string, action: string) => void;
       /** Abre lobby inmersivo nativo; opcional URL MP4/HLS para SelectorActivity (split). */
       openLobbyDirect?: (clipUrl?: string) => void;
-      /** Tierra en inicio: estéreo nativo cargando /lobby-inmersivo. */
+      /** Tierra: pantalla dividida + https://onnivers.com/lobby-inmersivo */
+      openLobbyStereoSplit?: () => void;
+      /** @deprecated Usar openLobbyStereoSplit */
       openLobbyImmersiveStereo?: () => void;
       /** Abre reproductor galería nativo; sin URL. */
       openGalleryDirect?: () => void;
@@ -60,7 +62,7 @@ declare global {
       openLobby?(): void;
       /** Mismo que {@code AndroidBridge.openLobbyDirect} (Tierra / lobby nativo + clip al selector). */
       openLobbyDirect?: (clipUrl?: string) => void;
-      /** Tierra: estéreo + /lobby-inmersivo. */
+      openLobbyStereoSplit?: () => void;
       openLobbyImmersiveStereo?: () => void;
       /** Lobby Pantalla 2 — WebView nativo YouTube sobre el slot 3D. */
       showLobbyPantalla2WebView?(): void;

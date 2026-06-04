@@ -200,16 +200,43 @@ public class MainActivity extends BridgeActivity {
    * la UI de {@link SelectorActivity}.
    */
   /**
-   * Puente Galería 3D / Aula ({@link AndroidBridge#openModelDirect}) →
-   * {@link AulaVirtualActivity} (estéreo, un solo WebView). Los parámetros legacy se ignoran.
+   * Puente {@link AndroidBridge#openModelDirect}: estéreo {@link AulaVirtualActivity}.
+   * Tierra: {@code modelUrl} con {@code lobby-inmersivo} o acción {@code OPEN_LOBBY_IMMERSIVE}.
+   * Birrete: {@code modelUrl} vacío → {@link AulaVirtualActivity#AULA_VIRTUAL_URL}.
    */
   private void deliverModelDirectToNative(String modelUrl, String action) {
+    String url = modelUrl != null ? modelUrl.trim() : "";
     String act = action != null ? action.trim() : "";
-    if ("OPEN_LOBBY_IMMERSIVE".equalsIgnoreCase(act) || act.contains("LOBBY_IMMERSIVE")) {
-      launchLobbyImmersiveStereoDirect();
+    if (isLobbyImmersiveStereoTarget(url, act)) {
+      launchImmersiveStereoDirect(resolveLobbyImmersiveStereoUrl(url));
+      return;
+    }
+    if (!url.isEmpty() && (url.startsWith("http://") || url.startsWith("https://"))) {
+      launchImmersiveStereoDirect(url);
       return;
     }
     launchAulaVirtualDirect();
+  }
+
+  private static boolean isLobbyImmersiveStereoTarget(String modelUrl, String action) {
+    if (modelUrl != null
+        && modelUrl.toLowerCase(java.util.Locale.ROOT).contains("lobby-inmersivo")) {
+      return true;
+    }
+    if (action == null) {
+      return false;
+    }
+    String act = action.trim();
+    return "OPEN_LOBBY_IMMERSIVE".equalsIgnoreCase(act) || act.contains("LOBBY_IMMERSIVE");
+  }
+
+  private static String resolveLobbyImmersiveStereoUrl(String modelUrl) {
+    String url = modelUrl != null ? modelUrl.trim() : "";
+    if (!url.isEmpty()
+        && url.toLowerCase(java.util.Locale.ROOT).contains("lobby-inmersivo")) {
+      return url;
+    }
+    return AulaVirtualActivity.LOBBY_IMMERSIVE_URL;
   }
 
   /**
@@ -225,7 +252,7 @@ public class MainActivity extends BridgeActivity {
       Intent intent = new Intent();
       intent.setClassName(getPackageName(), NATIVE_ACTIVITY_AULA_VIRTUAL);
       intent.putExtra(ImmersiveStereoExtras.EXTRA_URL, target);
-      intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+      intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
       startActivity(intent);
     } catch (Exception e) {
       Toast.makeText(
@@ -586,11 +613,18 @@ public class MainActivity extends BridgeActivity {
     }
 
     /**
-     * Galería / modelos 3D → {@link AulaVirtualActivity} (estéreo). Parámetros legacy ignorados.
+     * Galería / Aula / Tierra → {@link AulaVirtualActivity} (estéreo).
+     * Tierra: {@code modelUrl} = {@link AulaVirtualActivity#LOBBY_IMMERSIVE_URL}.
      */
     @JavascriptInterface
     public void openModelDirect(String modelUrl, String action) {
       activity.runOnUiThread(() -> activity.deliverModelDirectToNative(modelUrl, action));
+    }
+
+    /** Tierra en inicio: pantalla dividida + {@value com.vivevr.app.AulaVirtualActivity#LOBBY_IMMERSIVE_URL}. */
+    @JavascriptInterface
+    public void openLobbyStereoSplit() {
+      activity.runOnUiThread(() -> activity.launchLobbyImmersiveStereoDirect());
     }
 
     /**
@@ -607,11 +641,10 @@ public class MainActivity extends BridgeActivity {
       activity.runOnUiThread(() -> activity.launchLobbyVrDirect(clipUrl));
     }
 
-    /** Tierra: mismo {@link AulaVirtualActivity} estéreo que {@link #openModelDirect}, URL lobby. */
+    /** @deprecated Usar {@link #openLobbyStereoSplit}. */
     @JavascriptInterface
     public void openLobbyImmersiveStereo() {
-      activity.runOnUiThread(
-          () -> activity.deliverModelDirectToNative("", "OPEN_LOBBY_IMMERSIVE"));
+      openLobbyStereoSplit();
     }
 
     /**
@@ -773,11 +806,16 @@ public class MainActivity extends BridgeActivity {
       activity.runOnUiThread(() -> activity.launchLobbyVrDirect(clipUrl));
     }
 
-    /** Tierra: mismo estéreo que birrete Aula ({@link AulaVirtualActivity}), URL lobby. */
+    /** Tierra: pantalla dividida estéreo con lobby inmersivo. */
+    @JavascriptInterface
+    public void openLobbyStereoSplit() {
+      activity.runOnUiThread(() -> activity.launchLobbyImmersiveStereoDirect());
+    }
+
+    /** @deprecated Usar {@link #openLobbyStereoSplit}. */
     @JavascriptInterface
     public void openLobbyImmersiveStereo() {
-      activity.runOnUiThread(
-          () -> activity.deliverModelDirectToNative("", "OPEN_LOBBY_IMMERSIVE"));
+      openLobbyStereoSplit();
     }
 
     /**

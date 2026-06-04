@@ -1,5 +1,6 @@
 package com.vivevr.app;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
@@ -62,6 +63,15 @@ public class AulaVirtualActivity extends AppCompatActivity {
     root.addView(closeBtn);
 
     setContentView(root);
+  }
+
+  @Override
+  protected void onNewIntent(Intent intent) {
+    super.onNewIntent(intent);
+    setIntent(intent);
+    if (webView != null) {
+      webView.loadUrl(resolveStereoUrl());
+    }
   }
 
   private String resolveStereoUrl() {
