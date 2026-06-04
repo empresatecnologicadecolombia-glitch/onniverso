@@ -33,7 +33,7 @@ import { onOpCommand } from "@/lib/opCommandBus";
 const NAV_ITEMS: { label: string; path: string; icon: LucideIcon }[] = [
   { label: "ONNIVERSO", path: "/inicio-2", icon: Sparkles },
   /** Clase Virtual 360 (Coliseo); solo tarjeta de aula en vivo. */
-  { label: "AULA VIRTUAL", path: GALERIA_AULA_SECTION_PATH, icon: Box },
+  { label: "CLASE VIRTUAL", path: GALERIA_AULA_SECTION_PATH, icon: Box },
   { label: "EDUCACIÓN", path: EDUCACION_SECTION_PATH, icon: GraduationCap },
   { label: "CONCIERTOS LIVE", path: "/nuestras-salas", icon: Radio },
   { label: "CONTACTOS", path: "/comunidad", icon: MessageCircle },

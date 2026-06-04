@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { isDesktopWebBrowser } from "@/lib/deviceDetection";
 import {
-  canOnniFallbackToNativeVoice,
   getOnniVoiceMode,
   isNativeVoiceAvailable,
   markPreferNativeVoice,
@@ -31,7 +31,8 @@ export function useOnniChatVoice() {
   }, [voiceMode]);
 
   const switchToNativeVoice = useCallback(() => {
-    if (!canOnniFallbackToNativeVoice()) return false;
+    if (isDesktopWebBrowser()) return false;
+    if (!isNativeVoiceAvailable()) return false;
     markPreferNativeVoice();
     setVoiceMode("native");
     return true;

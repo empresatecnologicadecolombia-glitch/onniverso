@@ -14,6 +14,42 @@ export function isGeoquimicoGlbUrl(url: string): boolean {
   return /modelo_geoquimico|geoquimico_lwbh6v|s3hcjj/i.test(url);
 }
 
+export function isAnatomiaHumanaGlbUrl(url: string): boolean {
+  try {
+    const decoded = decodeURIComponent(url).toLowerCase();
+    return decoded.includes("anatomia") && decoded.includes("umana");
+  } catch {
+    return /anatomia|modello.*3d/i.test(url.toLowerCase());
+  }
+}
+
+/** Cuerpo humano: orientación manual y +20 % en el marco del Coliseo. */
+export const ANATOMIA_HUMANA_COLISEO_BUILD_OPTIONS = {
+  skipAutoOrient: true,
+  scaleMultiplier: 1.2,
+};
+
+/** Gira el eje más largo del cuerpo hacia arriba (Y). */
+export function orientAnatomiaHumanaStanding(root: THREE.Object3D): void {
+  root.updateMatrixWorld(true);
+  const size = new THREE.Box3().setFromObject(root, true).getSize(new THREE.Vector3());
+  const { x, y, z } = size;
+  const max = Math.max(x, y, z);
+  if (max < 1e-6) return;
+
+  if (x >= max * 0.92 && x >= y) {
+    root.rotation.z = Math.PI / 2;
+    return;
+  }
+  if (z >= max * 0.92 && z >= y) {
+    root.rotation.x = -Math.PI / 2;
+    return;
+  }
+  if (y < max * 0.92) {
+    root.rotation.z = Math.PI / 2;
+  }
+}
+
 /** Modelo geoquímico más grande en la pared del Coliseo (base × 1.65). */
 export const GEOQUIMICO_COLISEO_BUILD_OPTIONS = {
   scaleMultiplier: 1.65,

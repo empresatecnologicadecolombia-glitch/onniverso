@@ -1,4 +1,4 @@
-import { detectDeviceKind, isAndroidNativeApp } from "@/lib/deviceDetection";
+import { isDesktopWebBrowser } from "@/lib/deviceDetection";
 import { isOnniVoiceSupported, pickOnniSpanishVoice } from "@/lib/onniVoice";
 
 export type OnniVoiceMode = "web" | "native" | "none";
@@ -39,7 +39,7 @@ export function prefersNativeVoiceFallback(): boolean {
 }
 
 export function markPreferNativeVoice(): void {
-  if (isOnniDesktopEnvironment()) return;
+  if (isDesktopWebBrowser()) return;
   try {
     sessionStorage.setItem(ONNI_VOICE_USE_NATIVE_KEY, "1");
   } catch {
@@ -47,22 +47,12 @@ export function markPreferNativeVoice(): void {
   }
 }
 
-/** PC con navegador (aunque exista un puente Android de prueba en window). */
-export function isOnniDesktopEnvironment(): boolean {
-  if (typeof window === "undefined") return false;
-  if (isAndroidNativeApp()) return false;
-  return detectDeviceKind() === "desktop";
-}
-
-export function canOnniFallbackToNativeVoice(): boolean {
-  return !isOnniDesktopEnvironment() && isNativeVoiceAvailable();
-}
-
-/** Escritorio → siempre web; móvil/APK → web primero, nativa si falló en la sesión. */
+/**
+ * Escritorio: voz del navegador (sin cambios respecto a la versión que ya funcionaba).
+ * Móvil/APK: voz del navegador primero; si falla en la sesión, nativa.
+ */
 export function getOnniVoiceMode(): OnniVoiceMode {
-  if (isOnniDesktopEnvironment()) {
-    return isOnniVoiceSupported() ? "web" : "none";
-  }
+  if (isDesktopWebBrowser() && isOnniVoiceSupported()) return "web";
   if (prefersNativeVoiceFallback() && isNativeVoiceAvailable()) return "native";
   if (isOnniVoiceSupported()) return "web";
   if (isNativeVoiceAvailable()) return "native";
@@ -146,17 +136,17 @@ export function speakOnniAnswer(
   onPreferNative?: () => void,
 ): boolean {
   if (mode === "web") {
-    if (isOnniDesktopEnvironment()) {
+    if (isDesktopWebBrowser()) {
       return speakWithWebVoice(text);
     }
     const fallback = () => {
-      if (!canOnniFallbackToNativeVoice()) return;
+      if (!isNativeVoiceAvailable()) return;
       markPreferNativeVoice();
       onPreferNative?.();
       speakWithNativeVoice(text);
     };
     const started = speakWithWebVoice(text, fallback);
-    if (!started && canOnniFallbackToNativeVoice()) {
+    if (!started && isNativeVoiceAvailable()) {
       fallback();
       return true;
     }

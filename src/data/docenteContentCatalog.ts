@@ -1,6 +1,6 @@
 import dinosauriosPreviewImg from "@/assets/aula-preview/dinosaurios.png";
 import { cloudinaryVideoPosterUrl } from "@/lib/cloudinaryVideoPoster";
-import { publicAssetUrl } from "@/lib/publicAssetUrl";
+import { publicAssetUrl, publicLocalGlbUrl } from "@/lib/publicAssetUrl";
 
 export type DocenteContentTabId = "videos" | "pdf" | "elementos-3d";
 
@@ -8,8 +8,10 @@ export type DocenteCatalogElement3dItem = {
   id: string;
   title: string;
   description: string;
-  /** Enlace .glb o recurso a copiar en el campo GLB de la clase. */
+  /** Enlace remoto (Cloudinary, etc.) para «Copiar». */
   resourceUrl: string;
+  /** Archivo en public/assets/models: muestra «Seleccionar» en el panel docente. */
+  localGlbPath?: string;
   imageUrl: string;
   badge: string;
 };
@@ -57,6 +59,7 @@ const GEOQUIMICO_GLB =
   "https://res.cloudinary.com/dmbpk37l5/image/upload/v1780439309/modelo_geoquimico_lwbh6v_s3hcjj.glb";
 const EARTH_MOON_LOBBY_GLB =
   "https://res.cloudinary.com/dmbpk37l5/image/upload/v1780542025/earth_moon_lobby_daifrb.glb";
+const ANATOMIA_HUMANA_LOCAL = "assets/models/modello 3d anatomia umana.glb";
 const TIERRA_TEXTURE = publicAssetUrl("assets/textures/earth/earth_day_4096.jpg");
 
 export const DOCENTE_CATALOG_ELEMENTS_3D: DocenteCatalogElement3dItem[] = [
@@ -77,6 +80,17 @@ export const DOCENTE_CATALOG_ELEMENTS_3D: DocenteCatalogElement3dItem[] = [
     resourceUrl: CORAZON_GLB,
     imageUrl:
       "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/3D_model_of_a_human_heart.stl/1280px-3D_model_of_a_human_heart.stl.png",
+    badge: "Elemento 3D",
+  },
+  {
+    id: "anatomia-cuerpo-humano",
+    title: "Anatomía del cuerpo humano 3D",
+    description:
+      "Modelo 3D de anatomía humana (28 MB en el servidor). Copia el enlace y pégalo en el GLB de la clase: mismo archivo para docente y estudiantes.",
+    localGlbPath: ANATOMIA_HUMANA_LOCAL,
+    resourceUrl: publicLocalGlbUrl(ANATOMIA_HUMANA_LOCAL),
+    imageUrl:
+      "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1200&q=80",
     badge: "Elemento 3D",
   },
   {

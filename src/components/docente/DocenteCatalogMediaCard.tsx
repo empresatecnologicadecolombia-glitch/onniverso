@@ -42,7 +42,6 @@ export default function DocenteCatalogMediaCard({
   actionLabel,
   onAction,
 }: DocenteCatalogMediaCardProps) {
-  const Wrapper = onAction ? "button" : "article";
   const kindMeta = MEDIA_KIND_META[mediaKind];
   const KindIcon = kindMeta.icon;
 
@@ -54,10 +53,8 @@ export default function DocenteCatalogMediaCard({
       transition={{ delay: index * 0.08, duration: 0.45 }}
       className="h-full"
     >
-      <Wrapper
-        type={onAction ? "button" : undefined}
-        onClick={onAction}
-        className={`group flex h-full w-full flex-col rounded-xl border border-cyan-400/45 bg-card/40 text-left shadow-[0_0_36px_-14px_rgba(34,211,238,0.45)] backdrop-blur-xl transition-all duration-500 hover:border-cyan-300/55 hover:shadow-[0_0_42px_-10px_rgba(34,211,238,0.55)] sm:rounded-2xl ${salaRoomCardPadding} ${onAction ? "cursor-pointer" : ""}`}
+      <article
+        className={`group flex h-full w-full flex-col rounded-xl border border-cyan-400/45 bg-card/40 text-left shadow-[0_0_36px_-14px_rgba(34,211,238,0.45)] backdrop-blur-xl transition-all duration-500 hover:border-cyan-300/55 hover:shadow-[0_0_42px_-10px_rgba(34,211,238,0.55)] sm:rounded-2xl ${salaRoomCardPadding}`}
       >
         <div className={`relative overflow-hidden rounded-xl border border-cyan-400/25 ${salaRoomImageWrapMb}`}>
           <img
@@ -84,11 +81,15 @@ export default function DocenteCatalogMediaCard({
         <h3 className={`${salaRoomTitle} mt-3 line-clamp-2 text-cyan-50`}>{title}</h3>
         <p className={`mt-2 flex-1 ${salaRoomDesc}`}>{description}</p>
         {actionLabel && onAction ? (
-          <span className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-cyan-400/40 bg-cyan-500/10 py-2 text-[10px] font-display font-bold uppercase tracking-wide text-cyan-100 sm:text-xs">
+          <button
+            type="button"
+            onClick={onAction}
+            className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-cyan-400/40 bg-cyan-500/10 py-2 text-[10px] font-display font-bold uppercase tracking-wide text-cyan-100 transition-colors hover:bg-cyan-500/20 sm:text-xs"
+          >
             {actionLabel}
-          </span>
+          </button>
         ) : null}
-      </Wrapper>
+      </article>
     </motion.div>
   );
 }

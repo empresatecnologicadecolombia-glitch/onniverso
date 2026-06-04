@@ -3,11 +3,14 @@ import { useFrame } from "@react-three/fiber";
 import { Component, Suspense, useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
 import {
+  ANATOMIA_HUMANA_COLISEO_BUILD_OPTIONS,
   EARTH_MOON_LOBBY_COLISEO_BUILD_OPTIONS,
   GEOQUIMICO_COLISEO_BUILD_OPTIONS,
   GEOQUIMICO_COLISEO_SPIN_SPEED,
+  isAnatomiaHumanaGlbUrl,
   isEarthMoonLobbyGlbUrl,
   isGeoquimicoGlbUrl,
+  orientAnatomiaHumanaStanding,
   prepareEarthMoonLobbyColiseoMaterials,
 } from "@/components/immersive/coliseoWallGlbMaterials";
 import type { BuildColiseoWallModelOptions } from "@/components/immersive/coliseoWallGlbNormalize";
@@ -20,6 +23,7 @@ const COLISEO_WALL_SPIN_SPEED = 0.35;
 
 function getColiseoWallBuildOptions(url: string): BuildColiseoWallModelOptions | undefined {
   if (isEarthMoonLobbyGlbUrl(url)) return EARTH_MOON_LOBBY_COLISEO_BUILD_OPTIONS;
+  if (isAnatomiaHumanaGlbUrl(url)) return ANATOMIA_HUMANA_COLISEO_BUILD_OPTIONS;
   if (isGeoquimicoGlbUrl(url)) return GEOQUIMICO_COLISEO_BUILD_OPTIONS;
   return undefined;
 }
@@ -59,9 +63,16 @@ function ColiseoWallGlbModel({
 
   const prepared = useMemo(() => {
     const earthMoon = isEarthMoonLobbyGlbUrl(url);
-    const applyMaterials =
-      prepareModel ?? (earthMoon ? prepareEarthMoonLobbyColiseoMaterials : undefined);
-    const baked = buildColiseoWallModel(scene, applyMaterials, getColiseoWallBuildOptions(url));
+    const anatomia = isAnatomiaHumanaGlbUrl(url);
+    const baked = buildColiseoWallModel(
+      scene,
+      (root) => {
+        if (anatomia) orientAnatomiaHumanaStanding(root);
+        if (earthMoon) prepareEarthMoonLobbyColiseoMaterials(root);
+        prepareModel?.(root);
+      },
+      getColiseoWallBuildOptions(url),
+    );
     if (!baked) {
       console.warn("[ColiseoWallGlb] Modelo no válido para la pared del Coliseo:", url);
     }
