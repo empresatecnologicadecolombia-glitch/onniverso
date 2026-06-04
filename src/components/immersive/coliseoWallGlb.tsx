@@ -4,15 +4,30 @@ import { Component, Suspense, useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
 import {
   EARTH_MOON_LOBBY_COLISEO_BUILD_OPTIONS,
+  GEOQUIMICO_COLISEO_BUILD_OPTIONS,
+  GEOQUIMICO_COLISEO_SPIN_SPEED,
   isEarthMoonLobbyGlbUrl,
+  isGeoquimicoGlbUrl,
   prepareEarthMoonLobbyColiseoMaterials,
 } from "@/components/immersive/coliseoWallGlbMaterials";
+import type { BuildColiseoWallModelOptions } from "@/components/immersive/coliseoWallGlbNormalize";
 import {
   COLISEO_CATALOG_GLB_OFFSET,
   buildColiseoWallModel,
 } from "@/components/immersive/coliseoWallGlbNormalize";
 
 const COLISEO_WALL_SPIN_SPEED = 0.35;
+
+function getColiseoWallBuildOptions(url: string): BuildColiseoWallModelOptions | undefined {
+  if (isEarthMoonLobbyGlbUrl(url)) return EARTH_MOON_LOBBY_COLISEO_BUILD_OPTIONS;
+  if (isGeoquimicoGlbUrl(url)) return GEOQUIMICO_COLISEO_BUILD_OPTIONS;
+  return undefined;
+}
+
+function getColiseoWallSpinSpeed(url: string): number {
+  if (isGeoquimicoGlbUrl(url)) return GEOQUIMICO_COLISEO_SPIN_SPEED;
+  return COLISEO_WALL_SPIN_SPEED;
+}
 
 class GlbErrorBoundary extends Component<{ children: ReactNode; fallback?: ReactNode }, { hasError: boolean }> {
   state = { hasError: false };
@@ -46,11 +61,7 @@ function ColiseoWallGlbModel({
     const earthMoon = isEarthMoonLobbyGlbUrl(url);
     const applyMaterials =
       prepareModel ?? (earthMoon ? prepareEarthMoonLobbyColiseoMaterials : undefined);
-    const baked = buildColiseoWallModel(
-      scene,
-      applyMaterials,
-      earthMoon ? EARTH_MOON_LOBBY_COLISEO_BUILD_OPTIONS : undefined,
-    );
+    const baked = buildColiseoWallModel(scene, applyMaterials, getColiseoWallBuildOptions(url));
     if (!baked) {
       console.warn("[ColiseoWallGlb] Modelo no válido para la pared del Coliseo:", url);
     }
@@ -72,10 +83,11 @@ export function ColiseoWallGlb({
   spin?: boolean;
 }) {
   const spinRef = useRef<THREE.Group>(null);
+  const spinSpeed = getColiseoWallSpinSpeed(url);
 
   useFrame((_, delta) => {
     if (!spin || !spinRef.current) return;
-    spinRef.current.rotation.y += delta * COLISEO_WALL_SPIN_SPEED;
+    spinRef.current.rotation.y += delta * spinSpeed;
   });
 
   return (

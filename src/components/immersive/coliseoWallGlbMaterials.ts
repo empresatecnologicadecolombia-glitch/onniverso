@@ -10,6 +10,18 @@ export const EARTH_MOON_LOBBY_COLISEO_BUILD_OPTIONS = {
   rotationFix: [Math.PI, 0, 0] as [number, number, number],
 };
 
+export function isGeoquimicoGlbUrl(url: string): boolean {
+  return /modelo_geoquimico|geoquimico_lwbh6v|s3hcjj/i.test(url);
+}
+
+/** Modelo geoquímico más grande en la pared del Coliseo (base × 1.65). */
+export const GEOQUIMICO_COLISEO_BUILD_OPTIONS = {
+  scaleMultiplier: 1.65,
+};
+
+/** Giro más lento que el resto del catálogo (rad/s; catálogo ≈ 0.35). */
+export const GEOQUIMICO_COLISEO_SPIN_SPEED = 0.16;
+
 function fixTextureColorSpace(tex: THREE.Texture | null | undefined): void {
   if (!tex) return;
   tex.colorSpace = THREE.SRGBColorSpace;

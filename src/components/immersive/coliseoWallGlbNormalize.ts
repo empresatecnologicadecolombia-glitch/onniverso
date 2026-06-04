@@ -85,6 +85,8 @@ export type BuildColiseoWallModelOptions = {
   skipAutoOrient?: boolean;
   /** Corrección fija tras centrar (p. ej. modelo exportado boca abajo). */
   rotationFix?: [number, number, number];
+  /** Multiplicador extra tras el encaje al marco (p. ej. 2 = duplicar tamaño). */
+  scaleMultiplier?: number;
 };
 
 export function buildColiseoWallModel(
@@ -109,7 +111,8 @@ export function buildColiseoWallModel(
   const bounds = measureColiseoWallBounds(baked);
   if (!bounds) return null;
   const fitScale = scaleForColiseoWallFrame(bounds.width, bounds.height, bounds.depth);
-  baked.scale.multiplyScalar(fitScale);
+  const extraScale = options?.scaleMultiplier ?? 1;
+  baked.scale.multiplyScalar(fitScale * extraScale);
   centerObjectAtOrigin(baked);
 
   return baked;

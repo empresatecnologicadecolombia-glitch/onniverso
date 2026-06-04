@@ -32,6 +32,8 @@ const GLB_SLOT_POSITION: [number, number, number] = [10.5, 1.95, -0.42];
 const GLB_SLOT_ROTATION: [number, number, number] = [0, Math.PI, 0];
 const HEART_DIFFUSE_URL = "/assets/models/corazon-diffuse.png";
 const HEART_MODEL_URL = "/assets/models/corazon.glb";
+/** Escala del corazón en la pared del Coliseo (base 1.12 × 2). */
+const COLISEO_HEART_SCALE_MULTIPLIER = 2.24;
 
 function normalizeGoogleDriveGlbUrl(raw: string): string {
   try {
@@ -138,27 +140,31 @@ function ColiseoSceneContent({
       <ColiseoFloatingWebViewScreen onScreenPointerDown={onScreenPointerDown} />
       <ColiseoFloatingPdfScreen onScreenPointerDown={onScreenPointerDown} />
       <group position={GLB_SLOT_POSITION} rotation={GLB_SLOT_ROTATION}>
-        <mesh>
-          <planeGeometry args={[5.1, 3.15]} />
-          <meshStandardMaterial
-            color="#0b1220"
-            emissive="#111827"
-            emissiveIntensity={0.28}
-            transparent
-            opacity={0.14}
-            roughness={0.92}
-            metalness={0.02}
-          />
-        </mesh>
-        <mesh position={[0, 0, 0.01]}>
-          <planeGeometry args={[5.1, 3.15]} />
-          <meshBasicMaterial
-            color={classGlbUrl ? "#22d3ee" : "#60a5fa"}
-            wireframe
-            transparent
-            opacity={classGlbUrl ? 0.2 : 0.28}
-          />
-        </mesh>
+        {import.meta.env.DEV ? (
+          <>
+            <mesh>
+              <planeGeometry args={[5.1, 3.15]} />
+              <meshStandardMaterial
+                color="#0b1220"
+                emissive="#111827"
+                emissiveIntensity={0.28}
+                transparent
+                opacity={0.14}
+                roughness={0.92}
+                metalness={0.02}
+              />
+            </mesh>
+            <mesh position={[0, 0, 0.01]}>
+              <planeGeometry args={[5.1, 3.15]} />
+              <meshBasicMaterial
+                color={classGlbUrl ? "#22d3ee" : "#60a5fa"}
+                wireframe
+                transparent
+                opacity={classGlbUrl ? 0.2 : 0.28}
+              />
+            </mesh>
+          </>
+        ) : null}
         {catalogGlbOnWall ? (
           <>
             <pointLight position={[0, 0.55, 1.35]} intensity={earthMoonOnWall ? 3.2 : 2.1} distance={5.5} color="#fffaf5" />
@@ -171,7 +177,7 @@ function ColiseoSceneContent({
               url={classGlbUrl}
               position={[0, 0, 0]}
               rotation={[0, 0, 0]}
-              scaleMultiplier={1.12}
+              scaleMultiplier={COLISEO_HEART_SCALE_MULTIPLIER}
               fitDepth
               prepareModel={prepareHeartModel}
             />
