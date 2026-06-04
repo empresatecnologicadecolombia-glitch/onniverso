@@ -17,9 +17,10 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { APP_APK_DOWNLOAD_URL } from "@/config/appDownload";
 import { LOCKED_NAVBAR_HEIGHT_CLASS, LOCKED_NAVBAR_MENU_OFFSET_CLASS } from "@/config/lockedHomeLayout";
 import { isDesktopWebBrowser } from "@/lib/deviceDetection";
@@ -46,6 +47,36 @@ const Navbar = () => {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showAppDownload, setShowAppDownload] = useState(false);
+  const [appRole, setAppRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setAppRole(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("app_role")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!cancelled) {
+        setAppRole((data as { app_role?: string } | null)?.app_role ?? "particular");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  const navItems = useMemo(
+    () =>
+      NAV_ITEMS.filter(
+        (item) => !(appRole === "particular" && item.path === GALERIA_AULA_SECTION_PATH),
+      ),
+    [appRole],
+  );
 
   useEffect(() => {
     setShowAppDownload(isDesktopWebBrowser());
@@ -143,7 +174,7 @@ const Navbar = () => {
               Navegación
             </p>
             <div className="flex flex-col gap-2">
-              {NAV_ITEMS.map((item) => {
+              {navItems.map((item) => {
                 const Icon = item.icon;
                 return (
                   <Link
