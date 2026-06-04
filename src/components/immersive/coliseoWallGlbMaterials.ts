@@ -114,3 +114,29 @@ export function prepareEarthMoonLobbyColiseoMaterials(root: THREE.Object3D): voi
 export function prepareAnatomiaHumanaColiseoMaterials(root: THREE.Object3D): void {
   applyBrighterColiseoMaterials(root, 1.28);
 }
+
+/** Lobby en móvil: materiales simples (sin PBR) para más FPS. */
+export function simplifyAnatomiaHumanaMaterialsForMobile(root: THREE.Object3D): void {
+  root.traverse((node) => {
+    if (!(node instanceof THREE.Mesh)) return;
+    const apply = (mat: THREE.Material) => {
+      if (mat instanceof THREE.MeshBasicMaterial) {
+        const clone = mat.clone();
+        if (clone.map) clone.map.colorSpace = THREE.SRGBColorSpace;
+        return clone;
+      }
+      const basic = new THREE.MeshBasicMaterial({
+        map: "map" in mat && mat.map instanceof THREE.Texture ? mat.map : null,
+        color: "color" in mat && mat.color instanceof THREE.Color ? mat.color.clone() : new THREE.Color(0xffffff),
+        toneMapped: true,
+      });
+      if (basic.map) basic.map.colorSpace = THREE.SRGBColorSpace;
+      return basic;
+    };
+    if (Array.isArray(node.material)) {
+      node.material = node.material.map((m) => apply(m));
+      return;
+    }
+    node.material = apply(node.material);
+  });
+}

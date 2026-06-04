@@ -3,6 +3,7 @@ import { useGLTF } from "@react-three/drei";
 import {
   orientAnatomiaHumanaStanding,
   prepareAnatomiaHumanaColiseoMaterials,
+  simplifyAnatomiaHumanaMaterialsForMobile,
 } from "@/components/immersive/coliseoWallGlbMaterials";
 import { WallSceneGlb } from "@/components/lobby/lobbyWallGlbScene";
 import { publicLocalGlbUrl } from "@/lib/publicAssetUrl";
@@ -16,6 +17,9 @@ type LobbyDecorAnatomiaHumanaWallProps = {
   position?: [number, number, number];
   rotation?: [number, number, number];
   scaleMultiplier?: number;
+  spinSpeed?: number;
+  /** Menos coste GPU en móvil (MeshBasic, sin luces extra en la pared). */
+  simplifyMaterials?: boolean;
   panelWidth?: number;
   panelHeight?: number;
 };
@@ -25,13 +29,22 @@ export default function LobbyDecorAnatomiaHumanaWall({
   position = [0, 0, 0],
   rotation = [0, 0, 0],
   scaleMultiplier = 1.05,
+  spinSpeed = 0.22,
+  simplifyMaterials = false,
   panelWidth,
   panelHeight,
 }: LobbyDecorAnatomiaHumanaWallProps) {
-  const prepareModel = useCallback((root: THREE.Object3D) => {
-    orientAnatomiaHumanaStanding(root);
-    prepareAnatomiaHumanaColiseoMaterials(root);
-  }, []);
+  const prepareModel = useCallback(
+    (root: THREE.Object3D) => {
+      orientAnatomiaHumanaStanding(root);
+      if (simplifyMaterials) {
+        simplifyAnatomiaHumanaMaterialsForMobile(root);
+      } else {
+        prepareAnatomiaHumanaColiseoMaterials(root);
+      }
+    },
+    [simplifyMaterials],
+  );
 
   return (
     <WallSceneGlb
@@ -41,7 +54,7 @@ export default function LobbyDecorAnatomiaHumanaWall({
       scaleMultiplier={scaleMultiplier}
       fitDepth={false}
       spin
-      spinSpeed={0.22}
+      spinSpeed={spinSpeed}
       prepareModel={prepareModel}
       panelWidth={panelWidth}
       panelHeight={panelHeight}

@@ -466,6 +466,7 @@ function SideWallScreen3({
 
 /** Pared izquierda (antes YouTube): anatomía humana 3D. */
 function LobbyAnatomiaHumanaWallPanel() {
+  const isMobileCoarse = isMobileCoarseDevice();
   const half = ROOM_SIZE / 2;
   const y = WALL_HEIGHT / 2;
   const off = 0.03;
@@ -479,10 +480,16 @@ function LobbyAnatomiaHumanaWallPanel() {
         rotation={[0, 0, 0]}
         panelWidth={w}
         panelHeight={h}
-        scaleMultiplier={2.16}
+        scaleMultiplier={isMobileCoarse ? 1.55 : 2.16}
+        spinSpeed={isMobileCoarse ? 0.1 : 0.22}
+        simplifyMaterials={isMobileCoarse}
       />
-      <pointLight position={[0.5, 0.4, 1.85]} intensity={2.6} distance={9} color="#fff6ec" />
-      <pointLight position={[-0.4, -0.15, 1.2]} intensity={1.2} distance={6} color="#b8e4ff" />
+      {!isMobileCoarse && (
+        <>
+          <pointLight position={[0.5, 0.4, 1.85]} intensity={2.6} distance={9} color="#fff6ec" />
+          <pointLight position={[-0.4, -0.15, 1.2]} intensity={1.2} distance={6} color="#b8e4ff" />
+        </>
+      )}
     </group>
   );
 }
@@ -1361,13 +1368,6 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
     await startMixedReality();
   }, [mixedRealityEnabled, startMixedReality, stopMixedReality]);
 
-  const autoMobileCameraStartedRef = useRef(false);
-  useEffect(() => {
-    if (!isMobileCoarse || autoMobileCameraStartedRef.current) return;
-    autoMobileCameraStartedRef.current = true;
-    void startMixedReality();
-  }, [isMobileCoarse, startMixedReality]);
-
   const activateGyroLook = useCallback(async () => {
     setGyroError(null);
     const permission = await requestDeviceOrientationPermission();
@@ -1400,7 +1400,7 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
       <video
         ref={cameraVideoRef}
         playsInline
-        autoPlay
+        autoPlay={mixedRealityEnabled}
         muted
         aria-hidden
         style={
@@ -1481,8 +1481,8 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
       <Canvas
         className="relative z-10"
         camera={{ fov: 75, near: 0.1, far: 200, position: [0, PLAYER_HEIGHT, 4] }}
-        dpr={[1, MAX_WEBGL_PIXEL_RATIO]}
-        gl={{ antialias: true, alpha: true }}
+        dpr={isMobileCoarse ? [1, 1.35] : [1, MAX_WEBGL_PIXEL_RATIO]}
+        gl={{ antialias: !isMobileCoarse, alpha: true }}
         onCreated={({ gl }) => {
           canvasRef.current = gl.domElement;
           gl.domElement.style.touchAction = "none";
