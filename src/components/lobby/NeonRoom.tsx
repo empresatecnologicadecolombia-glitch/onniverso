@@ -1368,13 +1368,6 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
     await startMixedReality();
   }, [mixedRealityEnabled, startMixedReality, stopMixedReality]);
 
-  const autoMobileCameraStartedRef = useRef(false);
-  useEffect(() => {
-    if (!isMobileCoarse || autoMobileCameraStartedRef.current) return;
-    autoMobileCameraStartedRef.current = true;
-    void startMixedReality();
-  }, [isMobileCoarse, startMixedReality]);
-
   const activateGyroLook = useCallback(async () => {
     setGyroError(null);
     const permission = await requestDeviceOrientationPermission();
@@ -1407,7 +1400,7 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
       <video
         ref={cameraVideoRef}
         playsInline
-        autoPlay
+        autoPlay={mixedRealityEnabled}
         muted
         aria-hidden
         style={
