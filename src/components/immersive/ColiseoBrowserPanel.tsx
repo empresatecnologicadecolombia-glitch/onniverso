@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
 import { COLOSSEO_HOME_URL } from "@/data/coliseoScene";
 import {
   COLOSSEO_NATIVE_BROWSER_SLOT_ID,
@@ -30,22 +29,24 @@ export default function ColiseoAndroidWebViewSlot({
   const nativeSlotRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const channelReadyRef = useRef(false);
   const applyingRemoteRef = useRef(false);
-  const location = useLocation();
   const [selfUserId, setSelfUserId] = useState("");
   const [isTeacher, setIsTeacher] = useState(false);
   const [desiredPlayback, setDesiredPlayback] = useState<"play" | "pause" | null>(null);
   const [playbackSrc, setPlaybackSrc] = useState("");
   const prevActiveVideoUrlRef = useRef("");
   const useNativeWebView = false;
-  const classSlug = useMemo(
-    () => new URLSearchParams(location.search).get("class")?.trim().toLowerCase() ?? "",
-    [location.search],
-  );
+  const syncContext = useMemo(() => {
+    if (typeof window === "undefined") return { classSlug: "" };
+    const searchParams = new URLSearchParams(window.location.search);
+    return {
+      classSlug: searchParams.get("class")?.trim().toLowerCase() ?? "",
+    };
+  }, []);
 
   const classVideoUrls = useMemo(() => {
-    const searchParams = new URLSearchParams(location.search);
+    if (typeof window === "undefined") return [];
+    const searchParams = new URLSearchParams(window.location.search);
     const legacyMp4 = searchParams.get("mp4")?.trim() ?? "";
     const allVideoParams = Array.from(
       new Set(
@@ -58,7 +59,7 @@ export default function ColiseoAndroidWebViewSlot({
     // Regla estable: si hay playlist de videos, NO mezclar mp4 legacy.
     if (allVideoParams.length > 0) return allVideoParams;
     return legacyMp4 && /^https?:\/\//i.test(legacyMp4) ? [legacyMp4] : [];
-  }, [location.search]);
+  }, []);
   const [videoIndex, setVideoIndex] = useState(0);
   const activeVideoUrl =
     classVideoUrls.length > 0 ? classVideoUrls[Math.max(0, Math.min(videoIndex, classVideoUrls.length - 1))] : "";
@@ -68,10 +69,6 @@ export default function ColiseoAndroidWebViewSlot({
   const broadcastSyncCommand = useCallback(
     async (command: Omit<SyncCommand, "senderId">) => {
       if (!isTeacher || !channelRef.current || !selfUserId) return;
-      if (!channelReadyRef.current) {
-        await new Promise((resolve) => setTimeout(resolve, 450));
-      }
-      if (!channelReadyRef.current || !channelRef.current) return;
       await channelRef.current.send({
         type: "broadcast",
         event: "video-control",
@@ -91,11 +88,11 @@ export default function ColiseoAndroidWebViewSlot({
       if (!user || cancelled) return;
       setSelfUserId(user.id);
 
-      if (classSlug) {
+      if (syncContext.classSlug) {
         const { data: aulaRow } = await supabase
           .from("aulas_virtuales" as any)
           .select("docente_id")
-          .eq("slug", classSlug)
+          .eq("slug", syncContext.classSlug)
           .maybeSingle();
         const docenteId = (aulaRow as { docente_id?: string } | null)?.docente_id ?? "";
         if (!cancelled) setIsTeacher(docenteId === user.id);
@@ -105,8 +102,7 @@ export default function ColiseoAndroidWebViewSlot({
 
       // Usamos solo classSlug para que docente y alumnos queden en el mismo canal
       // aunque lleguen con/ sin query `session` en la URL.
-      const channelName = `class-video-sync-${classSlug || "main"}`;
-      channelReadyRef.current = false;
+      const channelName = `class-video-sync-${syncContext.classSlug || "main"}`;
       syncChannel = supabase.channel(channelName);
       channelRef.current = syncChannel;
 
@@ -132,19 +128,16 @@ export default function ColiseoAndroidWebViewSlot({
             applyingRemoteRef.current = false;
           }, 200);
         })
-        .subscribe((status) => {
-          channelReadyRef.current = status === "SUBSCRIBED";
-        });
+        .subscribe();
     };
 
     void setupSync();
     return () => {
       cancelled = true;
-      channelReadyRef.current = false;
       channelRef.current = null;
       if (syncChannel) void supabase.removeChannel(syncChannel);
     };
-  }, [classSlug]);
+  }, [syncContext.classSlug]);
 
   useEffect(() => {
     if (videoIndex < classVideoUrls.length) return;
