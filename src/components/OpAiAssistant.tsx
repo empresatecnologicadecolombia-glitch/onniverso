@@ -19,16 +19,12 @@ import {
   type HomeSocialIconId,
 } from "@/lib/homeSocialRedesConfig";
 import { openHomeSocialRedes } from "@/lib/homeSocialRedesOpen";
+import { useOnniChatVoice } from "@/hooks/useOnniChatVoice";
+import { getNativeVoiceBridge } from "@/lib/onniVoiceRuntime";
 
 type UiMessage = { role: "user" | "assistant"; text: string };
 type VoiceDetail = string | { text?: string; transcript?: string; final?: boolean; isFinal?: boolean };
 type VoiceErrorDetail = string | { code?: string; message?: string };
-type NativeVoiceBridge = {
-  startListening?: () => void;
-  stopListening?: () => void;
-  speak?: (text: string) => void;
-  stopSpeaking?: () => void;
-};
 
 function parseVoiceResult(detail: unknown): { text: string; isFinal: boolean } {
   if (typeof detail === "string") {
@@ -63,38 +59,15 @@ function parseVoiceError(detail: unknown): string {
   return "No se pudo activar la voz nativa en este momento.";
 }
 
-function getNativeVoiceBridge(): NativeVoiceBridge | null {
-  if (typeof window === "undefined") return null;
-  const android = window.Android;
-  if (android && (typeof android.startListening === "function" || typeof android.speak === "function")) {
-    return android;
-  }
-  const bridge = window.AndroidBridge as NativeVoiceBridge | undefined;
-  if (bridge && (typeof bridge.startListening === "function" || typeof bridge.speak === "function")) {
-    return bridge;
-  }
-  return null;
-}
-
-function speakOnniAnswer(text: string) {
-  const voiceBridge = getNativeVoiceBridge();
-  if (typeof voiceBridge?.speak !== "function") return;
-  try {
-    voiceBridge.stopSpeaking?.();
-    voiceBridge.speak(text);
-  } catch {
-    /* ignore voice bridge failures */
-  }
-}
-
 function appendAssistantAnswer(
   setMessages: Dispatch<SetStateAction<UiMessage[]>>,
   sessionRef: MutableRefObject<{ lastAnswer?: string }>,
   answer: string,
+  speak: (text: string) => void,
 ) {
   sessionRef.current.lastAnswer = answer;
   setMessages((prev) => [...prev, { role: "assistant", text: answer }]);
-  speakOnniAnswer(answer);
+  speak(answer);
 }
 
 export default function OpAiAssistant() {
@@ -102,7 +75,6 @@ export default function OpAiAssistant() {
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
-  const [voiceListening, setVoiceListening] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [messages, setMessages] = useState<UiMessage[]>([
     { role: "assistant", text: getOnniIntroduction() },
@@ -110,13 +82,23 @@ export default function OpAiAssistant() {
   const sessionRef = useRef<{ lastAnswer?: string }>({});
   const pendingVoiceRef = useRef("");
 
+  const {
+    voiceMode,
+    voiceListening,
+    setVoiceListening,
+    speakAnswer,
+    startVoiceCaptureWeb,
+    stopVoiceCapture,
+    canListen,
+    canSpeak,
+    voiceLabel,
+  } = useOnniChatVoice();
+
   const hint = useMemo(() => getOpAssistantHint(location.pathname), [location.pathname]);
   const isColiseoClassScene = location.pathname.startsWith("/coliseo");
   const isAulaVirtualScene = location.pathname === "/aula-virtual";
   const shiftOnniRight = isColiseoClassScene || isAulaVirtualScene;
   const showSocialIcons = location.pathname === "/";
-  const voiceSupported = typeof getNativeVoiceBridge()?.startListening === "function";
-  const voiceUiEnabled = true;
 
   const runCommand = useCallback(
     async (raw: string) => {
@@ -158,7 +140,7 @@ export default function OpAiAssistant() {
             }
           }
           if (result.command) dispatchOpCommand(result.command);
-          appendAssistantAnswer(setMessages, sessionRef, result.answer);
+          appendAssistantAnswer(setMessages, sessionRef, result.answer, speakAnswer);
           return result.answer;
         }
 
@@ -176,14 +158,14 @@ export default function OpAiAssistant() {
               sourceUrl: "https://ai.google.dev/gemini-api/docs",
             });
           }
-          appendAssistantAnswer(setMessages, sessionRef, geminiAnswer);
+          appendAssistantAnswer(setMessages, sessionRef, geminiAnswer, speakAnswer);
           return geminiAnswer;
         }
 
         if (asksAboutGemini) {
           const fallbackGemini =
             "Sí, estoy conectada a Google Gemini para preguntas libres. Ahora mismo la API no respondió (cuota o red); inténtalo de nuevo en un minuto.";
-          appendAssistantAnswer(setMessages, sessionRef, fallbackGemini);
+          appendAssistantAnswer(setMessages, sessionRef, fallbackGemini, speakAnswer);
           return fallbackGemini;
         }
 
@@ -202,7 +184,7 @@ export default function OpAiAssistant() {
                 sourceUrl: wiki.canonicalUrl,
               });
             }
-            appendAssistantAnswer(setMessages, sessionRef, shortAnswer);
+            appendAssistantAnswer(setMessages, sessionRef, shortAnswer, speakAnswer);
             return shortAnswer;
           } catch {
             /* Wikipedia falló; seguimos con la respuesta local */
@@ -210,16 +192,18 @@ export default function OpAiAssistant() {
         }
 
         sessionRef.current.lastAnswer = result.answer;
-        appendAssistantAnswer(setMessages, sessionRef, result.answer);
+        appendAssistantAnswer(setMessages, sessionRef, result.answer, speakAnswer);
         return result.answer;
       } finally {
         setProcessing(false);
       }
     },
-    [location.pathname, navigate],
+    [location.pathname, navigate, speakAnswer],
   );
 
   useEffect(() => {
+    if (voiceMode !== "native") return;
+
     const onVoiceStart = () => {
       pendingVoiceRef.current = "";
       setVoiceListening(true);
@@ -261,27 +245,49 @@ export default function OpAiAssistant() {
       window.removeEventListener("voice:end", onVoiceEnd);
       window.removeEventListener("voice:error", onVoiceError);
     };
-  }, [runCommand]);
+  }, [runCommand, voiceMode]);
 
   const startVoiceCapture = useCallback(() => {
+    pendingVoiceRef.current = "";
+    setText("");
+
+    if (voiceMode === "web") {
+      const started = startVoiceCaptureWeb(
+        (transcript) => {
+          setText("");
+          void runCommand(transcript);
+        },
+        (errorText) => {
+          setMessages((prev) => [...prev, { role: "assistant", text: errorText }]);
+        },
+      );
+      if (!started) return;
+      return;
+    }
+
     const voiceBridge = getNativeVoiceBridge();
     if (typeof voiceBridge?.startListening !== "function") {
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", text: "No encuentro el puente de voz nativo en esta compilación Android." },
+        { role: "assistant", text: "No encuentro voz disponible en este dispositivo." },
       ]);
       return;
     }
     try {
-      pendingVoiceRef.current = "";
-      setText("");
       voiceBridge.startListening();
     } catch {
       setVoiceListening(false);
     }
-  }, []);
+  }, [runCommand, startVoiceCaptureWeb, voiceMode]);
 
-  const stopVoiceCapture = useCallback(() => {
+  const stopVoiceCaptureHandler = useCallback(() => {
+    if (voiceMode === "web") {
+      const transcript = stopVoiceCapture();
+      setText("");
+      if (transcript) void runCommand(transcript);
+      return;
+    }
+
     const voiceBridge = getNativeVoiceBridge();
     try {
       voiceBridge?.stopListening?.();
@@ -289,18 +295,9 @@ export default function OpAiAssistant() {
     } catch {
       setVoiceListening(false);
     }
-  }, []);
+  }, [runCommand, stopVoiceCapture, voiceMode]);
 
   const onSpeakLastAnswer = useCallback(() => {
-    const voiceBridge = getNativeVoiceBridge();
-    if (typeof voiceBridge?.speak !== "function") {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", text: "No encuentro el parlante nativo en esta compilación Android." },
-      ]);
-      return;
-    }
-
     const textToSpeak = sessionRef.current.lastAnswer?.trim();
     if (!textToSpeak) {
       setMessages((prev) => [
@@ -309,17 +306,15 @@ export default function OpAiAssistant() {
       ]);
       return;
     }
-
-    try {
-      voiceBridge.stopSpeaking?.();
-      voiceBridge.speak(textToSpeak);
-    } catch {
+    if (!canSpeak) {
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", text: "No pude activar el parlante en este momento." },
+        { role: "assistant", text: "La voz no está disponible en este navegador." },
       ]);
+      return;
     }
-  }, []);
+    speakAnswer(textToSpeak);
+  }, [canSpeak, speakAnswer]);
 
   const onSend = (e: FormEvent) => {
     e.preventDefault();
@@ -352,7 +347,9 @@ export default function OpAiAssistant() {
             <OnniAvatar size="md" state="idle" className="mt-0.5" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-cyan-100">Onni</p>
-              <p className="text-[10px] text-muted-foreground">Asistente por voz y texto</p>
+              <p className="text-[10px] text-muted-foreground">
+                Asistente por voz y texto · {voiceLabel}
+              </p>
             </div>
             <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>
               Cerrar
@@ -378,13 +375,14 @@ export default function OpAiAssistant() {
               onChange={(e) => setText(e.target.value)}
               placeholder="conciertos, lobby, ayuda o pregunta libre"
             />
-            {voiceUiEnabled && (
+            {canListen && (
               <>
                 <Button
                   type="button"
                   size="icon"
                   variant="outline"
                   onClick={onSpeakLastAnswer}
+                  disabled={!canSpeak}
                   aria-label="Escuchar la última respuesta de Onni"
                 >
                   <Volume2 className="h-4 w-4" />
@@ -399,16 +397,16 @@ export default function OpAiAssistant() {
                   }}
                   onPointerUp={(event) => {
                     event.preventDefault();
-                    stopVoiceCapture();
+                    stopVoiceCaptureHandler();
                   }}
                   onPointerCancel={(event) => {
                     event.preventDefault();
-                    stopVoiceCapture();
+                    stopVoiceCaptureHandler();
                   }}
                   onPointerLeave={(event) => {
                     if (!voiceListening) return;
                     event.preventDefault();
-                    stopVoiceCapture();
+                    stopVoiceCaptureHandler();
                   }}
                   onContextMenu={(event) => event.preventDefault()}
                   aria-label={voiceListening ? "Detener micrófono de Onni" : "Hablar con Onni"}
