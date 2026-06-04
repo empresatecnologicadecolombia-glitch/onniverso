@@ -639,10 +639,16 @@ public class MainActivity extends BridgeActivity {
       activity.runOnUiThread(() -> activity.deliverModelDirectToNative(modelUrl, action));
     }
 
-    /** Tierra en inicio: pantalla dividida + {@value com.vivevr.app.AulaVirtualActivity#LOBBY_IMMERSIVE_URL}. */
+    /** Tierra / inicio / perfil: lobby inmersivo estéreo ({@link LobbyVrActivity}). */
+    @JavascriptInterface
+    public void openLobby() {
+      activity.runOnUiThread(() -> activity.launchLobbyImmersiveStereoDirect());
+    }
+
+    /** @deprecated Usar {@link #openLobby}. */
     @JavascriptInterface
     public void openLobbyStereoSplit() {
-      activity.runOnUiThread(() -> activity.launchLobbyImmersiveStereoDirect());
+      openLobby();
     }
 
     /**
@@ -807,10 +813,10 @@ public class MainActivity extends BridgeActivity {
       activity.openAudienceSelector("immersive", salaUrl, null);
     }
 
-    /** Coincide con {@code window.Android.openLobby()} desde el botón Lobby del perfil. */
+    /** Tierra / inicio / perfil: lobby inmersivo estéreo ({@link LobbyVrActivity}). */
     @JavascriptInterface
     public void openLobby() {
-      activity.runOnUiThread(() -> activity.launchLobbyVrDirect(null));
+      activity.runOnUiThread(() -> activity.launchLobbyImmersiveStereoDirect());
     }
 
     /** Coincide con {@code window.Android.openLobbyDirect(clipUrl)} (Tierra en inicio). */
@@ -824,22 +830,22 @@ public class MainActivity extends BridgeActivity {
       activity.runOnUiThread(() -> activity.launchLobbyVrDirect(clipUrl));
     }
 
-    /** Tierra: pantalla dividida estéreo con lobby inmersivo. */
+    /** @deprecated Usar {@link #openLobby}. */
     @JavascriptInterface
     public void openLobbyStereoSplit() {
-      activity.runOnUiThread(() -> activity.launchLobbyImmersiveStereoDirect());
+      openLobby();
     }
 
-    /** Mismo que {@link AndroidBridge#openModelDirect} (Tierra puede usar {@code window.Android}). */
+    /** Mismo que {@link AndroidBridge#openModelDirect} (galería / aula). */
     @JavascriptInterface
     public void openModelDirect(String modelUrl, String action) {
       activity.runOnUiThread(() -> activity.deliverModelDirectToNative(modelUrl, action));
     }
 
-    /** @deprecated Usar {@link #openLobbyStereoSplit}. */
+    /** @deprecated Usar {@link #openLobby}. */
     @JavascriptInterface
     public void openLobbyImmersiveStereo() {
-      openLobbyStereoSplit();
+      openLobby();
     }
 
     /**

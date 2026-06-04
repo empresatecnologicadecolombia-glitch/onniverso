@@ -16,7 +16,7 @@ import { useNavigate } from "react-router-dom";
 import { GraduationCap, Radio } from "lucide-react";
 import { invokeOpenGalleryDirect } from "@/lib/galleryOpenDirect";
 import { LOBBY_IMMERSIVE_PATH } from "@/lib/lobbyImmersive";
-import { hasAndroidNativeBridge, invokeOpenLobbyStereoDirect } from "@/lib/lobbyOpenDirect";
+import { hasAndroidNativeBridge, invokeOpenLobby } from "@/lib/lobbyOpenDirect";
 import { isAndroidLiveStreamChoicePlatform } from "@/lib/liveStreamOpenDirect";
 import {
   getRoomMode,
@@ -740,7 +740,7 @@ const MiMundoVRSection = ({
     if (vrStereoActive) return;
     const onApk =
       hasAndroidNativeBridge() || isAndroidLiveStreamChoicePlatform();
-    if (onApk && invokeOpenLobbyStereoDirect()) return;
+    if (onApk && invokeOpenLobby()) return;
     navigate(LOBBY_IMMERSIVE_PATH);
   }, [navigate, vrStereoActive]);
 

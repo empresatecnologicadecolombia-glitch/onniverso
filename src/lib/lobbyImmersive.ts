@@ -1,11 +1,11 @@
-import { hasAndroidNativeBridge, invokeOpenLobbyStereoDirect } from "@/lib/lobbyOpenDirect";
+import { hasAndroidNativeBridge, invokeOpenLobby } from "@/lib/lobbyOpenDirect";
 
 export const LOBBY_IMMERSIVE_PATH = "/lobby-inmersivo";
 export const LOBBY_OPEN_TRANSITION_MS = 320;
 
-/** APK: {@code LobbyVrActivity} estéreo (Tierra / inicio). */
+/** APK: {@code openLobby()} → {@code LobbyVrActivity} (Tierra / inicio). */
 export function openLobbyImmersiveOnAndroid(): boolean {
-  return invokeOpenLobbyStereoDirect();
+  return invokeOpenLobby();
 }
 
 export function shouldUseWebLobbyRoute(): boolean {

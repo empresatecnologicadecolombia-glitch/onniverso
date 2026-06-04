@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LobbyCardChoiceDialog, type LobbyCardAction } from "@/components/galeria3d/LobbyCardChoiceDialog";
 import { LOBBY_IMMERSIVE_PATH } from "@/lib/lobbyImmersive";
-import { invokeOpenLobbyStereoDirect } from "@/lib/lobbyOpenDirect";
+import { invokeOpenLobby } from "@/lib/lobbyOpenDirect";
 import { isAndroidLiveStreamChoicePlatform } from "@/lib/liveStreamOpenDirect";
 
 /** Tierra en Android: modal para abrir lobby nativo o lobby web. */
@@ -22,7 +22,7 @@ export function useLobbyCardChoice() {
     (action: LobbyCardAction) => {
       setOpen(false);
       if (action === "OPEN_LOBBY_NATIVE") {
-        if (invokeOpenLobbyStereoDirect()) return;
+        if (invokeOpenLobby()) return;
       }
       navigate(LOBBY_IMMERSIVE_PATH);
     },
