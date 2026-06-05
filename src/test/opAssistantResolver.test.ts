@@ -67,6 +67,9 @@ describe("resolveOpCommand", () => {
       resolveOpCommand("llevame al panel de docente", "/", { appRole: "docente" }).navigateTo,
     ).toBe("/docente-clases");
     expect(
+      resolveOpCommand("oni llevame al panel de docente", "/3d", { appRole: "docente" }).navigateTo,
+    ).toBe("/docente-clases");
+    expect(
       resolveOpCommand("oni llevame al panel", "/educacion", { appRole: "docente" }).navigateTo,
     ).toBe("/docente-clases");
     expect(
@@ -75,6 +78,12 @@ describe("resolveOpCommand", () => {
     const denied = resolveOpCommand("panel docente", "/", { appRole: "particular" });
     expect(denied.navigateTo).toBeUndefined();
     expect(denied.answer.toLowerCase()).toContain("docente");
+  });
+
+  it("panel docente gana sobre llevame a clases si menciona panel", () => {
+    const r = resolveOpCommand("llevame al panel de docente", "/3d", { appRole: "docente" });
+    expect(r.navigateTo).toBe("/docente-clases");
+    expect(r.answer.toLowerCase()).toContain("panel de docente");
   });
 
   it("oni inicio y llevame al inicio van a Mi Mundo /", () => {

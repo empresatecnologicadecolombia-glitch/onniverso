@@ -109,9 +109,21 @@ export default function OpAiAssistant() {
       setProcessing(true);
 
       try {
+        let roleForCommand = appRoleRef.current;
+        if (roleForCommand === null && user?.id) {
+          const { data } = await supabase
+            .from("profiles")
+            .select("app_role")
+            .eq("id", user.id)
+            .maybeSingle();
+          roleForCommand = (data as { app_role?: string } | null)?.app_role ?? "particular";
+          appRoleRef.current = roleForCommand;
+          setAppRole(roleForCommand);
+        }
+
         const result = resolveOpCommand(trimmed, location.pathname, {
           lastAnswer: sessionRef.current.lastAnswer,
-          appRole: appRoleRef.current,
+          appRole: roleForCommand,
         });
 
         if (isOnniNavigationResult(result)) {
@@ -208,7 +220,7 @@ export default function OpAiAssistant() {
         setProcessing(false);
       }
     },
-    [location.pathname, navigate, speakAnswer],
+    [location.pathname, navigate, speakAnswer, user?.id],
   );
 
   runCommandRef.current = runCommand;

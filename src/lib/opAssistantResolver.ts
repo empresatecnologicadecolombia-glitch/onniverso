@@ -73,6 +73,7 @@ function wantsStartClassPhrase(text: string, core: string): boolean {
 /** Ir a la sección Clase Virtual del menú (/3d), no al lobby «aula virtual». */
 function wantsClaseVirtualSectionPhrase(text: string, core: string): boolean {
   if (wantsStartClassPhrase(text, core)) return false;
+  if (wantsDocentePanelPhrase(text, core)) return false;
 
   const genericAula =
     (/\b(a|al)\s+aula\b/.test(text) || /\baula\s+virtual\b/.test(text)) &&
@@ -612,16 +613,23 @@ function matchInicio(text: string): OpResolveResult | null {
   };
 }
 
+function wantsDocentePanelPhrase(text: string, core: string, appRole?: string | null): boolean {
+  return (
+    /\b(panel de docente|panel docente|pane de docente|pane docente)\b/.test(text) ||
+    /\b(panel de docente|panel docente|pane de docente|pane docente)\b/.test(core) ||
+    /\b(llevame|lleva|llevar|ir|ve|vamos|abre|abrir|traeme|ponme)\s+(me\s+)?(al\s+|a\s+el\s+)?panel\s+(de\s+)?docente\b/.test(
+      text,
+    ) ||
+    /\b(mis clases|mis aulas|gestionar clases|crear clase)\b/.test(text) ||
+    /\b(mis clases|mis aulas|gestionar clases|crear clase)\b/.test(core) ||
+    (isTeacherOrAdmin(appRole) &&
+      (/\b(al panel|al pane|a el panel|a el pane)\b/.test(core) || /^\s*(panel|pane)\s*$/.test(core)))
+  );
+}
+
 function matchDocentePanel(text: string, appRole?: string | null): OpResolveResult | null {
   const core = stripNavVerbs(text) || text;
-  const explicitPanel =
-    /\b(panel de docente|panel docente|pane de docente|pane docente)\b/.test(core) ||
-    /\b(mis clases|mis aulas|gestionar clases|crear clase)\b/.test(core);
-  const genericPanel =
-    isTeacherOrAdmin(appRole) &&
-    (/\b(al panel|al pane|a el panel|a el pane)\b/.test(core) || /^\s*(panel|pane)\s*$/.test(core));
-
-  if (!explicitPanel && !genericPanel) return null;
+  if (!wantsDocentePanelPhrase(text, core, appRole)) return null;
 
   if (!isTeacherOrAdmin(appRole)) {
     return {
@@ -846,6 +854,9 @@ export function resolveOpCommand(
   const teatro = matchTeatro(text);
   if (teatro) return teatro;
 
+  const docentePanel = matchDocentePanel(text, session.appRole);
+  if (docentePanel) return docentePanel;
+
   const claseVirtual = matchClaseVirtual(text, currentPath, session.appRole);
   if (claseVirtual) return claseVirtual;
 
@@ -857,9 +868,6 @@ export function resolveOpCommand(
 
   const inicio = matchInicio(text);
   if (inicio) return inicio;
-
-  const docentePanel = matchDocentePanel(text, session.appRole);
-  if (docentePanel) return docentePanel;
 
   const route = matchRoute(text);
   if (route) return avoidEspectadorLoop(route, text, currentPath);
