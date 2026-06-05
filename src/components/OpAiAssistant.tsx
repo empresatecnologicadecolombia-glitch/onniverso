@@ -8,7 +8,7 @@ import HomeSocialRedesRow from "@/components/HomeSocialRedesRow";
 import { dispatchOpCommand } from "@/lib/opCommandBus";
 import { getOnniIntroduction } from "@/data/onniBrain";
 import { toast } from "sonner";
-import { getOpAssistantHint, resolveOpCommand } from "@/lib/opAssistantResolver";
+import { getOpAssistantHint, resolveOpCommand, shouldAskOnniGemini } from "@/lib/opAssistantResolver";
 import { askOnniGemini, isOnniNavigationResult } from "@/lib/onniGemini";
 import { invokeOpenGalleryDirect } from "@/lib/galleryOpenDirect";
 import { invokeOpenColiceoDirect } from "@/lib/coliseoOpenDirect";
@@ -169,6 +169,12 @@ export default function OpAiAssistant() {
               needsMountDelay ? 700 : 0,
             );
           }
+          appendAssistantAnswer(setMessages, sessionRef, result.answer, speakAnswer);
+          return result.answer;
+        }
+
+        if (!shouldAskOnniGemini(result)) {
+          sessionRef.current.lastAnswer = result.answer;
           appendAssistantAnswer(setMessages, sessionRef, result.answer, speakAnswer);
           return result.answer;
         }

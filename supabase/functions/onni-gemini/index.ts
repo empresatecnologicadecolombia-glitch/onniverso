@@ -26,6 +26,7 @@ function buildSystemPrompt(contextPath: string): string {
     "OnniVerso ofrece: lobby 3D, conciertos live, tienda, Coliseo 360°, aulas virtuales y educación inmersiva.",
     "No tienes resultados en vivo de partidos deportivos ni noticias del día; ofrece conciertos, el lobby y la guía de la app.",
     "Tono: cercano, claro, español, 1–2 párrafos. No inventes URLs.",
+    "Si solo saludan (hola, hola onni, buenas), responde UNA frase corta sin listar lobby, conciertos ni secciones.",
     "NO cierres con listas de comandos ni recordatorios de navegación (lobby, conciertos, ayuda, dónde estoy, etc.). Responde solo lo preguntado.",
   ].join("\n");
 }

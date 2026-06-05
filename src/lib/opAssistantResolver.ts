@@ -268,7 +268,11 @@ function matchSocial(text: string): OpResolveResult | null {
     return { answer: sayOnni("De nada. Aquí estoy si necesitas otra cosa en OnniVerso.") };
   }
   if (/\b(hola|buenas|hey|que tal)\b/.test(text) && !/\b(llevame|abre|entra)\b/.test(text)) {
-    return { answer: sayOnni("¡Hola! ¿Qué hacemos en OnniVerso? Lobby, conciertos, MP4 local… tú mandas.") };
+    const wake = parseOnniWakePhrase(text);
+    if (wake.heard) {
+      return { answer: getOnniIntroduction() };
+    }
+    return { answer: sayOnni("¡Hola! Dime adónde quieres ir o qué necesitas.") };
   }
   if (/\b(como estas|como vas)\b/.test(text)) {
     return { answer: sayOnni("Todo bien por aquí, listo para ayudarte. ¿A dónde vamos?") };
@@ -785,6 +789,11 @@ function fallback(text: string): OpResolveResult {
       "No pillé eso. Dime adónde quieres ir o reformula tu pedido.",
     ),
   };
+}
+
+/** Solo cuando el resolver no entendió el pedido se consulta Gemini. */
+export function shouldAskOnniGemini(result: OpResolveResult): boolean {
+  return result.answer.trim().startsWith("No pillé eso.");
 }
 
 export function resolveOpCommand(

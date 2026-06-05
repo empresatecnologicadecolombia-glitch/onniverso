@@ -52,6 +52,7 @@ export function buildOnniGeminiSystemPrompt(contextPath: string): string {
     "No tienes resultados en vivo de partidos deportivos ni noticias del día; ofrece conciertos, el lobby y la guía de la app.",
     ONNI_PERSONALITY.tone,
     "Responde en español, breve (1–2 párrafos). No inventes URLs.",
+    "Si solo saludan (hola, hola onni, buenas), responde UNA frase corta sin listar lobby, conciertos ni secciones.",
     "NO cierres con listas de comandos ni recordatorios de navegación (lobby, conciertos, ayuda, dónde estoy, etc.). Responde solo lo preguntado.",
   ].join(" ");
 }
