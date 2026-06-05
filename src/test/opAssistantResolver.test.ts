@@ -158,9 +158,10 @@ describe("resolveOpCommand", () => {
     expect(r.answer.toLowerCase()).toMatch(/anatom|lobby/);
   });
 
-  it("ayuda incluye reproductor", () => {
+  it("ayuda responde breve sin lista de comandos", () => {
     const r = resolveOpCommand("ayuda", "/");
-    expect(r.answer).toMatch(/reproductor|MP4/i);
+    expect(r.answer).toMatch(/inicio|mi mundo/i);
+    expect(r.answer.toLowerCase()).not.toMatch(/lobby.*conciertos|comandos como/);
   });
 
   it("repite la ultima respuesta", () => {

@@ -748,7 +748,7 @@ function fallback(text: string): OpResolveResult {
 
   return {
     answer: sayOnni(
-      'No pillé eso. Prueba: «¿dónde estoy?», «reproductor mp4», «conciertos», «lobby» o «ayuda».',
+      "No pillé eso. Dime adónde quieres ir o reformula tu pedido.",
     ),
   };
 }
@@ -848,7 +848,7 @@ export function getOpAssistantHint(currentPath: string): string {
   if (currentPath.startsWith("/sala/espectador")) {
     return 'Di: "salir a conciertos", "reproductor mp4", "¿qué es esto?".';
   }
-  return 'Di: "inicio", "clase virtual", "conciertos", "¿dónde estoy?", "ayuda", "lobby".';
+  return "Di lo que quieres hacer o adónde ir.";
 }
 
 export { getOnniIntroduction };

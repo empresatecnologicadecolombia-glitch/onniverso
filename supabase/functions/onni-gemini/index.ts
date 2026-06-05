@@ -25,8 +25,8 @@ function buildSystemPrompt(contextPath: string): string {
     `El usuario está en la ruta: ${contextPath || "/"}.`,
     "OnniVerso ofrece: lobby 3D, conciertos live, tienda, Coliseo 360°, aulas virtuales y educación inmersiva.",
     "No tienes resultados en vivo de partidos deportivos ni noticias del día; ofrece conciertos, el lobby y la guía de la app.",
-    "Tono: cercano, claro, español, 1–3 párrafos. No inventes URLs.",
-    "Para navegar sugiere comandos: «lobby», «conciertos», «educación», «ayuda», «¿dónde estoy?».",
+    "Tono: cercano, claro, español, 1–2 párrafos. No inventes URLs.",
+    "NO cierres con listas de comandos ni recordatorios de navegación (lobby, conciertos, ayuda, dónde estoy, etc.). Responde solo lo preguntado.",
   ].join("\n");
 }
 
@@ -99,12 +99,18 @@ Deno.serve(async (req) => {
       return json({ error: errMsg }, geminiRes.status >= 500 ? 502 : geminiRes.status);
     }
 
-    const answer = extractGeminiText(geminiJson);
-    if (!answer) {
+    const rawAnswer = extractGeminiText(geminiJson);
+    if (!rawAnswer) {
       return json({ error: "Gemini returned an empty response" }, 502);
     }
 
-    return json({ answer, model });
+    const answer = rawAnswer
+      .replace(/\n\s*si necesitas explorar[\s\S]*$/i, "")
+      .replace(/\n\s*recuerda que tambi[eé]n puedes[\s\S]*$/i, "")
+      .replace(/\n\s*(para navegar|comandos como|tambien puedes usar)[\s\S]*$/i, "")
+      .trim();
+
+    return json({ answer: answer || rawAnswer, model });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unexpected error";
     return json({ error: message }, 500);

@@ -51,9 +51,25 @@ export function buildOnniGeminiSystemPrompt(contextPath: string): string {
     "OnniVerso ofrece: lobby 3D, conciertos live, tienda, Coliseo 360°, aulas virtuales y educación inmersiva.",
     "No tienes resultados en vivo de partidos deportivos ni noticias del día; ofrece conciertos, el lobby y la guía de la app.",
     ONNI_PERSONALITY.tone,
-    "Responde en español, breve (1–3 párrafos). No inventes URLs.",
-    "Para navegar sugiere: «lobby», «conciertos», «educación», «ayuda», «¿dónde estoy?».",
+    "Responde en español, breve (1–2 párrafos). No inventes URLs.",
+    "NO cierres con listas de comandos ni recordatorios de navegación (lobby, conciertos, ayuda, dónde estoy, etc.). Responde solo lo preguntado.",
   ].join(" ");
+}
+
+/** Quita el cierre típico de Gemini con sugerencias de comandos que no queremos por voz. */
+export function stripOnniCommandFooter(text: string): string {
+  let out = text.trim();
+  const cutPatterns = [
+    /\n\s*si necesitas explorar[\s\S]*$/i,
+    /\n\s*recuerda que tambien puedes[\s\S]*$/i,
+    /\n\s*recuerda que también puedes[\s\S]*$/i,
+    /\n\s*[*•-]\s*\*?\*?(lobby|conciertos|ayuda)[\s\S]*$/i,
+    /\n\s*(para navegar|comandos como|tambien puedes usar)[\s\S]*$/i,
+  ];
+  for (const pattern of cutPatterns) {
+    out = out.replace(pattern, "").trim();
+  }
+  return out;
 }
 
 /** Solo desarrollo local si VITE_GEMINI_API_KEY está en .env.local (no usar en producción). */
@@ -91,13 +107,13 @@ export async function askOnniGemini(body: OnniGeminiRequest): Promise<string | n
 
   try {
     const result = await invokeOnniGeminiEdge({ message, contextPath: body.contextPath });
-    return result.answer;
+    return stripOnniCommandFooter(result.answer);
   } catch (edgeError) {
     const devKey = (import.meta.env.VITE_GEMINI_API_KEY as string | undefined)?.trim();
     if (import.meta.env.DEV && devKey) {
       try {
         const result = await askOnniGeminiDevDirect({ message, contextPath: body.contextPath }, devKey);
-        return result.answer;
+        return stripOnniCommandFooter(result.answer);
       } catch (devError) {
         console.warn("[Onni Gemini dev]", devError);
       }

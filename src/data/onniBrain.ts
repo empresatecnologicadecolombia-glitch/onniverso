@@ -190,7 +190,7 @@ export function getWhereAmI(path: string): string {
     return sayOnni(`Estás en: ${route.label}. ${route.description}`);
   }
 
-  return sayOnni(`Estás en la ruta ${path}. Di "ayuda" para ver qué puedes hacer aquí.`);
+  return sayOnni(`Estás en la ruta ${path}.`);
 }
 
 export function getContextGuide(path: string): string {
@@ -198,29 +198,17 @@ export function getContextGuide(path: string): string {
   if (!guide) {
     return sayOnni(getOnniFullHelp(path));
   }
-  return sayOnni(
-    [
-      `En ${guide.title}:`,
-      ...guide.tips.map((t) => `• ${t}`),
-      "",
-      "Prueba decir:",
-      ...guide.commands.map((c) => `• "${c}"`),
-    ].join("\n"),
-  );
+  const tip = guide.tips[0] ?? "";
+  return sayOnni(tip ? `En ${guide.title}. ${tip}` : `En ${guide.title}.`);
 }
 
 export function getOnniFullHelp(path: string): string {
-  const sections = [
-    "Puedo llevarte por OnniVerso (lobby, conciertos, aula, tienda, comunidad…).",
-    "Redes del inicio: «abre YouTube», «abre Facebook», «abre Instagram», «abre TikTok», «abre Google».",
-    "MP4/MP3 local → reproductor de galería. Vivo → conciertos o «video de [artista]».",
-    "Pregúntame: ¿dónde estoy?, ¿qué es esto?, favorito, app Android, soporte.",
-    "Escribe en el chat de Onni (voz desactivada por ahora).",
-  ];
-  if (path.startsWith("/lobby-inmersivo")) {
-    sections.push(`En lobby: ${OP_LOBBY_HINTS.join(", ")}.`);
+  const guide = PATH_GUIDES.find((g) => g.test(path));
+  if (guide) {
+    const tip = guide.tips[0] ?? "";
+    return sayOnni(tip ? `Estás en ${guide.title}. ${tip}` : `Estás en ${guide.title}.`);
   }
-  return sections.join("\n");
+  return sayOnni("Dime adónde quieres ir o qué necesitas.");
 }
 
 export function getPlatformOverview(): string {
