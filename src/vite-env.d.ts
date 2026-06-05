@@ -48,4 +48,9 @@ interface SpeechRecognition extends EventTarget {
 interface Window {
   SpeechRecognition?: new () => SpeechRecognition;
   webkitSpeechRecognition?: new () => SpeechRecognition;
+  onniversDesktop?: {
+    platform?: string;
+    version?: string;
+    isDesktopApp?: boolean;
+  };
 }

@@ -1,4 +1,5 @@
-import { isDesktopWebBrowser } from "@/lib/deviceDetection";
+import { isDesktopWebBrowser, isElectronDesktopApp } from "@/lib/deviceDetection";
+import { getElectronVoiceBridge } from "@/lib/onniElectronVoiceBridge";
 import { isOnniVoiceSupported, pickOnniSpanishVoice } from "@/lib/onniVoice";
 
 export type OnniVoiceMode = "web" | "native" | "none";
@@ -22,6 +23,8 @@ export function getNativeVoiceBridge(): NativeVoiceBridge | null {
   if (bridge && (typeof bridge.startListening === "function" || typeof bridge.speak === "function")) {
     return bridge;
   }
+  const electronBridge = getElectronVoiceBridge();
+  if (electronBridge) return electronBridge;
   return null;
 }
 
@@ -40,6 +43,7 @@ export function prefersNativeVoiceFallback(): boolean {
 
 export function markPreferNativeVoice(): void {
   if (isDesktopWebBrowser()) return;
+  if (isElectronDesktopApp()) return;
   try {
     sessionStorage.setItem(ONNI_VOICE_USE_NATIVE_KEY, "1");
   } catch {
@@ -49,13 +53,15 @@ export function markPreferNativeVoice(): void {
 
 /**
  * PC navegador: Web Speech API (Chrome/Edge).
- * APK Android: micrófono y reconocimiento nativos (AndroidBridge), no WebView.
+ * APK Android: micrófono y reconocimiento nativos (AndroidBridge).
+ * OnniVers .exe: captura de micrófono + transcripción Gemini (Web Speech no escucha en Electron).
  */
 export function getOnniVoiceMode(): OnniVoiceMode {
   if (isDesktopWebBrowser()) {
     return isOnniVoiceSupported() ? "web" : "none";
   }
   if (isNativeVoiceAvailable()) return "native";
+  if (isElectronDesktopApp()) return "none";
   if (isOnniVoiceSupported()) return "web";
   return "none";
 }

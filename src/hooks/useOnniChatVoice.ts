@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { isDesktopWebBrowser } from "@/lib/deviceDetection";
+import { isDesktopWebBrowser, isElectronDesktopApp } from "@/lib/deviceDetection";
 import {
   parseNativeVoiceErrorDetail,
   isNativeVoiceSoftError,
@@ -541,7 +541,9 @@ export function useOnniChatVoice() {
     voiceMode === "web"
       ? "Voz del navegador"
       : voiceMode === "native"
-        ? "Voz nativa Android"
+        ? isElectronDesktopApp()
+          ? "Voz OnniVers (.exe)"
+          : "Voz nativa Android"
         : "Voz no disponible";
 
   return {

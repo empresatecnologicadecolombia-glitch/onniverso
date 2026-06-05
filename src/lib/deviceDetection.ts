@@ -24,10 +24,17 @@ export function isAndroidNativeApp(): boolean {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
 }
 
+/** OnniVers .exe (Electron), no Chrome/Edge sueltos. */
+export function isElectronDesktopApp(): boolean {
+  if (typeof window === "undefined") return false;
+  return Boolean(window.onniversDesktop?.isDesktopApp);
+}
+
 /** Botón «Descargar app» en navbar: solo PC con navegador (no APK ni móvil). */
 export function isDesktopWebBrowser(): boolean {
   if (typeof window === "undefined") return false;
   if (isAndroidNativeApp()) return false;
+  if (isElectronDesktopApp()) return false;
   if (typeof window.Android !== "undefined" || typeof window.AndroidBridge !== "undefined") {
     return false;
   }
