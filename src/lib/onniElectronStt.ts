@@ -1,21 +1,29 @@
-import { supabase, supabasePublicUrl, supabasePublishableKey } from "@/integrations/supabase/client";
+import { supabasePublicUrl, supabasePublishableKey } from "@/integrations/supabase/client";
+
+function normalizeSttMimeType(raw: string): string {
+  const base = raw.split(";")[0]?.trim().toLowerCase() || "audio/webm";
+  if (base === "video/webm") return "audio/webm";
+  if (base.startsWith("audio/")) return base;
+  return "audio/webm";
+}
+
+function friendlySttError(status: number, backendError: string): string {
+  const detail = backendError.trim();
+  if (detail && !/non-2xx status code/i.test(detail)) return detail;
+  if (status === 401 || status === 403) {
+    return "No pude conectar el servicio de voz. Cierra OnniVers, espera un minuto y ábrelo otra vez.";
+  }
+  if (status === 429 || status === 502) {
+    return "El servicio de voz no tiene cuota ahora mismo. Espera un minuto e inténtalo otra vez.";
+  }
+  return detail || "No se pudo transcribir el audio.";
+}
 
 export async function transcribeOnniElectronAudio(blob: Blob): Promise<string> {
   if (!blob.size) return "";
 
-  const mimeType = blob.type || "audio/webm";
+  const mimeType = normalizeSttMimeType(blob.type || "audio/webm");
   const base64 = await blobToBase64(blob);
-
-  const { data, error } = await supabase.functions.invoke("onni-stt", {
-    body: { audioBase64: base64, mimeType },
-  });
-
-  if (!error && data && typeof data === "object") {
-    const text = String((data as { text?: string }).text ?? "").trim();
-    if (text) return text;
-    const backendError = String((data as { error?: string }).error ?? "").trim();
-    if (backendError) throw new Error(backendError);
-  }
 
   const response = await fetch(`${supabasePublicUrl}/functions/v1/onni-stt`, {
     method: "POST",
@@ -27,11 +35,17 @@ export async function transcribeOnniElectronAudio(blob: Blob): Promise<string> {
     body: JSON.stringify({ audioBase64: base64, mimeType }),
   });
 
-  const json = (await response.json()) as { text?: string; error?: string };
-  if (!response.ok) {
-    throw new Error(json.error || error?.message || "No se pudo transcribir el audio.");
+  let payload: { text?: string; error?: string } = {};
+  try {
+    payload = (await response.json()) as { text?: string; error?: string };
+  } catch {
+    payload = {};
   }
-  return String(json.text ?? "").trim();
+
+  const text = String(payload.text ?? "").trim();
+  if (response.ok && text) return text;
+
+  throw new Error(friendlySttError(response.status, String(payload.error ?? "")));
 }
 
 function blobToBase64(blob: Blob): Promise<string> {

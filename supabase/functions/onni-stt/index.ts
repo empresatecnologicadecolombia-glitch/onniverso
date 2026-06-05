@@ -17,6 +17,13 @@ function json(body: unknown, status = 200) {
   });
 }
 
+function normalizeMimeType(raw: string): string {
+  const base = raw.split(";")[0]?.trim().toLowerCase() || "audio/webm";
+  if (base === "video/webm") return "audio/webm";
+  if (base.startsWith("audio/")) return base;
+  return "audio/webm";
+}
+
 function extractGeminiText(payload: unknown): string {
   if (!payload || typeof payload !== "object") return "";
   const candidates = (payload as { candidates?: unknown[] }).candidates;
@@ -33,6 +40,20 @@ function extractGeminiText(payload: unknown): string {
     .trim();
 }
 
+function geminiErrorMessage(payload: unknown, status: number): string {
+  const raw =
+    typeof payload === "object" && payload && "error" in payload
+      ? String((payload as { error?: { message?: string } }).error?.message ?? "")
+      : "";
+  if (status === 429 || /quota|rate limit|resource exhausted/i.test(raw)) {
+    return "El servicio de voz no tiene cuota ahora mismo. Espera un minuto e inténtalo otra vez.";
+  }
+  if (/invalid argument|unsupported|mime/i.test(raw)) {
+    return "Formato de audio no válido. Pulsa el micrófono otra vez e inténtalo.";
+  }
+  return raw.trim() || `Gemini STT error (${status})`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -44,7 +65,7 @@ Deno.serve(async (req) => {
   try {
     const apiKey = Deno.env.get("GEMINI_API_KEY")?.trim() ?? "";
     if (!apiKey) {
-      return json({ error: "Missing GEMINI_API_KEY in Supabase Edge secrets" }, 500);
+      return json({ error: "Falta GEMINI_API_KEY en Supabase (secrets)." }, 500);
     }
 
     const body = (await req.json()) as SttRequest;
@@ -53,7 +74,7 @@ Deno.serve(async (req) => {
       return json({ error: "Missing audioBase64" }, 400);
     }
 
-    const mimeType = body.mimeType?.trim() || "audio/webm";
+    const mimeType = normalizeMimeType(body.mimeType?.trim() || "audio/webm");
     const model = Deno.env.get("GEMINI_MODEL")?.trim() || DEFAULT_MODEL;
 
     const geminiRes = await fetch(
@@ -64,7 +85,6 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           contents: [
             {
-              role: "user",
               parts: [
                 {
                   text:
@@ -89,11 +109,7 @@ Deno.serve(async (req) => {
 
     const payload = await geminiRes.json();
     if (!geminiRes.ok) {
-      const message =
-        typeof payload === "object" && payload && "error" in payload
-          ? String((payload as { error?: { message?: string } }).error?.message ?? "Gemini STT failed")
-          : "Gemini STT failed";
-      return json({ error: message }, 502);
+      return json({ error: geminiErrorMessage(payload, geminiRes.status) }, 502);
     }
 
     const text = extractGeminiText(payload);

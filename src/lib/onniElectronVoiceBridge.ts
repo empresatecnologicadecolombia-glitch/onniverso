@@ -20,6 +20,10 @@ let sessionTimer: ReturnType<typeof setTimeout> | null = null;
 let listeningActive = false;
 let transcribeBusy = false;
 let pendingListen = false;
+let lastSttErrorMessage = "";
+let lastSttErrorAt = 0;
+
+const STT_ERROR_COOLDOWN_MS = 20000;
 
 function dispatchVoiceEvent(name: string, detail?: unknown) {
   window.dispatchEvent(new CustomEvent(name, { detail }));
@@ -80,6 +84,27 @@ function schedulePendingListen() {
   }, 300);
 }
 
+function dispatchSttError(message: string) {
+  const trimmed = message.trim();
+  const now = Date.now();
+  if (
+    trimmed &&
+    trimmed === lastSttErrorMessage &&
+    now - lastSttErrorAt < STT_ERROR_COOLDOWN_MS
+  ) {
+    dispatchVoiceEvent("voice:error", { code: "empty_audio", message: null });
+    return;
+  }
+  if (trimmed) {
+    lastSttErrorMessage = trimmed;
+    lastSttErrorAt = now;
+  }
+  dispatchVoiceEvent("voice:error", {
+    code: "stt_failed",
+    message: trimmed || "No pude transcribir tu voz. Revisa internet en el PC e inténtalo de nuevo.",
+  });
+}
+
 async function finalizeRecording() {
   if (transcribeBusy) return;
   transcribeBusy = true;
@@ -112,18 +137,12 @@ async function finalizeRecording() {
       return;
     }
 
-    dispatchVoiceEvent("voice:error", {
-      code: "stt_failed",
-      message: "No entendí lo que dijiste. Intenta otra vez con una frase clara.",
-    });
+    dispatchSttError("No entendí lo que dijiste. Intenta otra vez con una frase clara.");
   } catch (error) {
     const detail = error instanceof Error ? error.message.trim() : "";
-    dispatchVoiceEvent("voice:error", {
-      code: "stt_failed",
-      message:
-        detail ||
-        "No pude transcribir tu voz. Revisa internet en el PC e inténtalo de nuevo.",
-    });
+    dispatchSttError(
+      detail || "No pude transcribir tu voz. Revisa internet en el PC e inténtalo de nuevo.",
+    );
   } finally {
     transcribeBusy = false;
     releaseStream();
