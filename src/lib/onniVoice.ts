@@ -1,5 +1,13 @@
-/** Palabra de activación: Onni u Oni (voz a veces omite la doble ene). */
-const WAKE_WORD_RE = /\b(onni|oni)\b/i;
+/** Palabras de activación (orden: más específicas primero). */
+export const ONNI_WAKE_WORDS = ["onni", "hony", "honi", "oni", "ono", "ony"] as const;
+
+const WAKE_WORD_RE = new RegExp(`\\b(${ONNI_WAKE_WORDS.join("|")})\\b`, "i");
+
+/** Saludos + nombre: «hola onni», «oye oni», etc. */
+const GREETING_WAKE_RE = new RegExp(
+  `\\b(hola|oye|hey|buenas)(?:\\s+(?:buenos dias|buenas tardes|buenas noches))?\\s+(${ONNI_WAKE_WORDS.join("|")})\\b(?:\\s+(.+))?$`,
+  "i",
+);
 
 export function normalizeVoiceText(input: string): string {
   return input
@@ -14,6 +22,12 @@ export function normalizeVoiceText(input: string): string {
 
 export function parseOnniWakePhrase(transcript: string): { heard: boolean; command: string } {
   const text = normalizeVoiceText(transcript);
+
+  const greetingHit = text.match(GREETING_WAKE_RE);
+  if (greetingHit) {
+    return { heard: true, command: (greetingHit[3] ?? "").trim() };
+  }
+
   const match = text.match(WAKE_WORD_RE);
   if (!match || match.index === undefined) {
     return { heard: false, command: "" };

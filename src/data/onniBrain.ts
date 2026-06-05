@@ -41,7 +41,7 @@ export const ONNI_FAQ: FaqEntry[] = [
     id: "como-voz",
     patterns: [/\b(como (te )?activo|usar) (la )?voz\b/, /\bcomo hablar contigo\b/, /\bpalabra onni\b/],
     answer:
-      "Por ahora trabajo solo por texto en el chat (la voz la mejoraremos después). Escribe tu pedido: «llévame al lobby», «reproductor mp4», «abre el menú».",
+      "En Chrome o Edge (PC): di «Hola Onni» o «Onni…» y tu pedido (también Oni, Ono, Honi u Hony). Respondo por voz sin abrir el chat. Ejemplo: «Hola Onni, llévame al lobby». Acepta permiso de micrófono la primera vez.",
   },
   {
     id: "mux-negro",
@@ -106,7 +106,7 @@ const PATH_GUIDES: PathGuide[] = [
     test: (p) => p === "/" || p.startsWith("/inicio"),
     title: "Inicio / Mi Mundo",
     tips: ["Aquí está tu perfil VR y acceso rápido a experiencias.", "Abre el menú (☰) para ver todas las secciones."],
-    commands: ["lobby", "conciertos", "reproductor mp4", "aula", "tienda"],
+    commands: ["lobby", "clase virtual", "conciertos", "reproductor mp4", "aula", "tienda"],
   },
   {
     test: (p) => p.startsWith("/nuestras-salas"),

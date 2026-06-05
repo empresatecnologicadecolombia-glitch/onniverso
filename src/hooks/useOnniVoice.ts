@@ -128,18 +128,21 @@ export function useOnniVoice({ enabled, speakEnabled, onWake, onWakeWithoutComma
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       let transcript = "";
-      for (let i = event.resultIndex; i < event.results.length; i += 1) {
-        if (event.results[i].isFinal) {
-          transcript += event.results[i][0].transcript;
-        }
+      for (let i = 0; i < event.results.length; i += 1) {
+        transcript += event.results[i][0]?.transcript ?? "";
       }
-      if (!transcript.trim()) return;
+      const trimmed = transcript.trim();
+      if (!trimmed) return;
 
-      setLastHeard(transcript.trim());
-      const { heard, command } = parseOnniWakePhrase(transcript);
+      const lastIdx = event.results.length - 1;
+      const isFinal = event.results[lastIdx]?.isFinal ?? false;
+      if (!isFinal) return;
+
+      setLastHeard(trimmed);
+      const { heard, command } = parseOnniWakePhrase(trimmed);
       if (!heard) return;
 
-      const signature = `${command}|${transcript}`;
+      const signature = `${command}|${trimmed}`;
       if (signature === lastHandledRef.current) return;
       lastHandledRef.current = signature;
 
@@ -148,7 +151,7 @@ export function useOnniVoice({ enabled, speakEnabled, onWake, onWakeWithoutComma
         return;
       }
 
-      callbacksRef.current.onWake(command, transcript);
+      callbacksRef.current.onWake(command, trimmed);
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {

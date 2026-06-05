@@ -22,6 +22,13 @@ describe("resolveOpCommand", () => {
     expect(r.navigateTo).toBe("/coliseo");
   });
 
+  it("clase virtual y llevame a la clase van a seccion /3d", () => {
+    expect(resolveOpCommand("clase virtual", "/").navigateTo).toBe("/3d");
+    expect(resolveOpCommand("llevame a la clase", "/").navigateTo).toBe("/3d");
+    expect(resolveOpCommand("onni lleva me a clase virtuar", "/").navigateTo).toBe("/3d");
+    expect(resolveOpCommand("ir a la clase virtual", "/nuestras-salas").navigateTo).toBe("/3d");
+  });
+
   it("video de karol va a sala nova-byte", () => {
     const r = resolveOpCommand("entra al video de karol", "/");
     expect(r.navigateTo).toContain("al-universo-nova-byte");

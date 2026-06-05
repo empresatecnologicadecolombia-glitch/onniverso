@@ -7,6 +7,7 @@ import OnniAvatar from "@/components/OnniAvatar";
 import HomeSocialRedesRow from "@/components/HomeSocialRedesRow";
 import { dispatchOpCommand } from "@/lib/opCommandBus";
 import { getOnniIntroduction } from "@/data/onniBrain";
+import { toast } from "sonner";
 import { getOpAssistantHint, resolveOpCommand } from "@/lib/opAssistantResolver";
 import { askOnniGemini, isOnniNavigationResult } from "@/lib/onniGemini";
 import { invokeOpenGalleryDirect } from "@/lib/galleryOpenDirect";
@@ -20,6 +21,10 @@ import {
 } from "@/lib/homeSocialRedesConfig";
 import { openHomeSocialRedes } from "@/lib/homeSocialRedesOpen";
 import { useOnniChatVoice } from "@/hooks/useOnniChatVoice";
+import { useOnniVoice, useOnniVoicePrefs } from "@/hooks/useOnniVoice";
+import { isDesktopWebBrowser } from "@/lib/deviceDetection";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 type UiMessage = { role: "user" | "assistant"; text: string };
 
@@ -55,6 +60,11 @@ export default function OpAiAssistant() {
     canListen,
     canSpeak,
   } = useOnniChatVoice();
+
+  const { listenEnabled, setListenEnabled } = useOnniVoicePrefs();
+  const runCommandRef = useRef<(raw: string) => Promise<string | undefined>>(async () => undefined);
+  const openRef = useRef(open);
+  openRef.current = open;
 
   const hint = useMemo(() => getOpAssistantHint(location.pathname), [location.pathname]);
   const isColiseoClassScene = location.pathname.startsWith("/coliseo");
@@ -163,6 +173,38 @@ export default function OpAiAssistant() {
     [location.pathname, navigate, speakAnswer],
   );
 
+  runCommandRef.current = runCommand;
+
+  const wakeWordActive =
+    isDesktopWebBrowser() && canListen && listenEnabled && !voiceListening && !processing;
+
+  const { isListening: wakeListening, isSpeaking: wakeSpeaking } = useOnniVoice({
+    enabled: wakeWordActive,
+    speakEnabled: canSpeak,
+    onWake: (command) => {
+      void runCommandRef.current(command);
+    },
+    onWakeWithoutCommand: () => {
+      const prompt = getOnniIntroduction();
+      sessionRef.current.lastAnswer = prompt;
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", text: "Hola Onni" },
+        { role: "assistant", text: prompt },
+      ]);
+      speakAnswer(prompt);
+    },
+    onError: (message) => {
+      if (openRef.current) {
+        setMessages((prev) => [...prev, { role: "assistant", text: message }]);
+      } else {
+        toast.error(message);
+      }
+    },
+  });
+
+  const avatarState = wakeSpeaking ? "speaking" : wakeListening || voiceListening ? "listening" : "idle";
+
   const voiceCallbacks = useMemo(
     () => ({
       onTranscript: (transcript: string) => {
@@ -237,16 +279,33 @@ export default function OpAiAssistant() {
           type="button"
           className="pointer-events-auto relative z-[90] order-1 group flex flex-col items-center gap-1.5 rounded-2xl border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
           onClick={() => setOpen(true)}
-          aria-label="Abrir Onni, asistente de texto"
+          aria-label={
+            wakeListening
+              ? "Onni escuchando. Di Hola Onni y tu pedido"
+              : "Abrir Onni, asistente de voz y texto"
+          }
         >
-          <OnniAvatar size="lg" state="idle" className="max-sm:h-16" />
+          <OnniAvatar size="lg" state={avatarState} className="max-sm:h-16" />
         </button>
       ) : (
         <div className="pointer-events-auto rounded-2xl border border-cyan-300/35 bg-card/90 backdrop-blur-xl shadow-[0_0_45px_-16px_rgba(34,211,238,0.8)]">
           <div className="flex items-start gap-3 border-b border-white/10 px-3 py-3">
-            <OnniAvatar size="md" state="idle" className="mt-0.5" />
+            <OnniAvatar size="md" state={avatarState} className="mt-0.5" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-cyan-100">Onni</p>
+              {isDesktopWebBrowser() && canListen && (
+                <div className="mt-1.5 flex items-center gap-2">
+                  <Switch
+                    id="onni-wake-listen"
+                    checked={listenEnabled}
+                    onCheckedChange={setListenEnabled}
+                    aria-label="Escuchar la palabra Onni"
+                  />
+                  <Label htmlFor="onni-wake-listen" className="text-[10px] font-normal text-muted-foreground">
+                    Di «Hola Onni» o «Onni…» (sin abrir el chat)
+                  </Label>
+                </div>
+              )}
             </div>
             <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>
               Cerrar

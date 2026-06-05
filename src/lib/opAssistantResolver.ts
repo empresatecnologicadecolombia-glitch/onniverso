@@ -1,3 +1,4 @@
+import { GALERIA_AULA_SECTION_PATH } from "@/lib/aulaVirtual";
 import { OP_LOBBY_HINTS, OP_ROUTES, OP_STREAMERS, OP_TEATRO_ROOMS, type OpRouteEntry } from "@/data/opAssistantKnowledge";
 import {
   getContextGuide,
@@ -529,6 +530,23 @@ function matchTeatro(text: string): OpResolveResult | null {
   return { navigateTo: hit.item.path, answer: sayOnni(`Te llevo al teatro: ${hit.item.title}.`) };
 }
 
+function matchClaseVirtual(text: string): OpResolveResult | null {
+  const core = stripNavVerbs(text) || text;
+  const wantsClaseSection =
+    /\bclase(s)?\s+virtu?a?l(es)?\b/.test(core) ||
+    /\bclase\s+virtuar\b/.test(core) ||
+    /\b(la|a)\s+clase\b/.test(core) ||
+    (/\bclase\b/.test(core) && /\b(virtual|virtuar|360|inmersiv|aula)\b/.test(core));
+
+  if (!wantsClaseSection) return null;
+
+  const route = OP_ROUTES.find((r) => r.id === "clase-virtual-section");
+  return {
+    navigateTo: route?.path ?? GALERIA_AULA_SECTION_PATH,
+    answer: sayOnni("Te llevo a la sección Clase Virtual."),
+  };
+}
+
 function matchRoute(text: string): OpResolveResult | null {
   const core = stripNavVerbs(text) || text;
   const hit = findLongestAliasMatch(core, OP_ROUTES);
@@ -642,6 +660,9 @@ export function resolveOpCommand(
   const teatro = matchTeatro(text);
   if (teatro) return teatro;
 
+  const claseVirtual = matchClaseVirtual(text);
+  if (claseVirtual) return claseVirtual;
+
   const route = matchRoute(text);
   if (route) return avoidEspectadorLoop(route, text, currentPath);
 
@@ -655,7 +676,7 @@ export function getOpAssistantHint(currentPath: string): string {
   if (currentPath.startsWith("/sala/espectador")) {
     return 'Di: "salir a conciertos", "reproductor mp4", "¿qué es esto?".';
   }
-  return 'Di: "conciertos", "¿dónde estoy?", "ayuda", "lobby".';
+  return 'Di: "clase virtual", "conciertos", "¿dónde estoy?", "ayuda", "lobby".';
 }
 
 export { getOnniIntroduction };
