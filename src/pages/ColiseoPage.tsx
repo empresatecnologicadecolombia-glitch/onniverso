@@ -1,5 +1,10 @@
 import ColiseoImmersiveScene from "@/components/immersive/ColiseoImmersiveScene";
 import AgoraClassVoiceBridge from "@/components/streaming/AgoraClassVoiceBridge";
+import {
+  attachCameraStreamToVideo,
+  isCameraStreamLive,
+  openCameraStream,
+} from "@/lib/cameraMedia";
 import { ArrowLeft, Camera, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -90,25 +95,30 @@ const ColiseoPage = () => {
 
   useEffect(() => {
     const el = cameraBackgroundRef.current;
-    if (!el) return;
-    el.srcObject = cameraStream;
-    if (!cameraStream) {
+    if (!el || !cameraStream) {
       setCameraReady(false);
       return;
     }
+
+    let cancelled = false;
     setCameraReady(false);
-    const onCanPlay = () => {
-      setCameraReady(true);
-      void el.play().catch(() => undefined);
-    };
-    el.addEventListener("loadeddata", onCanPlay);
-    el.addEventListener("canplay", onCanPlay);
-    void el.play().catch(() => undefined);
+
+    void attachCameraStreamToVideo(el, cameraStream)
+      .then(() => {
+        if (!cancelled) setCameraReady(true);
+      })
+      .catch(() => {
+        if (!cancelled) setCameraReady(isCameraStreamLive(cameraStream));
+      });
+
     return () => {
-      el.removeEventListener("loadeddata", onCanPlay);
-      el.removeEventListener("canplay", onCanPlay);
+      cancelled = true;
     };
   }, [cameraStream]);
+
+  const mixedRealityActive = Boolean(
+    cameraEnabled && cameraStream && (cameraReady || isCameraStreamLive(cameraStream)),
+  );
 
   const toggleCamera = useCallback(async () => {
     if (cameraBusy) return;
@@ -116,28 +126,23 @@ const ColiseoPage = () => {
       stopCamera();
       return;
     }
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraError("Este dispositivo no soporta camara web.");
-      return;
-    }
+
     setCameraBusy(true);
     setCameraError(null);
     setCameraReady(false);
     try {
-      let stream: MediaStream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: "environment" },
-          },
-          audio: false,
-        });
-      } catch {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      const stream = await openCameraStream();
+      const video = cameraBackgroundRef.current;
+      if (!video) {
+        stream.getTracks().forEach((track) => track.stop());
+        throw new Error("No se pudo preparar la vista de camara.");
       }
+
       cameraStreamRef.current = stream;
       setCameraStream(stream);
       setCameraEnabled(true);
+      await attachCameraStreamToVideo(video, stream);
+      setCameraReady(isCameraStreamLive(stream));
     } catch (error) {
       setCameraError(error instanceof Error ? error.message : "No se pudo activar la camara.");
       stopCamera();
@@ -200,7 +205,7 @@ const ColiseoPage = () => {
         muted
         aria-hidden
         style={
-          cameraEnabled && cameraStream && cameraReady
+          cameraEnabled && cameraStream
             ? {
                 position: "fixed",
                 inset: 0,
@@ -209,6 +214,7 @@ const ColiseoPage = () => {
                 objectFit: "cover",
                 zIndex: 0,
                 pointerEvents: "none",
+                opacity: mixedRealityActive ? 1 : 0.01,
               }
             : {
                 position: "fixed",
@@ -220,7 +226,7 @@ const ColiseoPage = () => {
               }
         }
       />
-      <ColiseoImmersiveScene mixedRealityActive={Boolean(cameraEnabled && cameraStream && cameraReady)} />
+      <ColiseoImmersiveScene mixedRealityActive={mixedRealityActive} />
       <AgoraClassVoiceBridge classSlug={classSlug} role={voiceRole} />
     </div>
   );

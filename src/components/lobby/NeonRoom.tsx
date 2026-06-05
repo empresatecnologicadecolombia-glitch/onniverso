@@ -26,6 +26,11 @@ import LobbyDecorHeartWall from "@/components/lobby/LobbyDecorHeartWall";
 import LobbyDecorFarolLantern from "@/components/lobby/LobbyDecorFarolLantern";
 import LobbyGyroToggleButton from "@/components/lobby/LobbyGyroToggleButton";
 import { requestDeviceOrientationPermission } from "@/lib/deviceOrientationCamera";
+import {
+  attachCameraStreamToVideo,
+  buildCameraVideoConstraints,
+  openCameraStream,
+} from "@/lib/cameraMedia";
 import { LobbyScreenOneHub } from "@/components/lobby/LobbyScreenOneHub";
 import { LobbyScreenThreeSalasPlayer } from "@/components/lobby/LobbyScreenThreeSalasPlayer";
 import LobbyDecorAnatomiaHumanaWall from "@/components/lobby/LobbyDecorAnatomiaHumanaWall";
@@ -190,22 +195,6 @@ function stopCameraStream(video: HTMLVideoElement | null) {
   }
 }
 
-function getLobbyCameraVideoConstraints(): MediaTrackConstraints {
-  if (typeof window === "undefined") {
-    return { facingMode: { ideal: "environment" } };
-  }
-
-  const cap = Math.min(window.devicePixelRatio || 1, MAX_WEBGL_PIXEL_RATIO);
-  const idealWidth = Math.min(Math.round(window.innerWidth * cap), 1920);
-  const idealHeight = Math.min(Math.round(window.innerHeight * cap), 1080);
-
-  return {
-    facingMode: { ideal: "environment" },
-    width: { ideal: idealWidth, max: 1920 },
-    height: { ideal: idealHeight, max: 1080 },
-  };
-}
-
 async function applyCameraTrackConstraints(video: HTMLVideoElement | null) {
   const stream = video?.srcObject;
   if (!(stream instanceof MediaStream)) return;
@@ -214,7 +203,7 @@ async function applyCameraTrackConstraints(video: HTMLVideoElement | null) {
   if (!track) return;
 
   try {
-    await track.applyConstraints(getLobbyCameraVideoConstraints());
+    await track.applyConstraints(buildCameraVideoConstraints());
   } catch {
     /* ignore */
   }
@@ -1327,17 +1316,14 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
     setMixedRealityError(null);
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: getLobbyCameraVideoConstraints(),
-      });
+      const stream = await openCameraStream();
       const video = cameraVideoRef.current;
       if (!video) {
         stream.getTracks().forEach((track) => track.stop());
         throw new Error("camera-video-missing");
       }
 
-      video.srcObject = stream;
-      await video.play();
+      await attachCameraStreamToVideo(video, stream);
       await applyCameraTrackConstraints(video);
       setMixedRealityEnabled(true);
     } catch {

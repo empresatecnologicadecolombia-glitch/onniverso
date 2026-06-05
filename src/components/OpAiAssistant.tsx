@@ -85,6 +85,8 @@ export default function OpAiAssistant() {
     speakAnswer,
     startVoiceCapture,
     stopVoiceCapture,
+    toggleVoiceCapture,
+    usesContinuousMic,
     canListen,
     canSpeak,
   } = useOnniChatVoice();
@@ -283,6 +285,12 @@ export default function OpAiAssistant() {
     startVoiceCapture(voiceCallbacks);
   }, [startVoiceCapture, voiceCallbacks]);
 
+  const handleToggleVoiceCapture = useCallback(() => {
+    pendingVoiceRef.current = "";
+    setText("");
+    void toggleVoiceCapture(voiceCallbacks);
+  }, [toggleVoiceCapture, voiceCallbacks]);
+
   const stopVoiceCaptureHandler = useCallback(() => {
     const transcript = stopVoiceCapture();
     setText("");
@@ -374,6 +382,11 @@ export default function OpAiAssistant() {
               </div>
             ))}
             <p className="text-[11px] text-muted-foreground">{hint}</p>
+            {usesContinuousMic && voiceListening && (
+              <p className="text-[10px] font-medium text-emerald-300/90">
+                Micrófono activo — habla cuando quieras. Pulsa el micrófono otra vez para apagar.
+              </p>
+            )}
           </div>
           <form onSubmit={onSend} className="flex items-center gap-2 border-t border-white/10 p-3">
             <Input
@@ -397,25 +410,54 @@ export default function OpAiAssistant() {
                   type="button"
                   size="icon"
                   variant={voiceListening ? "secondary" : "outline"}
-                  onPointerDown={(event) => {
-                    event.preventDefault();
-                    handleStartVoiceCapture();
-                  }}
-                  onPointerUp={(event) => {
-                    event.preventDefault();
-                    stopVoiceCaptureHandler();
-                  }}
-                  onPointerCancel={(event) => {
-                    event.preventDefault();
-                    stopVoiceCaptureHandler();
-                  }}
-                  onPointerLeave={(event) => {
-                    if (!voiceListening) return;
-                    event.preventDefault();
-                    stopVoiceCaptureHandler();
-                  }}
+                  onClick={
+                    usesContinuousMic
+                      ? () => void handleToggleVoiceCapture()
+                      : undefined
+                  }
+                  onPointerDown={
+                    usesContinuousMic
+                      ? undefined
+                      : (event) => {
+                          event.preventDefault();
+                          handleStartVoiceCapture();
+                        }
+                  }
+                  onPointerUp={
+                    usesContinuousMic
+                      ? undefined
+                      : (event) => {
+                          event.preventDefault();
+                          stopVoiceCaptureHandler();
+                        }
+                  }
+                  onPointerCancel={
+                    usesContinuousMic
+                      ? undefined
+                      : (event) => {
+                          event.preventDefault();
+                          stopVoiceCaptureHandler();
+                        }
+                  }
+                  onPointerLeave={
+                    usesContinuousMic
+                      ? undefined
+                      : (event) => {
+                          if (!voiceListening) return;
+                          event.preventDefault();
+                          stopVoiceCaptureHandler();
+                        }
+                  }
                   onContextMenu={(event) => event.preventDefault()}
-                  aria-label={voiceListening ? "Detener micrófono de Onni" : "Hablar con Onni"}
+                  aria-label={
+                    voiceListening
+                      ? usesContinuousMic
+                        ? "Detener micrófono de Onni"
+                        : "Soltar micrófono de Onni"
+                      : usesContinuousMic
+                        ? "Activar micrófono de Onni (escucha continua)"
+                        : "Mantener pulsado para hablar con Onni"
+                  }
                 >
                   {voiceListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                 </Button>

@@ -48,14 +48,15 @@ export function markPreferNativeVoice(): void {
 }
 
 /**
- * Escritorio: voz del navegador (sin cambios respecto a la versión que ya funcionaba).
- * Móvil/APK: voz del navegador primero; si falla en la sesión, nativa.
+ * PC navegador: Web Speech API (Chrome/Edge).
+ * APK Android: micrófono y reconocimiento nativos (AndroidBridge), no WebView.
  */
 export function getOnniVoiceMode(): OnniVoiceMode {
-  if (isDesktopWebBrowser() && isOnniVoiceSupported()) return "web";
-  if (prefersNativeVoiceFallback() && isNativeVoiceAvailable()) return "native";
-  if (isOnniVoiceSupported()) return "web";
+  if (isDesktopWebBrowser()) {
+    return isOnniVoiceSupported() ? "web" : "none";
+  }
   if (isNativeVoiceAvailable()) return "native";
+  if (isOnniVoiceSupported()) return "web";
   return "none";
 }
 
