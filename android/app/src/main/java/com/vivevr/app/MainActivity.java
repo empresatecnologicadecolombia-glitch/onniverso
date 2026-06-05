@@ -7,6 +7,8 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -119,6 +121,15 @@ public class MainActivity extends BridgeActivity {
   private boolean pendingOnniStartListening;
   private SpeechRecognizer onniSpeechRecognizer;
   private Intent onniSpeechIntent;
+  private Handler onniVoiceHandler;
+  private static final long ONNI_LISTEN_START_DELAY_MS = 320L;
+  private final Runnable onniStartListeningRunnable =
+      new Runnable() {
+        @Override
+        public void run() {
+          MainActivity.this.beginOnniListeningSession();
+        }
+      };
   private TextToSpeech onniTts;
   private boolean onniTtsReady;
   private Locale onniTtsLocale = new Locale("es", "CO");
@@ -1981,6 +1992,9 @@ public class MainActivity extends BridgeActivity {
 
           @Override
           public void onError(int error) {
+            if (error == SpeechRecognizer.ERROR_CLIENT) {
+              destroyOnniVoiceRecognizer();
+            }
             dispatchOnniVoiceError(mapOnniSpeechError(error), "Error de reconocimiento de voz.");
             dispatchOnniVoiceEvent("voice:end", null);
           }
@@ -2001,6 +2015,18 @@ public class MainActivity extends BridgeActivity {
         });
   }
 
+  private void destroyOnniVoiceRecognizer() {
+    if (onniSpeechRecognizer != null) {
+      try {
+        onniSpeechRecognizer.destroy();
+      } catch (Exception ignored) {
+        // no-op
+      }
+      onniSpeechRecognizer = null;
+    }
+    onniSpeechIntent = null;
+  }
+
   private void startOnniListening() {
     if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
         != PackageManager.PERMISSION_GRANTED) {
@@ -2008,12 +2034,19 @@ public class MainActivity extends BridgeActivity {
       launchOnniMicrophonePermissionFlow("");
       return;
     }
+    if (onniVoiceHandler == null) {
+      onniVoiceHandler = new Handler(Looper.getMainLooper());
+    }
+    onniVoiceHandler.removeCallbacks(onniStartListeningRunnable);
+    onniVoiceHandler.postDelayed(onniStartListeningRunnable, ONNI_LISTEN_START_DELAY_MS);
+  }
+
+  private void beginOnniListeningSession() {
     ensureOnniVoiceRecognizer();
     if (onniSpeechRecognizer == null || onniSpeechIntent == null) {
       return;
     }
     try {
-      onniSpeechRecognizer.cancel();
       onniSpeechRecognizer.startListening(onniSpeechIntent);
     } catch (Exception ignored) {
       dispatchOnniVoiceError("start_failed", "No se pudo iniciar el micrófono.");
@@ -2022,6 +2055,9 @@ public class MainActivity extends BridgeActivity {
   }
 
   private void stopOnniListening() {
+    if (onniVoiceHandler != null) {
+      onniVoiceHandler.removeCallbacks(onniStartListeningRunnable);
+    }
     if (onniSpeechRecognizer == null) {
       return;
     }
@@ -2163,14 +2199,10 @@ public class MainActivity extends BridgeActivity {
 
   private void releaseOnniVoiceEngine() {
     pendingOnniStartListening = false;
-    if (onniSpeechRecognizer != null) {
-      try {
-        onniSpeechRecognizer.destroy();
-      } catch (Exception ignored) {
-        // no-op
-      }
-      onniSpeechRecognizer = null;
+    if (onniVoiceHandler != null) {
+      onniVoiceHandler.removeCallbacks(onniStartListeningRunnable);
     }
+    destroyOnniVoiceRecognizer();
     if (onniTts != null) {
       try {
         onniTts.stop();

@@ -81,12 +81,17 @@ export default function OpAiAssistant() {
 
   const {
     voiceListening,
+    nativeWakeListening,
+    voiceCaptureActive,
     setVoiceListening,
     speakAnswer,
     startVoiceCapture,
     stopVoiceCapture,
     toggleVoiceCapture,
+    startNativeWakeListening,
+    stopNativeWakeListening,
     usesContinuousMic,
+    supportsNativeWakeSwitch,
     canListen,
     canSpeak,
   } = useOnniChatVoice();
@@ -228,7 +233,12 @@ export default function OpAiAssistant() {
   runCommandRef.current = runCommand;
 
   const wakeWordActive =
-    isDesktopWebBrowser() && canListen && listenEnabled && !voiceListening && !processing;
+    isDesktopWebBrowser() && canListen && listenEnabled && !voiceListening && !processing && !nativeWakeListening;
+
+  const captureMicActive = voiceCaptureActive;
+
+  const nativeWakeActive =
+    supportsNativeWakeSwitch && canListen && listenEnabled && !processing && !voiceCaptureActive;
 
   const { isListening: wakeListening, isSpeaking: wakeSpeaking } = useOnniVoice({
     enabled: wakeWordActive,
@@ -255,7 +265,55 @@ export default function OpAiAssistant() {
     },
   });
 
-  const avatarState = wakeSpeaking ? "speaking" : wakeListening || voiceListening ? "listening" : "idle";
+  const avatarState =
+    wakeSpeaking ? "speaking" : wakeListening || voiceListening || nativeWakeListening ? "listening" : "idle";
+
+  const nativeWakeCallbacks = useMemo(
+    () => ({
+      onWake: (command: string) => {
+        void runCommandRef.current(command);
+      },
+      onWakeWithoutCommand: () => {
+        const prompt = getOnniIntroduction();
+        sessionRef.current.lastAnswer = prompt;
+        if (openRef.current) {
+          setMessages((prev) => [
+            ...prev,
+            { role: "user", text: "Hola Onni" },
+            { role: "assistant", text: prompt },
+          ]);
+        }
+        speakAnswer(prompt);
+      },
+      onError: (message: string) => {
+        if (openRef.current) {
+          setMessages((prev) => [...prev, { role: "assistant", text: message }]);
+        } else {
+          toast.error(message);
+        }
+      },
+    }),
+    [speakAnswer],
+  );
+  const nativeWakeCallbacksRef = useRef(nativeWakeCallbacks);
+  nativeWakeCallbacksRef.current = nativeWakeCallbacks;
+
+  useEffect(() => {
+    if (!nativeWakeActive) {
+      stopNativeWakeListening();
+      return;
+    }
+
+    let cancelled = false;
+    void startNativeWakeListening(nativeWakeCallbacksRef.current).then((started) => {
+      if (!cancelled && !started) stopNativeWakeListening();
+    });
+
+    return () => {
+      cancelled = true;
+      stopNativeWakeListening();
+    };
+  }, [nativeWakeActive, startNativeWakeListening, stopNativeWakeListening]);
 
   const voiceCallbacks = useMemo(
     () => ({
@@ -338,7 +396,7 @@ export default function OpAiAssistant() {
           className="pointer-events-auto relative z-[90] order-1 group flex flex-col items-center gap-1.5 rounded-2xl border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
           onClick={() => setOpen(true)}
           aria-label={
-            wakeListening
+            wakeListening || nativeWakeListening
               ? "Onni escuchando. Di Hola Onni y tu pedido"
               : "Abrir Onni, asistente de voz y texto"
           }
@@ -351,7 +409,7 @@ export default function OpAiAssistant() {
             <OnniAvatar size="md" state={avatarState} className="mt-0.5" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-cyan-100">Onni</p>
-              {isDesktopWebBrowser() && canListen && (
+              {canListen && (isDesktopWebBrowser() || supportsNativeWakeSwitch) && (
                 <div className="mt-1.5 flex items-center gap-2">
                   <Switch
                     id="onni-wake-listen"
@@ -360,7 +418,7 @@ export default function OpAiAssistant() {
                     aria-label="Escuchar la palabra Onni"
                   />
                   <Label htmlFor="onni-wake-listen" className="text-[10px] font-normal text-muted-foreground">
-                    Di «Hola Onni» o «Onni…» (sin abrir el chat)
+                    Di «Hola Onni» o «Onni…» {supportsNativeWakeSwitch ? "(micrófono nativo)" : "(sin abrir el chat)"}
                   </Label>
                 </div>
               )}
@@ -382,9 +440,14 @@ export default function OpAiAssistant() {
               </div>
             ))}
             <p className="text-[11px] text-muted-foreground">{hint}</p>
-            {usesContinuousMic && voiceListening && (
+            {usesContinuousMic && captureMicActive && (
               <p className="text-[10px] font-medium text-emerald-300/90">
                 Micrófono activo — habla cuando quieras. Pulsa el micrófono otra vez para apagar.
+              </p>
+            )}
+            {supportsNativeWakeSwitch && nativeWakeListening && listenEnabled && !captureMicActive && (
+              <p className="text-[10px] font-medium text-emerald-300/90">
+                Onni te escucha — di «Hola Onni» o «Onni…» + tu pedido.
               </p>
             )}
           </div>
@@ -409,7 +472,7 @@ export default function OpAiAssistant() {
                 <Button
                   type="button"
                   size="icon"
-                  variant={voiceListening ? "secondary" : "outline"}
+                  variant={captureMicActive ? "secondary" : "outline"}
                   onClick={
                     usesContinuousMic
                       ? () => void handleToggleVoiceCapture()
@@ -443,14 +506,14 @@ export default function OpAiAssistant() {
                     usesContinuousMic
                       ? undefined
                       : (event) => {
-                          if (!voiceListening) return;
+                          if (!captureMicActive) return;
                           event.preventDefault();
                           stopVoiceCaptureHandler();
                         }
                   }
                   onContextMenu={(event) => event.preventDefault()}
                   aria-label={
-                    voiceListening
+                    captureMicActive
                       ? usesContinuousMic
                         ? "Detener micrófono de Onni"
                         : "Soltar micrófono de Onni"
@@ -459,7 +522,7 @@ export default function OpAiAssistant() {
                         : "Mantener pulsado para hablar con Onni"
                   }
                 >
-                  {voiceListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  {captureMicActive ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                 </Button>
               </>
             )}
