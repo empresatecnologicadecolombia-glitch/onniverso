@@ -87,8 +87,14 @@ describe("resolveOpCommand", () => {
   it("clase virtual y llevame a la clase van a seccion /3d", () => {
     expect(resolveOpCommand("clase virtual", "/").navigateTo).toBe("/3d");
     expect(resolveOpCommand("llevame a la clase", "/").navigateTo).toBe("/3d");
+    expect(resolveOpCommand("lleva a clases", "/").navigateTo).toBe("/3d");
+    expect(resolveOpCommand("oni lleva a clases", "/coliseo").navigateTo).toBe("/3d");
+    expect(resolveOpCommand("llevame a clases", "/").navigateTo).toBe("/3d");
     expect(resolveOpCommand("onni lleva me a clase virtuar", "/").navigateTo).toBe("/3d");
     expect(resolveOpCommand("ir a la clase virtual", "/nuestras-salas").navigateTo).toBe("/3d");
+    expect(resolveOpCommand("aula virtual", "/").navigateTo).toBe("/3d");
+    expect(resolveOpCommand("lleva al aula", "/").navigateTo).toBe("/3d");
+    expect(resolveOpCommand("aula caminable", "/").navigateTo).toBe("/aula-virtual");
   });
 
   it("video de karol va a sala nova-byte", () => {

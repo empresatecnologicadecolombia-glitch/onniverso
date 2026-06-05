@@ -106,7 +106,7 @@ const PATH_GUIDES: PathGuide[] = [
     test: (p) => p === "/" || p.startsWith("/inicio"),
     title: "Inicio / Mi Mundo",
     tips: ["Aquí está tu perfil VR y acceso rápido a experiencias.", "Abre el menú (☰) para ver todas las secciones."],
-    commands: ["inicio", "lobby", "clase virtual", "conciertos", "reproductor mp4", "aula", "tienda"],
+    commands: ["inicio", "lobby", "clase virtual", "llevame a clases", "conciertos", "reproductor mp4", "tienda"],
   },
   {
     test: (p) => p.startsWith("/nuestras-salas"),

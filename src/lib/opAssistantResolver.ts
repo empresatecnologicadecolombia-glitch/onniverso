@@ -49,6 +49,24 @@ function wantsEnterClassPhrase(text: string, core: string): boolean {
   );
 }
 
+/** Ir a la sección Clase Virtual del menú (/3d), no al lobby «aula virtual». */
+function wantsClaseVirtualSectionPhrase(text: string, core: string): boolean {
+  const genericAula =
+    (/\b(a|al)\s+aula\b/.test(text) || /\baula\s+virtual\b/.test(text)) &&
+    !/\b(caminable|lobby)\b/.test(text);
+
+  return (
+    /\bclases\b/.test(core) ||
+    /\b(a|al|la)\s+clases\b/.test(text) ||
+    /\b(llevame|lleva|llevar|ir|ve|vamos|abre|abrir|muestrame|mostrar|traeme|ponme)\s+a\s+clases\b/.test(text) ||
+    genericAula ||
+    /\bclase(s)?\s+virtu?a?l(es)?\b/.test(core) ||
+    /\bclase\s+virtuar\b/.test(core) ||
+    /\b(la|a)\s+clases?\b/.test(core) ||
+    (/\bclase\b/.test(core) && /\b(virtual|virtuar|360|inmersiv)\b/.test(core))
+  );
+}
+
 const NAV_VERBS =
   /\b(llevame|lleva|llevar|ir|ve|vamos|entra|entrar|abre|abrir|muestrame|mostrar|quiero ver|ponme en|ir a|voy a)\b/g;
 
@@ -663,10 +681,7 @@ function matchClaseVirtual(
   const wantsClaseSection =
     (wantsEnter && currentPath !== DOCENTE_PANEL_PATH) ||
     (bareEnter && isTeacherOrAdmin(appRole) && currentPath !== DOCENTE_PANEL_PATH) ||
-    /\bclase(s)?\s+virtu?a?l(es)?\b/.test(core) ||
-    /\bclase\s+virtuar\b/.test(core) ||
-    /\b(la|a)\s+clase\b/.test(core) ||
-    (/\bclase\b/.test(core) && /\b(virtual|virtuar|360|inmersiv|aula)\b/.test(core));
+    wantsClaseVirtualSectionPhrase(text, core);
 
   if (!wantsClaseSection) return null;
 
@@ -685,9 +700,14 @@ function matchClaseVirtual(
 
 function matchRoute(text: string): OpResolveResult | null {
   const core = stripNavVerbs(text) || text;
+  if (wantsClaseVirtualSectionPhrase(text, core)) return null;
   const hit = findLongestAliasMatch(core, OP_ROUTES);
   if (!hit) return null;
   const route = hit.item as OpRouteEntry;
+  if (route.id === "aula-lobby") {
+    const explicitLobby = /\b(aula caminable|lobby del aula|entrar al aula caminable)\b/.test(text);
+    if (!explicitLobby) return null;
+  }
   return { navigateTo: route.path, answer: sayOnni(`Te llevo a ${route.label}.`) };
 }
 
