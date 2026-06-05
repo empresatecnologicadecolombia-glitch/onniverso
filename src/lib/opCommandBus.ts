@@ -8,7 +8,9 @@ export type OpCommand =
   | { type: "lobby.gyro.enable" }
   | { type: "lobby.gyro.disable" }
   | { type: "lobby.gyro.toggle" }
-  | { type: "lobby.gyro.recenter" };
+  | { type: "lobby.gyro.recenter" }
+  | { type: "docente.startClass" }
+  | { type: "docente.enterClass" };
 
 const EVENT_NAME = "onniverso:op-command";
 

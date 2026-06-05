@@ -1,5 +1,6 @@
 import { GALERIA_AULA_SECTION_PATH } from "@/lib/aulaVirtual";
 import { OP_LOBBY_HINTS, OP_ROUTES, OP_STREAMERS, OP_TEATRO_ROOMS, type OpRouteEntry } from "@/data/opAssistantKnowledge";
+import { parseOnniWakePhrase } from "@/lib/onniVoice";
 import {
   getContextGuide,
   getFavoriteStreamerId,
@@ -27,7 +28,26 @@ export type OpResolveResult = {
 
 export type OpResolveSession = {
   lastAnswer?: string;
+  /** Rol actual (`docente`, `admin`, etc.) para comandos restringidos. */
+  appRole?: string | null;
 };
+
+const DOCENTE_PANEL_PATH = "/docente-clases";
+
+function isTeacherOrAdmin(role: string | null | undefined): boolean {
+  return role === "docente" || role === "admin";
+}
+
+const CLASE_VIRTUAL_SECTION_PATH = GALERIA_AULA_SECTION_PATH;
+
+/** Frases de «entrar a la clase» (voz/chat); el destino depende de dónde estés. */
+function wantsEnterClassPhrase(text: string, core: string): boolean {
+  return (
+    /^\s*(entrar|entra)\s*$/.test(core) ||
+    /\b(entrar a clases|entra a clases|entrar a la clase|entra a la clase|entra clase|entrar clase)\b/.test(text) ||
+    /\b(entrar|entra)(\s+a)?\s*(la\s+)?clases?\b/.test(text)
+  );
+}
 
 const NAV_VERBS =
   /\b(llevame|lleva|llevar|ir|ve|vamos|entra|entrar|abre|abrir|muestrame|mostrar|quiero ver|ponme en|ir a|voy a)\b/g;
@@ -530,9 +550,119 @@ function matchTeatro(text: string): OpResolveResult | null {
   return { navigateTo: hit.item.path, answer: sayOnni(`Te llevo al teatro: ${hit.item.title}.`) };
 }
 
-function matchClaseVirtual(text: string): OpResolveResult | null {
+function matchInicio(text: string): OpResolveResult | null {
+  if (/\b(icono|youtube|facebook|instagram|tiktok|google|whatsapp|mercado)\b/.test(text) && /\binicio\b/.test(text)) {
+    return null;
+  }
+
   const core = stripNavVerbs(text) || text;
+  const wantsHome =
+    /^\s*inicio\s*$/.test(core) ||
+    /\b(al inicio|a inicio|a el inicio|mi mundo|mimundo|pagina de inicio|pantalla de inicio)\b/.test(core) ||
+    (/\binicio\b/.test(core) && /\b(llevame|lleva|ir|ve|vamos|entra|abre|trae|traeme|volver)\b/.test(text));
+
+  if (!wantsHome) return null;
+
+  const route = OP_ROUTES.find((r) => r.id === "inicio");
+  return {
+    navigateTo: route?.path ?? "/",
+    answer: sayOnni("Te llevo al inicio, Mi Mundo."),
+  };
+}
+
+function matchDocentePanel(text: string, appRole?: string | null): OpResolveResult | null {
+  const core = stripNavVerbs(text) || text;
+  const explicitPanel =
+    /\b(panel de docente|panel docente|pane de docente|pane docente)\b/.test(core) ||
+    /\b(mis clases|mis aulas|gestionar clases|crear clase)\b/.test(core);
+  const genericPanel =
+    isTeacherOrAdmin(appRole) &&
+    (/\b(al panel|al pane|a el panel|a el pane)\b/.test(core) || /^\s*(panel|pane)\s*$/.test(core));
+
+  if (!explicitPanel && !genericPanel) return null;
+
+  if (!isTeacherOrAdmin(appRole)) {
+    return {
+      answer: sayOnni(
+        "El panel de docente es para cuentas con rol docente o admin. Regístrate como docente o pide al administrador que active tu rol.",
+      ),
+    };
+  }
+
+  const route = OP_ROUTES.find((r) => r.id === "docente-panel");
+  return {
+    navigateTo: route?.path ?? DOCENTE_PANEL_PATH,
+    answer: sayOnni("Te llevo al panel de docente."),
+  };
+}
+
+function matchEnterDocenteClass(
+  text: string,
+  currentPath: string,
+  appRole?: string | null,
+): OpResolveResult | null {
+  if (currentPath !== DOCENTE_PANEL_PATH) return null;
+
+  const core = stripNavVerbs(text) || text;
+  if (!wantsEnterClassPhrase(text, core)) return null;
+  if (!isTeacherOrAdmin(appRole)) return null;
+
+  return {
+    command: { type: "docente.enterClass" },
+    answer: sayOnni("Entro a la clase por ti, como si pulsaras Entrar a clase."),
+  };
+}
+
+function matchStartDocenteClass(
+  text: string,
+  currentPath: string,
+  appRole?: string | null,
+): OpResolveResult | null {
+  const core = stripNavVerbs(text) || text;
+  const wantsStart =
+    /\b(iniciar|inicia|inia|inicie|iniciemos|comenzar|comencemos|comence|empezar|empieza|empecemos)\b/.test(core) &&
+    /\bclase(s)?\b/.test(core);
+
+  if (!wantsStart) return null;
+
+  if (!isTeacherOrAdmin(appRole)) {
+    return {
+      answer: sayOnni("Iniciar clase es solo para docentes. Usa una cuenta con rol docente o admin."),
+    };
+  }
+
+  const answer = sayOnni("Inicio la clase por ti, como si pulsaras el botón Iniciar clase.");
+
+  if (currentPath !== DOCENTE_PANEL_PATH) {
+    return {
+      navigateTo: DOCENTE_PANEL_PATH,
+      command: { type: "docente.startClass" },
+      answer,
+    };
+  }
+
+  return {
+    command: { type: "docente.startClass" },
+    answer,
+  };
+}
+
+function matchClaseVirtual(
+  text: string,
+  currentPath: string,
+  appRole?: string | null,
+): OpResolveResult | null {
+  const core = stripNavVerbs(text) || text;
+  const wantsEnter = wantsEnterClassPhrase(text, core);
+  const bareEnter = /^\s*(entrar|entra)\s*$/.test(core);
+
+  if (currentPath === DOCENTE_PANEL_PATH && wantsEnter) return null;
+
+  if (bareEnter && !isTeacherOrAdmin(appRole)) return null;
+
   const wantsClaseSection =
+    (wantsEnter && currentPath !== DOCENTE_PANEL_PATH) ||
+    (bareEnter && isTeacherOrAdmin(appRole) && currentPath !== DOCENTE_PANEL_PATH) ||
     /\bclase(s)?\s+virtu?a?l(es)?\b/.test(core) ||
     /\bclase\s+virtuar\b/.test(core) ||
     /\b(la|a)\s+clase\b/.test(core) ||
@@ -541,8 +671,14 @@ function matchClaseVirtual(text: string): OpResolveResult | null {
   if (!wantsClaseSection) return null;
 
   const route = OP_ROUTES.find((r) => r.id === "clase-virtual-section");
+  const targetPath = route?.path ?? CLASE_VIRTUAL_SECTION_PATH;
+
+  if (currentPath === targetPath) {
+    return { answer: sayOnni("Ya estás en la sección Clase Virtual del menú.") };
+  }
+
   return {
-    navigateTo: route?.path ?? GALERIA_AULA_SECTION_PATH,
+    navigateTo: targetPath,
     answer: sayOnni("Te llevo a la sección Clase Virtual."),
   };
 }
@@ -602,7 +738,11 @@ export function resolveOpCommand(
   currentPath: string,
   session: OpResolveSession = {},
 ): OpResolveResult {
-  const text = normalize(textRaw);
+  let text = normalize(textRaw);
+  const wake = parseOnniWakePhrase(text);
+  if (wake.heard && wake.command) {
+    text = normalize(wake.command);
+  }
   if (!text) {
     return {
       answer: sayOnni('Escribe aquí. Ejemplo: «¿dónde estoy?» o «llévame al lobby».'),
@@ -660,8 +800,20 @@ export function resolveOpCommand(
   const teatro = matchTeatro(text);
   if (teatro) return teatro;
 
-  const claseVirtual = matchClaseVirtual(text);
+  const enterClass = matchEnterDocenteClass(text, currentPath, session.appRole);
+  if (enterClass) return enterClass;
+
+  const startClass = matchStartDocenteClass(text, currentPath, session.appRole);
+  if (startClass) return startClass;
+
+  const claseVirtual = matchClaseVirtual(text, currentPath, session.appRole);
   if (claseVirtual) return claseVirtual;
+
+  const inicio = matchInicio(text);
+  if (inicio) return inicio;
+
+  const docentePanel = matchDocentePanel(text, session.appRole);
+  if (docentePanel) return docentePanel;
 
   const route = matchRoute(text);
   if (route) return avoidEspectadorLoop(route, text, currentPath);
@@ -676,7 +828,7 @@ export function getOpAssistantHint(currentPath: string): string {
   if (currentPath.startsWith("/sala/espectador")) {
     return 'Di: "salir a conciertos", "reproductor mp4", "¿qué es esto?".';
   }
-  return 'Di: "clase virtual", "conciertos", "¿dónde estoy?", "ayuda", "lobby".';
+  return 'Di: "inicio", "clase virtual", "conciertos", "¿dónde estoy?", "ayuda", "lobby".';
 }
 
 export { getOnniIntroduction };

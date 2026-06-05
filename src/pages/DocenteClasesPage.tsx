@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Check, Copy, Plus, Save, StopCircle, UserCheck2, Users, X } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import DocenteContentLibraryPanel from "@/components/docente/DocenteContentLibraryPanel";
+import { onOpCommand } from "@/lib/opCommandBus";
 
 type AulaCard = {
   id: string;
@@ -108,6 +109,7 @@ export default function DocenteClasesPage() {
   });
 
   const canManage = useMemo(() => role === "docente" || role === "admin", [role]);
+  const pendingOnniDocenteRef = useRef<"start" | "enter" | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -509,6 +511,62 @@ export default function DocenteClasesPage() {
     }
     setSaving(false);
   };
+
+  const startClassFromOnni = useCallback(async () => {
+    if (!canManage || saving) return;
+    if (aulas.length === 0) {
+      toast.error("Crea una clase en el panel antes de iniciar.");
+      return;
+    }
+    const target = aulas.find((aula) => sessionsByAula[aula.id]?.status !== "live") ?? aulas[0];
+    const draft = drafts[target.id];
+    if (!draft) {
+      toast.error("No encontré la clase para iniciar.");
+      return;
+    }
+    if (sessionsByAula[target.id]?.status === "live") {
+      toast.info("Esa clase ya está en vivo.");
+      return;
+    }
+    await startSession(target.id, draft);
+  }, [canManage, saving, aulas, drafts, sessionsByAula]);
+
+  const enterClassFromOnni = useCallback(async () => {
+    if (!canManage || saving) return;
+    if (aulas.length === 0) {
+      toast.error("Crea una clase en el panel antes de entrar.");
+      return;
+    }
+    const target = aulas[0];
+    const draft = drafts[target.id];
+    if (!draft) {
+      toast.error("No encontré la clase para entrar.");
+      return;
+    }
+    await enterClassroom(target.id, draft);
+  }, [canManage, saving, aulas, drafts]);
+
+  useEffect(() => {
+    return onOpCommand((cmd) => {
+      if (cmd.type === "docente.startClass") {
+        pendingOnniDocenteRef.current = "start";
+        if (!loading && canManage) void startClassFromOnni();
+        return;
+      }
+      if (cmd.type === "docente.enterClass") {
+        pendingOnniDocenteRef.current = "enter";
+        if (!loading && canManage) void enterClassFromOnni();
+      }
+    });
+  }, [loading, canManage, startClassFromOnni, enterClassFromOnni]);
+
+  useEffect(() => {
+    const action = pendingOnniDocenteRef.current;
+    if (!action || loading || !canManage) return;
+    pendingOnniDocenteRef.current = null;
+    if (action === "start") void startClassFromOnni();
+    else void enterClassFromOnni();
+  }, [loading, canManage, aulas.length, startClassFromOnni, enterClassFromOnni]);
 
   const setMemberStatus = async (memberId: string, estado: "approved" | "blocked") => {
     if (saving) return;

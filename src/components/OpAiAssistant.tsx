@@ -22,7 +22,9 @@ import {
 import { openHomeSocialRedes } from "@/lib/homeSocialRedesOpen";
 import { useOnniChatVoice } from "@/hooks/useOnniChatVoice";
 import { useOnniVoice, useOnniVoicePrefs } from "@/hooks/useOnniVoice";
+import { useAuth } from "@/hooks/useAuth";
 import { isDesktopWebBrowser } from "@/lib/deviceDetection";
+import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
@@ -49,7 +51,33 @@ export default function OpAiAssistant() {
     { role: "assistant", text: getOnniIntroduction() },
   ]);
   const sessionRef = useRef<{ lastAnswer?: string }>({});
+  const appRoleRef = useRef<string | null>(null);
   const pendingVoiceRef = useRef("");
+  const { user } = useAuth();
+  const [appRole, setAppRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setAppRole(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("app_role")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!cancelled) {
+        setAppRole((data as { app_role?: string } | null)?.app_role ?? "particular");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  appRoleRef.current = appRole;
 
   const {
     voiceListening,
@@ -83,6 +111,7 @@ export default function OpAiAssistant() {
       try {
         const result = resolveOpCommand(trimmed, location.pathname, {
           lastAnswer: sessionRef.current.lastAnswer,
+          appRole: appRoleRef.current,
         });
 
         if (isOnniNavigationResult(result)) {
@@ -111,7 +140,16 @@ export default function OpAiAssistant() {
               }
             }
           }
-          if (result.command) dispatchOpCommand(result.command);
+          if (result.command) {
+            const needsMountDelay =
+              Boolean(result.navigateTo) &&
+              (result.command.type === "docente.startClass" ||
+                result.command.type === "docente.enterClass");
+            window.setTimeout(
+              () => dispatchOpCommand(result.command!),
+              needsMountDelay ? 700 : 0,
+            );
+          }
           appendAssistantAnswer(setMessages, sessionRef, result.answer, speakAnswer);
           return result.answer;
         }
