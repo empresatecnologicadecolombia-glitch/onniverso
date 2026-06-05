@@ -27,7 +27,8 @@ export function isAndroidNativeApp(): boolean {
 /** OnniVers .exe (Electron), no Chrome/Edge sueltos. */
 export function isElectronDesktopApp(): boolean {
   if (typeof window === "undefined") return false;
-  return Boolean(window.onniversDesktop?.isDesktopApp);
+  if (window.onniversDesktop?.isDesktopApp) return true;
+  return /Electron/i.test(navigator.userAgent ?? "");
 }
 
 /** Botón «Descargar app» en navbar: solo PC con navegador (no APK ni móvil). */

@@ -1,8 +1,10 @@
 import { isElectronDesktopApp } from "@/lib/deviceDetection";
-import { isOnniVoiceSupported, pickOnniSpanishVoice } from "@/lib/onniVoice";
+import { pickOnniSpanishVoice } from "@/lib/onniVoice";
 import { transcribeOnniElectronAudio } from "@/lib/onniElectronStt";
 
-const SESSION_MAX_MS = 7000;
+const SESSION_MAX_MS = 10000;
+const RECORDER_SLICE_MS = 250;
+const MIN_AUDIO_BYTES = 800;
 
 type NativeVoiceBridge = {
   startListening: () => void;
@@ -17,6 +19,7 @@ let audioChunks: Blob[] = [];
 let sessionTimer: ReturnType<typeof setTimeout> | null = null;
 let listeningActive = false;
 let transcribeBusy = false;
+let pendingListen = false;
 
 function dispatchVoiceEvent(name: string, detail?: unknown) {
   window.dispatchEvent(new CustomEvent(name, { detail }));
@@ -38,6 +41,9 @@ function releaseStream() {
 
 async function ensureMicrophoneStream(): Promise<MediaStream> {
   if (mediaStream?.active) return mediaStream;
+  if (!navigator.mediaDevices?.getUserMedia) {
+    throw new Error("Este OnniVers no puede acceder al micrófono.");
+  }
   mediaStream = await navigator.mediaDevices.getUserMedia({
     audio: {
       echoCancellation: true,
@@ -56,7 +62,7 @@ function pickRecorderMimeType(): string | undefined {
 }
 
 function speakDesktop(text: string) {
-  if (!isOnniVoiceSupported() || !text.trim()) return;
+  if (!text.trim() || typeof window === "undefined" || !("speechSynthesis" in window)) return;
   const clean = text.replace(/\n+/g, ". ").trim();
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(clean);
@@ -64,6 +70,14 @@ function speakDesktop(text: string) {
   utterance.lang = voice?.lang ?? "es-CO";
   if (voice) utterance.voice = voice;
   window.speechSynthesis.speak(utterance);
+}
+
+function schedulePendingListen() {
+  if (!pendingListen || transcribeBusy || listeningActive) return;
+  pendingListen = false;
+  window.setTimeout(() => {
+    void startListeningSession();
+  }, 300);
 }
 
 async function finalizeRecording() {
@@ -80,22 +94,41 @@ async function finalizeRecording() {
 
   try {
     if (chunks.length === 0) {
-      dispatchVoiceEvent("voice:end");
+      dispatchVoiceEvent("voice:error", { code: "empty_audio", message: null });
       return;
     }
 
     const mimeType = recorder?.mimeType || pickRecorderMimeType() || "audio/webm";
     const blob = new Blob(chunks, { type: mimeType });
+
+    if (blob.size < MIN_AUDIO_BYTES) {
+      dispatchVoiceEvent("voice:error", { code: "empty_audio", message: null });
+      return;
+    }
+
     const text = await transcribeOnniElectronAudio(blob);
     if (text) {
       dispatchVoiceEvent("voice:result", { text, isFinal: true });
+      return;
     }
-  } catch {
-    dispatchVoiceEvent("voice:error", { code: "network", message: null });
+
+    dispatchVoiceEvent("voice:error", {
+      code: "stt_failed",
+      message: "No entendí lo que dijiste. Intenta otra vez con una frase clara.",
+    });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message.trim() : "";
+    dispatchVoiceEvent("voice:error", {
+      code: "stt_failed",
+      message:
+        detail ||
+        "No pude transcribir tu voz. Revisa internet en el PC e inténtalo de nuevo.",
+    });
   } finally {
     transcribeBusy = false;
     releaseStream();
     dispatchVoiceEvent("voice:end");
+    schedulePendingListen();
   }
 }
 
@@ -111,6 +144,9 @@ function stopRecorderTracks() {
     return;
   }
   try {
+    if (typeof recorder.requestData === "function") {
+      recorder.requestData();
+    }
     recorder.stop();
   } catch {
     void finalizeRecording();
@@ -118,7 +154,12 @@ function stopRecorderTracks() {
 }
 
 async function startListeningSession() {
-  if (listeningActive || transcribeBusy) return;
+  if (listeningActive) return;
+  if (transcribeBusy) {
+    pendingListen = true;
+    return;
+  }
+
   listeningActive = true;
   audioChunks = [];
 
@@ -136,26 +177,44 @@ async function startListeningSession() {
     };
     recorder.onerror = () => {
       listeningActive = false;
-      dispatchVoiceEvent("voice:error", { code: "audio", message: null });
+      dispatchVoiceEvent("voice:error", {
+        code: "audio",
+        message: "Falló la captura de audio. Cierra otras apps que usen el micrófono.",
+      });
       releaseStream();
+      dispatchVoiceEvent("voice:end");
     };
 
     dispatchVoiceEvent("voice:start");
-    recorder.start();
+    recorder.start(RECORDER_SLICE_MS);
     sessionTimer = setTimeout(() => stopRecorderTracks(), SESSION_MAX_MS);
-  } catch {
+  } catch (error) {
     listeningActive = false;
     releaseStream();
-    dispatchVoiceEvent("voice:error", { code: "permission_denied", message: null });
+    const denied =
+      error instanceof DOMException &&
+      (error.name === "NotAllowedError" || error.name === "PermissionDeniedError");
+    dispatchVoiceEvent("voice:error", {
+      code: "permission_denied",
+      message: denied
+        ? "Permite el micrófono: Configuración de Windows → Privacidad → Micrófono → OnniVers."
+        : "No pude abrir el micrófono en OnniVers.",
+    });
     dispatchVoiceEvent("voice:end");
   }
 }
 
 const electronVoiceBridge: NativeVoiceBridge = {
   startListening() {
+    if (listeningActive) return;
+    if (transcribeBusy) {
+      pendingListen = true;
+      return;
+    }
     void startListeningSession();
   },
   stopListening() {
+    pendingListen = false;
     if (!listeningActive && !mediaRecorder) return;
     stopRecorderTracks();
   },

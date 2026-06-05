@@ -33,6 +33,13 @@ function isMediaPermission(permission, details) {
 
 function configureMediaPermissions(sess) {
   sess.setPermissionRequestHandler((_webContents, permission, callback, details) => {
+    const url = details?.requestingUrl ?? "";
+    const isOnniVers =
+      url.includes("onnivers.com") || url.includes("localhost") || url.includes("127.0.0.1");
+    if (isOnniVers && isMediaPermission(permission, details)) {
+      callback(true);
+      return;
+    }
     callback(isMediaPermission(permission, details));
   });
 
@@ -93,6 +100,7 @@ function createWindow() {
 }
 
 app.commandLine.appendSwitch("enable-features", "WebRtcAllowInputVolumeAdjustment");
+app.commandLine.appendSwitch("enable-usermedia-screen-capturing");
 
 app.whenReady().then(async () => {
   configureMediaPermissions(session.defaultSession);

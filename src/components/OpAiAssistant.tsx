@@ -24,7 +24,7 @@ import { shouldShowNativeVoiceError } from "@/lib/onniNativeVoiceErrors";
 import { useOnniChatVoice } from "@/hooks/useOnniChatVoice";
 import { useOnniVoice, useOnniVoicePrefs } from "@/hooks/useOnniVoice";
 import { useAuth } from "@/hooks/useAuth";
-import { isDesktopWebBrowser } from "@/lib/deviceDetection";
+import { isDesktopWebBrowser, isElectronDesktopApp } from "@/lib/deviceDetection";
 import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -429,7 +429,12 @@ export default function OpAiAssistant() {
                     aria-label="Escuchar la palabra Onni"
                   />
                   <Label htmlFor="onni-wake-listen" className="text-[10px] font-normal text-muted-foreground">
-                    Di «Hola Onni» o «Onni…» {supportsNativeWakeSwitch ? "(micrófono nativo)" : "(sin abrir el chat)"}
+                    Di «Hola Onni» o «Onni…»{" "}
+                    {supportsNativeWakeSwitch
+                      ? isElectronDesktopApp()
+                        ? "(OnniVers PC)"
+                        : "(micrófono nativo)"
+                      : "(sin abrir el chat)"}
                   </Label>
                 </div>
               )}
@@ -453,7 +458,7 @@ export default function OpAiAssistant() {
             <p className="text-[11px] text-muted-foreground">{hint}</p>
             {usesOneShotNativeMic && captureMicActive && (
               <p className="text-[10px] font-medium text-emerald-300/90">
-                Escuchando… di tu pedido (lobby, clases, conciertos…).
+                Escuchando en OnniVers… di tu pedido completo (ej. «llévame a clases»).
               </p>
             )}
             {usesContinuousMic && captureMicActive && (

@@ -11,6 +11,7 @@ const NATIVE_SOFT_CODES = new Set([
   "1",
   "8",
   "start_failed",
+  "empty_audio",
 ]);
 
 export function normalizeNativeVoiceErrorCode(raw: unknown): string {
@@ -52,6 +53,10 @@ export function formatNativeVoiceErrorMessage(code: string, fallback?: string): 
       return "El servicio de voz no respondió. Inténtalo en unos segundos.";
     case "audio":
       return "No se pudo captar audio. Revisa que ninguna otra app use el micrófono.";
+    case "stt_failed":
+      return fallback?.trim() || "No pude entender tu voz. Inténtalo otra vez.";
+    case "empty_audio":
+      return fallback?.trim() || null;
     default:
       if (fallback?.trim()) return fallback.trim();
       return code ? `No pude escuchar (${code}). Intenta de nuevo.` : "No pude escuchar. Intenta de nuevo.";
@@ -83,6 +88,9 @@ export function parseNativeVoiceErrorDetail(detail: unknown): { code: string; me
     const code = normalizeNativeVoiceErrorCode(payload.code);
     const rawMessage = typeof payload.message === "string" ? payload.message.trim() : "";
     const mapped = formatNativeVoiceErrorMessage(code, rawMessage);
+    if (rawMessage && mapped === null) {
+      return { code, message: rawMessage };
+    }
     return { code, message: mapped };
   }
 
