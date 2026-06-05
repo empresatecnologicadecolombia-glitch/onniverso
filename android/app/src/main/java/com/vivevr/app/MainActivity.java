@@ -122,7 +122,8 @@ public class MainActivity extends BridgeActivity {
   private SpeechRecognizer onniSpeechRecognizer;
   private Intent onniSpeechIntent;
   private Handler onniVoiceHandler;
-  private static final long ONNI_LISTEN_START_DELAY_MS = 320L;
+  private static final long ONNI_LISTEN_START_DELAY_MS = 520L;
+  private boolean onniListenSessionActive;
   private final Runnable onniStartListeningRunnable =
       new Runnable() {
         @Override
@@ -1975,6 +1976,7 @@ public class MainActivity extends BridgeActivity {
         new RecognitionListener() {
           @Override
           public void onReadyForSpeech(Bundle params) {
+            onniListenSessionActive = true;
             dispatchOnniVoiceEvent("voice:start", null);
           }
 
@@ -1992,6 +1994,7 @@ public class MainActivity extends BridgeActivity {
 
           @Override
           public void onError(int error) {
+            onniListenSessionActive = false;
             if (error == SpeechRecognizer.ERROR_CLIENT) {
               destroyOnniVoiceRecognizer();
             }
@@ -2001,6 +2004,7 @@ public class MainActivity extends BridgeActivity {
 
           @Override
           public void onResults(Bundle results) {
+            onniListenSessionActive = false;
             dispatchOnniVoiceResult(results, true);
             dispatchOnniVoiceEvent("voice:end", null);
           }
@@ -2046,9 +2050,18 @@ public class MainActivity extends BridgeActivity {
     if (onniSpeechRecognizer == null || onniSpeechIntent == null) {
       return;
     }
+    if (onniListenSessionActive) {
+      return;
+    }
+    try {
+      onniSpeechRecognizer.stopListening();
+    } catch (Exception ignored) {
+      // no-op
+    }
     try {
       onniSpeechRecognizer.startListening(onniSpeechIntent);
     } catch (Exception ignored) {
+      onniListenSessionActive = false;
       dispatchOnniVoiceError("start_failed", "No se pudo iniciar el micrófono.");
       dispatchOnniVoiceEvent("voice:end", null);
     }
@@ -2058,6 +2071,7 @@ public class MainActivity extends BridgeActivity {
     if (onniVoiceHandler != null) {
       onniVoiceHandler.removeCallbacks(onniStartListeningRunnable);
     }
+    onniListenSessionActive = false;
     if (onniSpeechRecognizer == null) {
       return;
     }
@@ -2199,6 +2213,7 @@ public class MainActivity extends BridgeActivity {
 
   private void releaseOnniVoiceEngine() {
     pendingOnniStartListening = false;
+    onniListenSessionActive = false;
     if (onniVoiceHandler != null) {
       onniVoiceHandler.removeCallbacks(onniStartListeningRunnable);
     }

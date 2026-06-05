@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isDesktopWebBrowser } from "@/lib/deviceDetection";
-import { parseNativeVoiceErrorDetail, isNativeVoiceSoftError } from "@/lib/onniNativeVoiceErrors";
+import {
+  parseNativeVoiceErrorDetail,
+  isNativeVoiceSoftError,
+  shouldShowNativeVoiceError,
+} from "@/lib/onniNativeVoiceErrors";
 import {
   getOnniVoiceMode,
   isNativeVoiceAvailable,
@@ -27,7 +31,11 @@ export type NativeWakeCallbacks = {
   onError?: (message: string) => void;
 };
 
-const NATIVE_RESTART_MS = 650;
+const NATIVE_RESTART_MS = 900;
+const NATIVE_MIC_HANDOFF_MS = 480;
+const NATIVE_SPEAK_PAUSE_MS = 2200;
+
+const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 
 export function useOnniChatVoice() {
   const [voiceMode, setVoiceMode] = useState<OnniVoiceMode>(() => getOnniVoiceMode());
@@ -43,9 +51,11 @@ export function useOnniChatVoice() {
   const wakeActiveRef = useRef(false);
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastWakeHandledRef = useRef("");
+  const speakPauseUntilRef = useRef(0);
+  const nativeHandoffRef = useRef<Promise<void>>(Promise.resolve());
 
-  const usesContinuousMic = voiceMode === "native";
-  const supportsNativeWakeSwitch = usesContinuousMic;
+  const usesOneShotNativeMic = voiceMode === "native";
+  const supportsNativeWakeSwitch = usesOneShotNativeMic;
 
   useEffect(() => {
     voiceModeRef.current = voiceMode;
@@ -63,26 +73,61 @@ export function useOnniChatVoice() {
     }
   }, []);
 
+  const pauseNativeRecognizer = useCallback(() => {
+    clearNativeRestartTimer();
+    stopNativeVoiceListening();
+  }, [clearNativeRestartTimer]);
+
+  const queueNativeHandoff = useCallback(
+    (task: () => void | Promise<void>) => {
+      nativeHandoffRef.current = nativeHandoffRef.current
+        .catch(() => undefined)
+        .then(async () => {
+          pauseNativeRecognizer();
+          await sleep(NATIVE_MIC_HANDOFF_MS);
+          await task();
+        });
+      return nativeHandoffRef.current;
+    },
+    [pauseNativeRecognizer],
+  );
+
+  const releaseCaptureSession = useCallback(() => {
+    captureActiveRef.current = false;
+    setVoiceCaptureActive(false);
+    pendingTranscriptRef.current = "";
+    clearNativeRestartTimer();
+    pauseNativeRecognizer();
+    setVoiceListening(false);
+  }, [clearNativeRestartTimer, pauseNativeRecognizer]);
+
   const scheduleNativeRestart = useCallback(() => {
     clearNativeRestartTimer();
     if (!isNativeSessionActive() || voiceModeRef.current !== "native") return;
+
+    const delay = Math.max(NATIVE_RESTART_MS, speakPauseUntilRef.current - Date.now());
     restartTimerRef.current = setTimeout(() => {
       if (!isNativeSessionActive() || voiceModeRef.current !== "native") return;
-      try {
-        startNativeVoiceListening();
+      if (Date.now() < speakPauseUntilRef.current) {
+        scheduleNativeRestart();
+        return;
+      }
+      void queueNativeHandoff(() => {
+        if (!isNativeSessionActive()) return;
+        if (!startNativeVoiceListening()) {
+          throw new Error("restart_failed");
+        }
         setVoiceListening(true);
         if (wakeActiveRef.current) setNativeWakeListening(true);
-      } catch {
+      }).catch(() => {
         captureActiveRef.current = false;
         wakeActiveRef.current = false;
         setVoiceCaptureActive(false);
         setVoiceListening(false);
         setNativeWakeListening(false);
-        captureCallbacksRef.current?.onError("No se pudo reactivar el micrófono.");
-        wakeCallbacksRef.current?.onError?.("No se pudo reactivar el micrófono.");
-      }
-    }, NATIVE_RESTART_MS);
-  }, [clearNativeRestartTimer, isNativeSessionActive]);
+      });
+    }, delay);
+  }, [clearNativeRestartTimer, isNativeSessionActive, queueNativeHandoff]);
 
   const switchToNativeVoice = useCallback(() => {
     if (isDesktopWebBrowser()) return false;
@@ -94,31 +139,38 @@ export function useOnniChatVoice() {
 
   const speakAnswer = useCallback(
     (text: string) => {
+      if (voiceModeRef.current === "native" && text.trim()) {
+        speakPauseUntilRef.current = Date.now() + NATIVE_SPEAK_PAUSE_MS;
+        pauseNativeRecognizer();
+      }
       speakOnniAnswer(text, voiceMode, () => {
         if (switchToNativeVoice()) {
           /* speakOnniAnswer ya reprodujo con nativa en el callback */
         }
       });
     },
-    [voiceMode, switchToNativeVoice],
+    [voiceMode, pauseNativeRecognizer, switchToNativeVoice],
   );
 
   const stopVoiceCapture = useCallback(() => {
     const wasCapturing = captureActiveRef.current;
-    captureActiveRef.current = false;
-    if (wasCapturing) setVoiceCaptureActive(false);
+    if (wasCapturing) {
+      releaseCaptureSession();
+      return "";
+    }
+
     clearNativeRestartTimer();
 
-      if (voiceModeRef.current === "web") {
-        stopWebCaptureRef.current?.();
-        stopWebCaptureRef.current = null;
-        setVoiceCaptureActive(false);
-        setVoiceListening(false);
-        return pendingTranscriptRef.current.trim();
-      }
+    if (voiceModeRef.current === "web") {
+      stopWebCaptureRef.current?.();
+      stopWebCaptureRef.current = null;
+      setVoiceCaptureActive(false);
+      setVoiceListening(false);
+      return pendingTranscriptRef.current.trim();
+    }
 
     if (!wakeActiveRef.current) {
-      stopNativeVoiceListening();
+      pauseNativeRecognizer();
       setVoiceListening(false);
     } else {
       setVoiceListening(true);
@@ -126,7 +178,7 @@ export function useOnniChatVoice() {
       scheduleNativeRestart();
     }
     return "";
-  }, [clearNativeRestartTimer, scheduleNativeRestart]);
+  }, [clearNativeRestartTimer, pauseNativeRecognizer, releaseCaptureSession, scheduleNativeRestart]);
 
   const stopNativeWakeListening = useCallback(() => {
     wakeActiveRef.current = false;
@@ -134,42 +186,52 @@ export function useOnniChatVoice() {
     lastWakeHandledRef.current = "";
     clearNativeRestartTimer();
 
-    if (!captureActiveRef.current) {
-      stopNativeVoiceListening();
-      setVoiceListening(false);
+    if (captureActiveRef.current) {
       return;
     }
 
-    setVoiceListening(true);
-    scheduleNativeRestart();
-  }, [clearNativeRestartTimer, scheduleNativeRestart]);
+    pauseNativeRecognizer();
+    setVoiceListening(false);
+  }, [clearNativeRestartTimer, pauseNativeRecognizer]);
 
   const beginNativeCapture = useCallback(async (callbacks: VoiceCaptureCallbacks): Promise<boolean> => {
+    captureCallbacksRef.current = callbacks;
+
     const micPermission = await requestOnniMicrophoneAccess();
+    if (!captureActiveRef.current) return false;
+
     if (micPermission === "denied") {
+      releaseCaptureSession();
       callbacks.onError(onniMicDeniedMessage());
       return false;
     }
     if (micPermission === "unsupported") {
+      releaseCaptureSession();
       callbacks.onError("Este dispositivo no soporta micrófono para Onni.");
       return false;
     }
 
-    captureActiveRef.current = true;
-    setVoiceCaptureActive(true);
-    if (!startNativeVoiceListening()) {
-      captureActiveRef.current = false;
-      setVoiceCaptureActive(false);
+    try {
+      await queueNativeHandoff(() => {
+        if (!captureActiveRef.current) return;
+        if (!startNativeVoiceListening()) {
+          throw new Error("start_failed");
+        }
+        setVoiceListening(true);
+      });
+      return captureActiveRef.current;
+    } catch {
+      releaseCaptureSession();
       callbacks.onError("No se pudo iniciar el micrófono nativo.");
       return false;
     }
-    setVoiceListening(true);
-    return true;
-  }, []);
+  }, [queueNativeHandoff, releaseCaptureSession]);
 
   const startNativeWakeListening = useCallback(
     async (callbacks: NativeWakeCallbacks): Promise<boolean> => {
       if (voiceModeRef.current !== "native") return false;
+      if (captureActiveRef.current) return false;
+
       if (wakeActiveRef.current) {
         wakeCallbacksRef.current = callbacks;
         return true;
@@ -179,6 +241,8 @@ export function useOnniChatVoice() {
       lastWakeHandledRef.current = "";
 
       const micPermission = await requestOnniMicrophoneAccess();
+      if (captureActiveRef.current) return false;
+
       if (micPermission === "denied") {
         callbacks.onError?.(onniMicDeniedMessage());
         return false;
@@ -191,54 +255,75 @@ export function useOnniChatVoice() {
       wakeActiveRef.current = true;
       setNativeWakeListening(true);
 
-      if (!startNativeVoiceListening()) {
+      try {
+        await queueNativeHandoff(() => {
+          if (!wakeActiveRef.current || captureActiveRef.current) return;
+          if (!startNativeVoiceListening()) {
+            throw new Error("start_failed");
+          }
+          setVoiceListening(true);
+        });
+        return wakeActiveRef.current;
+      } catch {
         wakeActiveRef.current = false;
         setNativeWakeListening(false);
         callbacks.onError?.("No se pudo iniciar el micrófono nativo.");
         return false;
       }
-
-      setVoiceListening(true);
-      return true;
     },
-    [],
+    [queueNativeHandoff],
   );
 
-  const handleNativeTranscript = useCallback((text: string, isFinal: boolean) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
+  const deliverCaptureTranscript = useCallback(
+    (text: string) => {
+      pendingTranscriptRef.current = "";
+      captureCallbacksRef.current?.onTranscript(text);
+      releaseCaptureSession();
+    },
+    [releaseCaptureSession],
+  );
 
-    if (captureActiveRef.current) {
-      if (isFinal) {
-        pendingTranscriptRef.current = "";
-        captureCallbacksRef.current?.onTranscript(trimmed);
-      } else {
-        pendingTranscriptRef.current = trimmed;
+  const handleNativeTranscript = useCallback(
+    (text: string, isFinal: boolean) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+
+      if (captureActiveRef.current) {
+        if (isFinal) {
+          deliverCaptureTranscript(trimmed);
+        } else {
+          pendingTranscriptRef.current = trimmed;
+        }
+        return;
       }
-      return;
-    }
 
-    if (!wakeActiveRef.current) return;
+      if (!wakeActiveRef.current) return;
 
-    if (!isFinal) {
-      pendingTranscriptRef.current = trimmed;
-      return;
-    }
+      if (!isFinal) {
+        pendingTranscriptRef.current = trimmed;
+        return;
+      }
 
-    pendingTranscriptRef.current = "";
-    const { heard, command } = parseOnniWakePhrase(trimmed);
-    if (!heard) return;
+      pendingTranscriptRef.current = "";
+      const { heard, command } = parseOnniWakePhrase(trimmed);
+      if (!heard) return;
 
-    const signature = `${command}|${trimmed}`;
-    if (signature === lastWakeHandledRef.current) return;
-    lastWakeHandledRef.current = signature;
+      const signature = `${command}|${trimmed}`;
+      if (signature === lastWakeHandledRef.current) return;
+      lastWakeHandledRef.current = signature;
 
-    if (!command) {
-      wakeCallbacksRef.current?.onWakeWithoutCommand?.();
-      return;
-    }
-    wakeCallbacksRef.current?.onWake(command);
-  }, []);
+      speakPauseUntilRef.current = Date.now() + NATIVE_SPEAK_PAUSE_MS;
+
+      if (!command) {
+        wakeCallbacksRef.current?.onWakeWithoutCommand?.();
+        scheduleNativeRestart();
+        return;
+      }
+      wakeCallbacksRef.current?.onWake(command);
+      scheduleNativeRestart();
+    },
+    [deliverCaptureTranscript, scheduleNativeRestart],
+  );
 
   const startVoiceCapture = useCallback(
     (callbacks: VoiceCaptureCallbacks) => {
@@ -314,6 +399,11 @@ export function useOnniChatVoice() {
       }
 
       pendingTranscriptRef.current = "";
+      wakeActiveRef.current = false;
+      setNativeWakeListening(false);
+      lastWakeHandledRef.current = "";
+      captureActiveRef.current = true;
+      setVoiceCaptureActive(true);
 
       if (voiceModeRef.current === "native") {
         return beginNativeCapture(callbacks);
@@ -324,6 +414,12 @@ export function useOnniChatVoice() {
     [beginNativeCapture, startVoiceCapture, stopVoiceCapture],
   );
 
+  const notifyVoiceError = useCallback((message: string | null) => {
+    if (!shouldShowNativeVoiceError(message)) return;
+    captureCallbacksRef.current?.onError(message);
+    wakeCallbacksRef.current?.onError?.(message);
+  }, []);
+
   useEffect(() => {
     if (!isNativeVoiceAvailable()) return;
 
@@ -331,7 +427,7 @@ export function useOnniChatVoice() {
       if (voiceModeRef.current !== "native") return;
       if (!isNativeSessionActive()) pendingTranscriptRef.current = "";
       setVoiceListening(true);
-      if (wakeActiveRef.current) setNativeWakeListening(true);
+      if (wakeActiveRef.current && !captureActiveRef.current) setNativeWakeListening(true);
     };
 
     const onVoiceResult = (event: Event) => {
@@ -373,6 +469,11 @@ export function useOnniChatVoice() {
         return;
       }
 
+      if (captureActiveRef.current) {
+        setVoiceListening(true);
+        return;
+      }
+
       setVoiceListening(true);
       if (wakeActiveRef.current) setNativeWakeListening(true);
       scheduleNativeRestart();
@@ -385,8 +486,12 @@ export function useOnniChatVoice() {
       const { code, message } = parseNativeVoiceErrorDetail(custom.detail);
       pendingTranscriptRef.current = "";
 
-      if (isNativeSessionActive() && (isNativeVoiceSoftError(code) || message === null)) {
-        scheduleNativeRestart();
+      if (isNativeVoiceSoftError(code) || message === null) {
+        if (captureActiveRef.current) {
+          releaseCaptureSession();
+        } else if (isNativeSessionActive()) {
+          scheduleNativeRestart();
+        }
         return;
       }
 
@@ -397,9 +502,7 @@ export function useOnniChatVoice() {
       setVoiceListening(false);
       setNativeWakeListening(false);
 
-      const userMessage = message ?? "No pude escuchar. Intenta de nuevo.";
-      captureCallbacksRef.current?.onError(userMessage);
-      wakeCallbacksRef.current?.onError?.(userMessage);
+      notifyVoiceError(message ?? "No pude escuchar. Intenta de nuevo.");
     };
 
     window.addEventListener("voice:start", onVoiceStart);
@@ -412,7 +515,14 @@ export function useOnniChatVoice() {
       window.removeEventListener("voice:end", onVoiceEnd);
       window.removeEventListener("voice:error", onVoiceError);
     };
-  }, [clearNativeRestartTimer, handleNativeTranscript, isNativeSessionActive, scheduleNativeRestart]);
+  }, [
+    clearNativeRestartTimer,
+    handleNativeTranscript,
+    isNativeSessionActive,
+    notifyVoiceError,
+    releaseCaptureSession,
+    scheduleNativeRestart,
+  ]);
 
   useEffect(
     () => () => {
@@ -446,7 +556,8 @@ export function useOnniChatVoice() {
     toggleVoiceCapture,
     startNativeWakeListening,
     stopNativeWakeListening,
-    usesContinuousMic,
+    usesContinuousMic: false,
+    usesOneShotNativeMic,
     supportsNativeWakeSwitch,
     canListen: voiceMode !== "none",
     canSpeak: voiceMode !== "none",

@@ -20,6 +20,7 @@ import {
   type HomeSocialIconId,
 } from "@/lib/homeSocialRedesConfig";
 import { openHomeSocialRedes } from "@/lib/homeSocialRedesOpen";
+import { shouldShowNativeVoiceError } from "@/lib/onniNativeVoiceErrors";
 import { useOnniChatVoice } from "@/hooks/useOnniChatVoice";
 import { useOnniVoice, useOnniVoicePrefs } from "@/hooks/useOnniVoice";
 import { useAuth } from "@/hooks/useAuth";
@@ -91,6 +92,7 @@ export default function OpAiAssistant() {
     startNativeWakeListening,
     stopNativeWakeListening,
     usesContinuousMic,
+    usesOneShotNativeMic,
     supportsNativeWakeSwitch,
     canListen,
     canSpeak,
@@ -262,8 +264,9 @@ export default function OpAiAssistant() {
       ]);
       speakAnswer(prompt);
     },
-    onError: (message) => {
-      if (openRef.current) {
+      onError: (message) => {
+        if (!shouldShowNativeVoiceError(message)) return;
+        if (openRef.current) {
         setMessages((prev) => [...prev, { role: "assistant", text: message }]);
       } else {
         toast.error(message);
@@ -292,6 +295,7 @@ export default function OpAiAssistant() {
         speakAnswer(prompt);
       },
       onError: (message: string) => {
+        if (!shouldShowNativeVoiceError(message)) return;
         if (openRef.current) {
           setMessages((prev) => [...prev, { role: "assistant", text: message }]);
         } else {
@@ -328,6 +332,7 @@ export default function OpAiAssistant() {
         void runCommand(transcript);
       },
       onError: (errorText: string) => {
+        if (!shouldShowNativeVoiceError(errorText)) return;
         setMessages((prev) => [...prev, { role: "assistant", text: errorText }]);
       },
       onFallbackToNative: () => {
@@ -446,6 +451,11 @@ export default function OpAiAssistant() {
               </div>
             ))}
             <p className="text-[11px] text-muted-foreground">{hint}</p>
+            {usesOneShotNativeMic && captureMicActive && (
+              <p className="text-[10px] font-medium text-emerald-300/90">
+                Escuchando… di tu pedido (lobby, clases, conciertos…).
+              </p>
+            )}
             {usesContinuousMic && captureMicActive && (
               <p className="text-[10px] font-medium text-emerald-300/90">
                 Micrófono activo — habla cuando quieras. Pulsa el micrófono otra vez para apagar.
@@ -480,12 +490,14 @@ export default function OpAiAssistant() {
                   size="icon"
                   variant={captureMicActive ? "secondary" : "outline"}
                   onClick={
-                    usesContinuousMic
+                    usesOneShotNativeMic
                       ? () => void handleToggleVoiceCapture()
-                      : undefined
+                      : usesContinuousMic
+                        ? () => void handleToggleVoiceCapture()
+                        : undefined
                   }
                   onPointerDown={
-                    usesContinuousMic
+                    usesOneShotNativeMic || usesContinuousMic
                       ? undefined
                       : (event) => {
                           event.preventDefault();
@@ -493,7 +505,7 @@ export default function OpAiAssistant() {
                         }
                   }
                   onPointerUp={
-                    usesContinuousMic
+                    usesOneShotNativeMic || usesContinuousMic
                       ? undefined
                       : (event) => {
                           event.preventDefault();
@@ -501,7 +513,7 @@ export default function OpAiAssistant() {
                         }
                   }
                   onPointerCancel={
-                    usesContinuousMic
+                    usesOneShotNativeMic || usesContinuousMic
                       ? undefined
                       : (event) => {
                           event.preventDefault();
@@ -509,7 +521,7 @@ export default function OpAiAssistant() {
                         }
                   }
                   onPointerLeave={
-                    usesContinuousMic
+                    usesOneShotNativeMic || usesContinuousMic
                       ? undefined
                       : (event) => {
                           if (!captureMicActive) return;
@@ -520,12 +532,16 @@ export default function OpAiAssistant() {
                   onContextMenu={(event) => event.preventDefault()}
                   aria-label={
                     captureMicActive
-                      ? usesContinuousMic
+                      ? usesOneShotNativeMic
                         ? "Detener micrófono de Onni"
-                        : "Soltar micrófono de Onni"
-                      : usesContinuousMic
-                        ? "Activar micrófono de Onni (escucha continua)"
-                        : "Mantener pulsado para hablar con Onni"
+                        : usesContinuousMic
+                          ? "Detener micrófono de Onni"
+                          : "Soltar micrófono de Onni"
+                      : usesOneShotNativeMic
+                        ? "Pulsa y di tu pedido a Onni"
+                        : usesContinuousMic
+                          ? "Activar micrófono de Onni (escucha continua)"
+                          : "Mantener pulsado para hablar con Onni"
                   }
                 >
                   {captureMicActive ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}

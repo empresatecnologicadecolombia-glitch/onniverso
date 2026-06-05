@@ -10,6 +10,7 @@ const NATIVE_SOFT_CODES = new Set([
   "5",
   "1",
   "8",
+  "start_failed",
 ]);
 
 export function normalizeNativeVoiceErrorCode(raw: unknown): string {
@@ -39,6 +40,7 @@ export function formatNativeVoiceErrorMessage(code: string, fallback?: string): 
     case "7":
     case "speech_timeout":
     case "6":
+    case "start_failed":
       return null;
     case "9":
     case "permission_denied":
@@ -64,6 +66,11 @@ export function parseNativeVoiceErrorDetail(detail: unknown): { code: string; me
 
   if (typeof detail === "string") {
     const trimmed = detail.trim();
+    const errorNumber = trimmed.match(/^error\s*(\d+)$/i);
+    if (errorNumber) {
+      const code = errorNumber[1];
+      return { code, message: formatNativeVoiceErrorMessage(code) };
+    }
     const asCode = normalizeNativeVoiceErrorCode(trimmed);
     if (/^\d+$/.test(asCode)) {
       return { code: asCode, message: formatNativeVoiceErrorMessage(asCode) };
@@ -80,4 +87,11 @@ export function parseNativeVoiceErrorDetail(detail: unknown): { code: string; me
   }
 
   return { code: "", message: "No se pudo activar la voz nativa en este momento." };
+}
+
+/** Oculta códigos internos tipo «Error 5» en el chat. */
+export function shouldShowNativeVoiceError(message: string | null | undefined): message is string {
+  if (!message?.trim()) return false;
+  if (/^error\s*\d+$/i.test(message.trim())) return false;
+  return true;
 }
