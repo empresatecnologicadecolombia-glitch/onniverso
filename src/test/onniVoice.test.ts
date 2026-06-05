@@ -58,6 +58,10 @@ describe("parseOnniWakePhrase", () => {
       heard: true,
       command: "inia la clase",
     });
+    expect(parseOnniWakePhrase("oni llevame a la clase")).toEqual({
+      heard: true,
+      command: "llevame a la clase",
+    });
     expect(parseOnniWakePhrase("oni entrar")).toEqual({ heard: true, command: "entrar" });
     expect(parseOnniWakePhrase("oni entra a la clase")).toEqual({
       heard: true,

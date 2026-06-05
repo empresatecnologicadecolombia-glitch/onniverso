@@ -40,8 +40,21 @@ function isTeacherOrAdmin(role: string | null | undefined): boolean {
 
 const CLASE_VIRTUAL_SECTION_PATH = GALERIA_AULA_SECTION_PATH;
 
+const NAV_TO_CLASE_RE =
+  /\b(llevame|lleva|llevar|llevarme|ir|ve|vamos|traeme|ponme|abre|abrir|muestrame|mostrar)\s+(me\s+)?(a\s+|al\s+|a\s+el\s+)?(la\s+|las\s+)?clases?\b/;
+
+/** «Llévame a la clase» = sección del menú (/3d), no el botón Entrar a clase. */
+function wantsNavToClaseVirtualSection(text: string): boolean {
+  return (
+    NAV_TO_CLASE_RE.test(text) ||
+    /\b(llevame|lleva|llevar|ir|ve|vamos|traeme|ponme)\s+(me\s+)?(a\s+)?(la\s+)?clase\s+virtu?a?l\b/.test(text) ||
+    /\bclase\s+virtual\b/.test(text)
+  );
+}
+
 /** Frases de «entrar a la clase» (voz/chat); el destino depende de dónde estés. */
 function wantsEnterClassPhrase(text: string, core: string): boolean {
+  if (wantsNavToClaseVirtualSection(text)) return false;
   return (
     /^\s*(entrar|entra)\s*$/.test(core) ||
     /\b(entrar a clases|entra a clases|entrar a la clase|entra a la clase|entra clase|entrar clase)\b/.test(text) ||
@@ -49,20 +62,31 @@ function wantsEnterClassPhrase(text: string, core: string): boolean {
   );
 }
 
+function wantsStartClassPhrase(text: string, core: string): boolean {
+  return (
+    /\b(iniciar|inicia|inia|inicie|iniciemos|comenzar|comencemos|comence|empezar|empieza|empecemos)\b/.test(
+      core,
+    ) && /\bclase(s)?\b/.test(core)
+  );
+}
+
 /** Ir a la sección Clase Virtual del menú (/3d), no al lobby «aula virtual». */
 function wantsClaseVirtualSectionPhrase(text: string, core: string): boolean {
+  if (wantsStartClassPhrase(text, core)) return false;
+
   const genericAula =
     (/\b(a|al)\s+aula\b/.test(text) || /\baula\s+virtual\b/.test(text)) &&
     !/\b(caminable|lobby)\b/.test(text);
 
   return (
+    wantsNavToClaseVirtualSection(text) ||
     /\bclases\b/.test(core) ||
-    /\b(a|al|la)\s+clases\b/.test(text) ||
+    /\b(a|al|la|las)\s+clases\b/.test(text) ||
     /\b(llevame|lleva|llevar|ir|ve|vamos|abre|abrir|muestrame|mostrar|traeme|ponme)\s+a\s+clases\b/.test(text) ||
     genericAula ||
     /\bclase(s)?\s+virtu?a?l(es)?\b/.test(core) ||
     /\bclase\s+virtuar\b/.test(core) ||
-    /\b(la|a)\s+clases?\b/.test(core) ||
+    /\b(la|a|las)\s+clases?\b/.test(core) ||
     (/\bclase\b/.test(core) && /\b(virtual|virtuar|360|inmersiv)\b/.test(core))
   );
 }
@@ -674,7 +698,9 @@ function matchClaseVirtual(
   const wantsEnter = wantsEnterClassPhrase(text, core);
   const bareEnter = /^\s*(entrar|entra)\s*$/.test(core);
 
-  if (currentPath === DOCENTE_PANEL_PATH && wantsEnter) return null;
+  if (!wantsNavToClaseVirtualSection(text) && currentPath === DOCENTE_PANEL_PATH && wantsEnter) {
+    return null;
+  }
 
   if (bareEnter && !isTeacherOrAdmin(appRole)) return null;
 
@@ -820,14 +846,14 @@ export function resolveOpCommand(
   const teatro = matchTeatro(text);
   if (teatro) return teatro;
 
+  const claseVirtual = matchClaseVirtual(text, currentPath, session.appRole);
+  if (claseVirtual) return claseVirtual;
+
   const enterClass = matchEnterDocenteClass(text, currentPath, session.appRole);
   if (enterClass) return enterClass;
 
   const startClass = matchStartDocenteClass(text, currentPath, session.appRole);
   if (startClass) return startClass;
-
-  const claseVirtual = matchClaseVirtual(text, currentPath, session.appRole);
-  if (claseVirtual) return claseVirtual;
 
   const inicio = matchInicio(text);
   if (inicio) return inicio;

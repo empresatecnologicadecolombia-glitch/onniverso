@@ -87,6 +87,14 @@ describe("resolveOpCommand", () => {
   it("clase virtual y llevame a la clase van a seccion /3d", () => {
     expect(resolveOpCommand("clase virtual", "/").navigateTo).toBe("/3d");
     expect(resolveOpCommand("llevame a la clase", "/").navigateTo).toBe("/3d");
+    expect(resolveOpCommand("oni llevame a la clase", "/").navigateTo).toBe("/3d");
+    expect(resolveOpCommand("lleva a la clase", "/coliseo").navigateTo).toBe("/3d");
+    expect(resolveOpCommand("oni llevame a la clase", "/docente-clases", { appRole: "docente" }).navigateTo).toBe(
+      "/3d",
+    );
+    expect(
+      resolveOpCommand("oni llevame a la clase", "/docente-clases", { appRole: "docente" }).command,
+    ).toBeUndefined();
     expect(resolveOpCommand("lleva a clases", "/").navigateTo).toBe("/3d");
     expect(resolveOpCommand("oni lleva a clases", "/coliseo").navigateTo).toBe("/3d");
     expect(resolveOpCommand("llevame a clases", "/").navigateTo).toBe("/3d");
