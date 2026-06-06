@@ -1971,10 +1971,6 @@ public class MainActivity extends BridgeActivity {
     onniSpeechIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
     onniSpeechIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
     onniSpeechIntent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false);
-    // Esperar al toque «detener» en JS antes de cerrar la sesión por silencio.
-    onniSpeechIntent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MS, 15_000);
-    onniSpeechIntent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MS, 12_000);
-    onniSpeechIntent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MS, 500);
 
     onniSpeechRecognizer.setRecognitionListener(
         new RecognitionListener() {

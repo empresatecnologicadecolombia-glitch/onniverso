@@ -100,6 +100,8 @@ export default function OpAiAssistant() {
   } = useOnniChatVoice();
 
   const { listenEnabled, setListenEnabled } = useOnniVoicePrefs();
+  /** APK: micrófono manual ON/OFF (no escucha al abrir el chat). */
+  const [androidMicOn, setAndroidMicOn] = useState(false);
   const runCommandRef = useRef<(raw: string) => Promise<string | undefined>>(async () => undefined);
   const openRef = useRef(open);
   openRef.current = open;
@@ -246,9 +248,11 @@ export default function OpAiAssistant() {
 
   const captureMicActive = voiceCaptureActive;
 
-  const nativeWakeActive =
-    (supportsNativeWakeSwitch && canListen && listenEnabled && !processing && !voiceCaptureActive) ||
-    (isAndroidNativeApp() && canListen && !processing && !voiceCaptureActive);
+  const nativeWakeActive = isAndroidNativeApp()
+    ? supportsNativeWakeSwitch && canListen && androidMicOn && !processing && !voiceCaptureActive
+    : supportsNativeWakeSwitch && canListen && listenEnabled && !processing && !voiceCaptureActive;
+
+  const androidMicWakeActive = isAndroidNativeApp() && androidMicOn && nativeWakeListening;
 
   const { isListening: wakeListening, isSpeaking: wakeSpeaking } = useOnniVoice({
     enabled: wakeWordActive,
@@ -326,6 +330,17 @@ export default function OpAiAssistant() {
       stopNativeWakeListening();
     };
   }, [nativeWakeActive, startNativeWakeListening, stopNativeWakeListening]);
+
+  useEffect(() => {
+    if (!open && isAndroidNativeApp()) {
+      setAndroidMicOn(false);
+    }
+  }, [open]);
+
+  const handleAndroidMicToggle = useCallback(() => {
+    if (processing) return;
+    setAndroidMicOn((prev) => !prev);
+  }, [processing]);
 
   const voiceCallbacks = useMemo(
     () => ({
@@ -459,11 +474,9 @@ export default function OpAiAssistant() {
               </div>
             ))}
             <p className="text-[11px] text-muted-foreground">{hint}</p>
-            {usesOneShotNativeMic && captureMicActive && (
+            {usesOneShotNativeMic && captureMicActive && !isAndroidNativeApp() && (
               <p className="text-[10px] font-medium text-emerald-300/90">
-                {isAndroidNativeApp()
-                  ? "Grabando… pulsa el micrófono otra vez para enviar."
-                  : "Escuchando en OnniVers… di tu pedido completo (ej. «llévame a clases»)."}
+                Escuchando en OnniVers… di tu pedido completo (ej. «llévame a clases»).
               </p>
             )}
             {usesContinuousMic && captureMicActive && (
@@ -471,12 +484,16 @@ export default function OpAiAssistant() {
                 Micrófono activo — habla cuando quieras. Pulsa el micrófono otra vez para apagar.
               </p>
             )}
-            {isAndroidNativeApp() && nativeWakeListening && !captureMicActive && (
+            {androidMicWakeActive && (
               <p className="text-[10px] font-medium text-emerald-300/90">
-                Onni te escucha — di «Hola Onni» + tu pedido, o usa el micrófono.
+                Onni te escucha — di «Hola Onni» + tu pedido. Pulsa el micrófono otra vez para apagar.
               </p>
             )}
-            {supportsNativeWakeSwitch && nativeWakeListening && listenEnabled && !captureMicActive && (
+            {supportsNativeWakeSwitch &&
+              nativeWakeListening &&
+              listenEnabled &&
+              !captureMicActive &&
+              !isAndroidNativeApp() && (
               <p className="text-[10px] font-medium text-emerald-300/90">
                 {isElectronDesktopApp()
                   ? electronFollowUpActive
@@ -507,16 +524,26 @@ export default function OpAiAssistant() {
                 <Button
                   type="button"
                   size="icon"
-                  variant={captureMicActive ? "secondary" : "outline"}
+                  variant={
+                    isAndroidNativeApp()
+                      ? androidMicWakeActive
+                        ? "secondary"
+                        : "outline"
+                      : captureMicActive
+                        ? "secondary"
+                        : "outline"
+                  }
                   onClick={
-                    usesOneShotNativeMic
-                      ? () => void handleToggleVoiceCapture()
-                      : usesContinuousMic
+                    isAndroidNativeApp()
+                      ? handleAndroidMicToggle
+                      : usesOneShotNativeMic
                         ? () => void handleToggleVoiceCapture()
-                        : undefined
+                        : usesContinuousMic
+                          ? () => void handleToggleVoiceCapture()
+                          : undefined
                   }
                   onPointerDown={
-                    usesOneShotNativeMic || usesContinuousMic
+                    isAndroidNativeApp() || usesOneShotNativeMic || usesContinuousMic
                       ? undefined
                       : (event) => {
                           event.preventDefault();
@@ -524,7 +551,7 @@ export default function OpAiAssistant() {
                         }
                   }
                   onPointerUp={
-                    usesOneShotNativeMic || usesContinuousMic
+                    isAndroidNativeApp() || usesOneShotNativeMic || usesContinuousMic
                       ? undefined
                       : (event) => {
                           event.preventDefault();
@@ -532,7 +559,7 @@ export default function OpAiAssistant() {
                         }
                   }
                   onPointerCancel={
-                    usesOneShotNativeMic || usesContinuousMic
+                    isAndroidNativeApp() || usesOneShotNativeMic || usesContinuousMic
                       ? undefined
                       : (event) => {
                           event.preventDefault();
@@ -540,7 +567,7 @@ export default function OpAiAssistant() {
                         }
                   }
                   onPointerLeave={
-                    usesOneShotNativeMic || usesContinuousMic
+                    isAndroidNativeApp() || usesOneShotNativeMic || usesContinuousMic
                       ? undefined
                       : (event) => {
                           if (!captureMicActive) return;
@@ -550,20 +577,34 @@ export default function OpAiAssistant() {
                   }
                   onContextMenu={(event) => event.preventDefault()}
                   aria-label={
-                    captureMicActive
-                      ? usesOneShotNativeMic
-                        ? "Detener micrófono de Onni"
-                        : usesContinuousMic
+                    isAndroidNativeApp()
+                      ? androidMicWakeActive
+                        ? "Apagar escucha de Onni"
+                        : "Encender escucha — di Hola Onni y tu pedido"
+                      : captureMicActive
+                        ? usesOneShotNativeMic
                           ? "Detener micrófono de Onni"
-                          : "Soltar micrófono de Onni"
-                      : usesOneShotNativeMic
-                        ? "Pulsa y di tu pedido a Onni"
-                        : usesContinuousMic
-                          ? "Activar micrófono de Onni (escucha continua)"
-                          : "Mantener pulsado para hablar con Onni"
+                          : usesContinuousMic
+                            ? "Detener micrófono de Onni"
+                            : "Soltar micrófono de Onni"
+                        : usesOneShotNativeMic
+                          ? "Pulsa y di tu pedido a Onni"
+                          : usesContinuousMic
+                            ? "Activar micrófono de Onni (escucha continua)"
+                            : "Mantener pulsado para hablar con Onni"
                   }
                 >
-                  {captureMicActive ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  {isAndroidNativeApp() ? (
+                    androidMicWakeActive ? (
+                      <MicOff className="h-4 w-4" />
+                    ) : (
+                      <Mic className="h-4 w-4" />
+                    )
+                  ) : captureMicActive ? (
+                    <MicOff className="h-4 w-4" />
+                  ) : (
+                    <Mic className="h-4 w-4" />
+                  )}
                 </Button>
               </>
             )}

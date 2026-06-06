@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { isDesktopWebBrowser, isElectronDesktopApp, isAndroidNativeApp } from "@/lib/deviceDetection";
+import { isDesktopWebBrowser, isElectronDesktopApp } from "@/lib/deviceDetection";
 import { warmUpElectronVoiceBridge } from "@/lib/onniElectronVoiceBridge";
 import {
   parseNativeVoiceErrorDetail,
@@ -67,8 +67,8 @@ export function useOnniChatVoice() {
   const nativeHandoffRef = useRef<Promise<void>>(Promise.resolve());
 
   const usesOneShotNativeMic = voiceMode === "native";
-  /** Switch «Hola Onni» solo en .exe; en APK solo botón micrófono. */
-  const supportsNativeWakeSwitch = voiceMode === "native" && isElectronDesktopApp();
+  /** Escucha «Hola Onni» nativa (.exe y APK). En APK el botón micrófono la enciende/apaga. */
+  const supportsNativeWakeSwitch = usesOneShotNativeMic;
 
   useEffect(() => {
     if (!isElectronDesktopApp()) return;
@@ -177,11 +177,6 @@ export function useOnniChatVoice() {
 
   const stopVoiceCapture = useCallback(() => {
     const wasCapturing = captureActiveRef.current;
-    if (wasCapturing && isAndroidNativeApp()) {
-      stopNativeVoiceListening();
-      setVoiceListening(false);
-      return "";
-    }
     if (wasCapturing) {
       releaseCaptureSession();
       return "";
