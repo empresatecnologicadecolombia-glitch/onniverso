@@ -492,7 +492,7 @@ export default function OpAiAssistant() {
             )}
             {isOnniAndroidVoice() && nativeWakeListening && (
               <p className="text-[10px] font-medium text-emerald-300/90">
-                Onni te escucha — di «Hola Onni» + tu pedido. Pulsa el micrófono otra vez para apagar.
+                Escuchando… di «Hola Onni, llévame a…» en una sola frase.
               </p>
             )}
             {supportsNativeWakeSwitch &&
@@ -585,8 +585,8 @@ export default function OpAiAssistant() {
                   aria-label={
                     isOnniAndroidVoice()
                       ? nativeWakeListening
-                        ? "Apagar escucha de Onni"
-                        : "Encender escucha — di Hola Onni y tu pedido"
+                        ? "Cancelar escucha"
+                        : "Pulsa y di «Hola Onni, tu pedido» en una frase"
                       : captureMicActive
                         ? usesOneShotNativeMic
                           ? "Detener micrófono de Onni"
@@ -601,11 +601,7 @@ export default function OpAiAssistant() {
                   }
                 >
                   {isOnniAndroidVoice() ? (
-                    nativeWakeListening ? (
-                      <MicOff className="h-4 w-4" />
-                    ) : (
-                      <Mic className="h-4 w-4" />
-                    )
+                    <Mic className="h-4 w-4" />
                   ) : captureMicActive ? (
                     <MicOff className="h-4 w-4" />
                   ) : (
