@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import ffmpegStatic from "ffmpeg-static";
@@ -33,30 +34,11 @@ async function download(url, dest) {
   log(`Guardado ${dest} (${Math.round(buffer.length / 1024 / 1024)} MB)`);
 }
 
-function extractZip(zipFile, targetDir) {
-  if (fs.existsSync(path.join(targetDir, "whisper-cli.exe"))) {
-    log("whisper-cli.exe ya extraído.");
-    return;
-  }
-  fs.mkdirSync(targetDir, { recursive: true });
-  if (process.platform === "win32") {
-    const result = spawnSync(
-      "powershell",
-      [
-        "-NoProfile",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-Command",
-        `Expand-Archive -Path '${zipFile.replace(/'/g, "''")}' -DestinationPath '${targetDir.replace(/'/g, "''")}' -Force`,
-      ],
-      { stdio: "inherit" },
-    );
-    if (result.status !== 0) {
-      throw new Error("No se pudo extraer whisper-bin-x64.zip");
-    }
-    return;
-  }
-  throw new Error("setup-whisper solo está automatizado en Windows.");
+function isWhisperRuntimeReady(dir) {
+  const cli = path.join(dir, "whisper-cli.exe");
+  const dll = path.join(dir, "ggml.dll");
+  if (!fs.existsSync(cli) || !fs.existsSync(dll)) return false;
+  return fs.statSync(cli).size > 100_000;
 }
 
 function findWhisperCli(dir) {
@@ -87,16 +69,62 @@ function findWhisperCli(dir) {
   return best;
 }
 
-function flattenWhisperBinaries(dir) {
-  const cli = findWhisperCli(dir);
+/** Copia whisper-cli.exe y todas las DLL necesarias a publish/. */
+function installWhisperRuntime(sourceRoot, targetDir) {
+  const cli = findWhisperCli(sourceRoot);
   if (!cli) {
     throw new Error("No se encontró whisper-cli.exe tras extraer el zip.");
   }
-  const target = path.join(dir, "whisper-cli.exe");
-  if (path.resolve(cli) !== path.resolve(target)) {
-    fs.copyFileSync(cli, target);
+  const sourceDir = path.dirname(cli);
+  fs.mkdirSync(targetDir, { recursive: true });
+
+  for (const entry of fs.readdirSync(sourceDir)) {
+    if (!/\.dll$/i.test(entry)) continue;
+    fs.copyFileSync(path.join(sourceDir, entry), path.join(targetDir, entry));
   }
-  log(`Whisper CLI: ${target}`);
+
+  fs.copyFileSync(cli, path.join(targetDir, "whisper-cli.exe"));
+  log(`Whisper CLI + DLLs: ${targetDir}`);
+}
+
+function extractZip(zipFile, targetDir) {
+  if (isWhisperRuntimeReady(targetDir)) {
+    log("Runtime Whisper listo (CLI + DLLs).");
+    return;
+  }
+
+  log("Extrayendo whisper-bin-x64.zip (faltaban DLLs o CLI válido)...");
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "onni-whisper-extract-"));
+  try {
+    if (process.platform !== "win32") {
+      throw new Error("setup-whisper solo está automatizado en Windows.");
+    }
+    const result = spawnSync(
+      "powershell",
+      [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        `Expand-Archive -Path '${zipFile.replace(/'/g, "''")}' -DestinationPath '${tempDir.replace(/'/g, "''")}' -Force`,
+      ],
+      { stdio: "inherit" },
+    );
+    if (result.status !== 0) {
+      throw new Error("No se pudo extraer whisper-bin-x64.zip");
+    }
+    installWhisperRuntime(tempDir, targetDir);
+  } finally {
+    try {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    } catch {
+      /* ignore */
+    }
+  }
+
+  if (!isWhisperRuntimeReady(targetDir)) {
+    throw new Error("Whisper incompleto tras la extracción. Revisa ggml.dll y whisper-cli.exe.");
+  }
 }
 
 function copyFfmpeg() {
@@ -112,7 +140,6 @@ async function main() {
   fs.mkdirSync(publishDir, { recursive: true });
   await download(WHISPER_ZIP_URL, zipPath);
   extractZip(zipPath, publishDir);
-  flattenWhisperBinaries(publishDir);
   await download(MODEL_URL, path.join(publishDir, MODEL_NAME));
   copyFfmpeg();
   log("Listo.");

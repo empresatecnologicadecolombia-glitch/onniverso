@@ -6,6 +6,15 @@ const { app } = require("electron");
 
 const WHISPER_TIMEOUT_MS = 120_000;
 
+function spawnDir(command) {
+  if (!command) return undefined;
+  try {
+    return path.dirname(path.resolve(command));
+  } catch {
+    return undefined;
+  }
+}
+
 class WhisperEngine {
   /** @type {boolean | null} */
   availableCache = null;
@@ -79,8 +88,9 @@ class WhisperEngine {
 
   /** @param {string} command @param {string[]} args @param {number} timeoutMs */
   run(command, args, timeoutMs = WHISPER_TIMEOUT_MS) {
+    const cwd = spawnDir(command);
     return new Promise((resolve, reject) => {
-      const child = spawn(command, args, { windowsHide: true });
+      const child = spawn(command, args, { windowsHide: true, cwd });
       let stdout = "";
       let stderr = "";
       const timer = setTimeout(() => {

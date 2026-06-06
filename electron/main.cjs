@@ -1,9 +1,28 @@
-const { app, BrowserWindow, shell, session, systemPreferences, ipcMain } = require("electron");
+const { app, BrowserWindow, shell, session, systemPreferences, ipcMain, nativeImage } = require("electron");
+const fs = require("node:fs");
 const path = require("node:path");
 const { WinSpeechEngine } = require("./winSpeechEngine.cjs");
 const { WhisperEngine } = require("./whisperEngine.cjs");
 
 const START_URL = process.env.ONNIVERS_URL || "https://onnivers.com";
+
+if (process.platform === "win32") {
+  app.setAppUserModelId("com.onnivers.desktop");
+}
+
+function getAppIconPath() {
+  const packagedIcon = path.join(process.resourcesPath, "icon.ico");
+  if (app.isPackaged && fs.existsSync(packagedIcon)) {
+    return packagedIcon;
+  }
+  return path.join(__dirname, "icons", "icon.ico");
+}
+
+function loadAppIcon() {
+  const iconPath = getAppIconPath();
+  if (!fs.existsSync(iconPath)) return null;
+  return nativeImage.createFromPath(iconPath);
+}
 
 const ALLOWED_PERMISSIONS = new Set([
   "media",
@@ -127,6 +146,9 @@ function registerVoiceIpc() {
 }
 
 function createWindow() {
+  const iconPath = getAppIconPath();
+  const icon = loadAppIcon();
+
   mainWindow = new BrowserWindow({
     width: 1366,
     height: 860,
@@ -135,7 +157,7 @@ function createWindow() {
     title: "OnniVers",
     show: false,
     autoHideMenuBar: true,
-    icon: path.join(__dirname, "icons", "icon.ico"),
+    icon: icon ?? iconPath,
     backgroundColor: "#000000",
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
@@ -147,6 +169,9 @@ function createWindow() {
   });
 
   mainWindow.once("ready-to-show", () => {
+    if (icon && process.platform === "win32") {
+      mainWindow?.setIcon(icon);
+    }
     mainWindow?.show();
   });
 

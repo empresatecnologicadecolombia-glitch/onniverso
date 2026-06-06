@@ -24,7 +24,7 @@
     "desktop:speech-build": "node scripts/build-win-speech.mjs",
     "desktop:whisper-build": "node scripts/setup-whisper.mjs",
     "desktop:dev": "npm run desktop:icon && electron .",
-    "desktop:pack": "npm run desktop:speech-build && npm run desktop:whisper-build && electron-builder --win --dir",
+    "desktop:pack": "npm run desktop:speech-build && npm run desktop:whisper-build && electron-builder --win --dir && node scripts/apply-desktop-icon.mjs",
     "desktop:dist": "node scripts/apply-desktop-icon.mjs && electron-builder --win nsis portable --prepackaged release/win-unpacked",
     "desktop:build": "npm run desktop:icon && npm run desktop:pack && npm run desktop:dist"
   },
@@ -171,6 +171,10 @@
       "artifactName": "OnniVers-${version}.exe"
     },
     "extraResources": [
+      {
+        "from": "electron/icons/icon.ico",
+        "to": "icon.ico"
+      },
       {
         "from": "electron/onni-win-speech/publish/onni-win-speech.exe",
         "to": "onni-win-speech.exe",
