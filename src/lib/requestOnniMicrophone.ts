@@ -6,11 +6,12 @@ function isValidCallbackName(name: string): boolean {
   return /^[a-zA-Z_$][\w$]*$/.test(name);
 }
 
-/** Voz WinRT en .exe: el micrófono lo usa onni-win-speech.exe, no getUserMedia. */
+/** WinRT legacy: solo omite getUserMedia si Whisper no está en el .exe. */
 function usesElectronWindowsNativeVoice(): boolean {
   return (
     isElectronDesktopApp() &&
-    typeof window.onniversDesktop?.voice?.startListening === "function"
+    typeof window.onniversDesktop?.voice?.startListening === "function" &&
+    typeof window.onniversDesktop?.whisper?.transcribe !== "function"
   );
 }
 

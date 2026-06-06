@@ -550,8 +550,8 @@ export function useOnniChatVoice() {
       ? "Voz del navegador"
       : voiceMode === "native"
         ? isElectronDesktopApp()
-          ? window.onniversDesktop?.windowsNativeVoice
-            ? "Voz Windows (.exe)"
+          ? window.onniversDesktop?.whisper?.transcribe
+            ? "Voz Whisper (.exe)"
             : "Voz OnniVers (.exe)"
           : "Voz nativa Android"
         : "Voz no disponible";

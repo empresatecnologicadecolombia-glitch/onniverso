@@ -1,10 +1,11 @@
 import { isElectronDesktopApp } from "@/lib/deviceDetection";
 import { pickOnniSpanishVoice } from "@/lib/onniVoice";
-import { transcribeOnniElectronAudio } from "@/lib/onniElectronStt";
+import { transcribeOnniElectronWhisper } from "@/lib/onniElectronWhisperStt";
 
-const SESSION_MAX_MS = 10000;
+/** Grabación corta: ~3 s típico, máximo 4 s (usuario pidió máx. 5 s). */
+const SESSION_MAX_MS = 4000;
 const RECORDER_SLICE_MS = 250;
-const MIN_AUDIO_BYTES = 800;
+const MIN_AUDIO_BYTES = 600;
 
 type NativeVoiceBridge = {
   startListening: () => void;
@@ -30,36 +31,6 @@ function speakDesktop(text: string) {
   if (voice) utterance.voice = voice;
   window.speechSynthesis.speak(utterance);
 }
-
-function getWindowsIpcBridge(): NativeVoiceBridge | null {
-  const voice = window.onniversDesktop?.voice;
-  if (!voice?.startListening || !voice?.stopListening) return null;
-  return {
-    startListening() {
-      void voice.startListening?.().then((started) => {
-        if (started === false) {
-          dispatchVoiceEvent("voice:error", {
-            code: "not_available",
-            message:
-              "Voz de Windows no respondió. Cierra OnniVers, abre el instalador nuevo (release/) e inténtalo otra vez.",
-          });
-          dispatchVoiceEvent("voice:end");
-        }
-      });
-    },
-    stopListening() {
-      void voice.stopListening?.();
-    },
-    speak: speakDesktop,
-    stopSpeaking() {
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-      }
-    },
-  };
-}
-
-// --- Fallback: grabación + Gemini STT (cuando no hay voz nativa de Windows) ---
 
 let mediaStream: MediaStream | null = null;
 let mediaRecorder: MediaRecorder | null = null;
@@ -134,7 +105,7 @@ function dispatchSttError(message: string) {
   }
   dispatchVoiceEvent("voice:error", {
     code: "stt_failed",
-    message: trimmed || "No pude transcribir tu voz. Revisa internet en el PC e inténtalo de nuevo.",
+    message: trimmed || "No pude transcribir tu voz. Inténtalo otra vez.",
   });
 }
 
@@ -164,7 +135,7 @@ async function finalizeRecording() {
       return;
     }
 
-    const text = await transcribeOnniElectronAudio(blob);
+    const text = await transcribeOnniElectronWhisper(blob);
     if (text) {
       dispatchVoiceEvent("voice:result", { text, isFinal: true });
       return;
@@ -173,9 +144,7 @@ async function finalizeRecording() {
     dispatchSttError("No entendí lo que dijiste. Intenta otra vez con una frase clara.");
   } catch (error) {
     const detail = error instanceof Error ? error.message.trim() : "";
-    dispatchSttError(
-      detail || "No pude transcribir tu voz. Revisa internet en el PC e inténtalo de nuevo.",
-    );
+    dispatchSttError(detail || "No pude transcribir tu voz. Inténtalo otra vez.");
   } finally {
     transcribeBusy = false;
     releaseStream();
@@ -286,10 +255,6 @@ function getMediaRecorderBridge(): NativeVoiceBridge | null {
 
 async function pickElectronVoiceBridge(): Promise<NativeVoiceBridge | null> {
   if (!isElectronDesktopApp()) return null;
-
-  const windowsBridge = getWindowsIpcBridge();
-  if (windowsBridge) return windowsBridge;
-
   return getMediaRecorderBridge();
 }
 
@@ -309,7 +274,5 @@ export function warmUpElectronVoiceBridge(): Promise<NativeVoiceBridge | null> {
 
 export function getElectronVoiceBridge(): NativeVoiceBridge | null {
   if (resolvedBridge !== undefined) return resolvedBridge;
-  const windowsBridge = getWindowsIpcBridge();
-  if (windowsBridge) return windowsBridge;
   return getMediaRecorderBridge();
 }

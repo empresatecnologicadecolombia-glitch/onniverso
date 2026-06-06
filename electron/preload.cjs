@@ -12,6 +12,12 @@ contextBridge.exposeInMainWorld("onniversDesktop", {
   version: "1.0.0",
   isDesktopApp: true,
   windowsNativeVoice: isWindows,
+  whisper: isWindows
+    ? {
+        isAvailable: () => ipcRenderer.invoke("onnivers:whisper:isAvailable"),
+        transcribe: (payload) => ipcRenderer.invoke("onnivers:whisper:transcribe", payload),
+      }
+    : undefined,
   voice: isWindows
     ? {
         isAvailable: () => ipcRenderer.invoke("onnivers:voice:isAvailable"),

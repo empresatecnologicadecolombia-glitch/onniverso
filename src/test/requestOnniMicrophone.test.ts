@@ -28,7 +28,7 @@ describe("requestOnniMicrophoneAccess", () => {
     expect(stop).toHaveBeenCalled();
   });
 
-  it("Omite getUserMedia en OnniVers .exe con voz Windows", async () => {
+  it("Omite getUserMedia en OnniVers .exe con voz Windows (sin Whisper)", async () => {
     window.onniversDesktop = {
       isDesktopApp: true,
       voice: { startListening: vi.fn(), stopListening: vi.fn() },
@@ -37,6 +37,20 @@ describe("requestOnniMicrophoneAccess", () => {
     vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } });
     await expect(requestOnniMicrophoneAccess()).resolves.toBe("granted");
     expect(getUserMedia).not.toHaveBeenCalled();
+    delete window.onniversDesktop;
+  });
+
+  it("Pide getUserMedia en OnniVers .exe con Whisper", async () => {
+    window.onniversDesktop = {
+      isDesktopApp: true,
+      voice: { startListening: vi.fn(), stopListening: vi.fn() },
+      whisper: { transcribe: vi.fn() },
+    };
+    const stop = vi.fn();
+    const getUserMedia = vi.fn().mockResolvedValue({ getTracks: () => [{ stop }] });
+    vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } });
+    await expect(requestOnniMicrophoneAccess()).resolves.toBe("granted");
+    expect(getUserMedia).toHaveBeenCalled();
     delete window.onniversDesktop;
   });
 });

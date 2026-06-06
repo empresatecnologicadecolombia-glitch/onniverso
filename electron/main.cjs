@@ -1,6 +1,7 @@
 const { app, BrowserWindow, shell, session, systemPreferences, ipcMain } = require("electron");
 const path = require("node:path");
 const { WinSpeechEngine } = require("./winSpeechEngine.cjs");
+const { WhisperEngine } = require("./whisperEngine.cjs");
 
 const START_URL = process.env.ONNIVERS_URL || "https://onnivers.com";
 
@@ -24,6 +25,8 @@ const ALLOWED_PERMISSIONS = new Set([
 let mainWindow = null;
 /** @type {WinSpeechEngine | null} */
 let winSpeechEngine = null;
+/** @type {WhisperEngine | null} */
+let whisperEngine = null;
 
 function isMediaPermission(permission, details) {
   if (ALLOWED_PERMISSIONS.has(permission)) return true;
@@ -76,6 +79,30 @@ function getWinSpeechEngine() {
     winSpeechEngine.setWebContents(mainWindow.webContents);
   }
   return winSpeechEngine;
+}
+
+function getWhisperEngine() {
+  if (process.platform !== "win32") return null;
+  if (!whisperEngine) {
+    whisperEngine = new WhisperEngine();
+  }
+  return whisperEngine;
+}
+
+function registerWhisperIpc() {
+  ipcMain.handle("onnivers:whisper:isAvailable", async () => {
+    const engine = getWhisperEngine();
+    if (!engine) return false;
+    return engine.isReady();
+  });
+
+  ipcMain.handle("onnivers:whisper:transcribe", async (_event, payload) => {
+    const engine = getWhisperEngine();
+    if (!engine) {
+      throw new Error("Whisper solo está disponible en OnniVers para Windows.");
+    }
+    return engine.transcribePayload(payload);
+  });
 }
 
 function registerVoiceIpc() {
@@ -148,6 +175,7 @@ app.commandLine.appendSwitch("enable-usermedia-screen-capturing");
 app.whenReady().then(async () => {
   configureMediaPermissions(session.defaultSession);
   registerVoiceIpc();
+  registerWhisperIpc();
   await ensureOsMediaAccess();
   createWindow();
 
