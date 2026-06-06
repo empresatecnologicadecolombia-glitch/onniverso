@@ -13,7 +13,7 @@ import {
   speakOnniAnswer,
   startNativeVoiceListening,
   stopNativeVoiceListening,
-  stopWebVoice,
+  stopOnniSpokenVoice,
   type OnniVoiceMode,
 } from "@/lib/onniVoiceRuntime";
 import { parseOnniWakePhrase } from "@/lib/onniVoice";
@@ -586,7 +586,7 @@ export function useOnniChatVoice() {
       clearNativeRestartTimer();
       stopWebCaptureRef.current?.();
       stopNativeVoiceListening();
-      stopWebVoice();
+      stopOnniSpokenVoice();
     },
     [clearNativeRestartTimer],
   );
@@ -599,7 +599,9 @@ export function useOnniChatVoice() {
           ? window.onniversDesktop?.whisper?.transcribe
             ? "Voz Whisper (.exe)"
             : "Voz OnniVers (.exe)"
-          : "Voz nativa Android"
+          : isOnniAndroidVoice()
+            ? "Voz Azure (Android)"
+            : "Voz nativa Android"
         : "Voz no disponible";
 
   return {
