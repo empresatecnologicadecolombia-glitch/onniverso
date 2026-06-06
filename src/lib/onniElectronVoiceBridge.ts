@@ -41,7 +41,7 @@ function getWindowsIpcBridge(): NativeVoiceBridge | null {
           dispatchVoiceEvent("voice:error", {
             code: "not_available",
             message:
-              "Voz de Windows no disponible. Reinstala OnniVers o activa Español en Configuración → Hora e idioma → Voz.",
+              "Voz de Windows no respondió. Cierra OnniVers, abre el instalador nuevo (release/) e inténtalo otra vez.",
           });
           dispatchVoiceEvent("voice:end");
         }
@@ -288,19 +288,12 @@ async function pickElectronVoiceBridge(): Promise<NativeVoiceBridge | null> {
   if (!isElectronDesktopApp()) return null;
 
   const windowsBridge = getWindowsIpcBridge();
-  if (windowsBridge && window.onniversDesktop?.voice?.isAvailable) {
-    try {
-      const available = await window.onniversDesktop.voice.isAvailable();
-      if (available) return windowsBridge;
-    } catch {
-      /* fallback below */
-    }
-  }
+  if (windowsBridge) return windowsBridge;
 
   return getMediaRecorderBridge();
 }
 
-/** Resuelve una sola vez si usar voz nativa de Windows o fallback Gemini STT. */
+/** Resuelve una sola vez qué puente de voz usar en Electron. */
 export function warmUpElectronVoiceBridge(): Promise<NativeVoiceBridge | null> {
   if (resolvedBridge !== undefined) {
     return Promise.resolve(resolvedBridge);
@@ -316,8 +309,7 @@ export function warmUpElectronVoiceBridge(): Promise<NativeVoiceBridge | null> {
 
 export function getElectronVoiceBridge(): NativeVoiceBridge | null {
   if (resolvedBridge !== undefined) return resolvedBridge;
-  if (window.onniversDesktop?.windowsNativeVoice && getWindowsIpcBridge()) {
-    return getWindowsIpcBridge();
-  }
+  const windowsBridge = getWindowsIpcBridge();
+  if (windowsBridge) return windowsBridge;
   return getMediaRecorderBridge();
 }
