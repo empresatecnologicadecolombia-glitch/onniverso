@@ -15,6 +15,33 @@ function spawnDir(command) {
   }
 }
 
+function sanitizeFfmpegError(stderr) {
+  const text = String(stderr ?? "");
+  if (/EBML header parsing failed|Invalid data found when processing input|Error opening input file/i.test(text)) {
+    return "No pude leer el audio grabado. Habla durante el micrófono activo e inténtalo otra vez.";
+  }
+  if (/No such file|could not find/i.test(text)) {
+    return "Falta un componente de audio en OnniVers.";
+  }
+  const lastLine = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .pop();
+  return lastLine && lastLine.length < 160 ? lastLine : "No pude convertir el audio a texto.";
+}
+
+function isValidAudioBuffer(buffer) {
+  if (!buffer || buffer.length < 12) return false;
+  const isWebm =
+    buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3;
+  const isOgg =
+    buffer[0] === 0x4f && buffer[1] === 0x67 && buffer[2] === 0x67 && buffer[3] === 0x53;
+  const isWav =
+    buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46;
+  return isWebm || isOgg || isWav;
+}
+
 class WhisperEngine {
   /** @type {boolean | null} */
   availableCache = null;
@@ -117,7 +144,7 @@ class WhisperEngine {
         if (code === 0 || stdout.trim()) {
           resolve({ stdout, stderr, code });
         } else {
-          reject(new Error(stderr.trim() || `Whisper falló (${code ?? "?"})`));
+          reject(new Error(sanitizeFfmpegError(stderr) || `Whisper falló (${code ?? "?"})`));
         }
       });
     });
@@ -128,11 +155,19 @@ class WhisperEngine {
     if (!ffmpeg) {
       throw new Error("Falta ffmpeg en OnniVers.");
     }
-    await this.run(
-      ffmpeg,
-      ["-y", "-i", inputPath, "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le", outputPath],
-      30_000,
-    );
+    try {
+      await this.run(
+        ffmpeg,
+        ["-y", "-i", inputPath, "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le", outputPath],
+        30_000,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (/EBML|Invalid data|Error opening input/i.test(message)) {
+        throw new Error("No pude leer el audio grabado. Habla durante el micrófono activo e inténtalo otra vez.");
+      }
+      throw error;
+    }
   }
 
   async transcribePayload(payload) {
@@ -152,7 +187,11 @@ class WhisperEngine {
     const wavPath = path.join(tempDir, "input.wav");
 
     try {
-      fs.writeFileSync(inputPath, Buffer.from(audioBase64, "base64"));
+      const inputBuffer = Buffer.from(audioBase64, "base64");
+      if (!isValidAudioBuffer(inputBuffer)) {
+        throw new Error("Audio incompleto. Mantén el micrófono activo y habla un poco más.");
+      }
+      fs.writeFileSync(inputPath, inputBuffer);
       await this.convertToWav(inputPath, wavPath);
 
       const cli = this.getCliPath();

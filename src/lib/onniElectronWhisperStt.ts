@@ -20,16 +20,23 @@ export async function transcribeOnniElectronWhisper(blob: Blob): Promise<string>
 
   const whisper = window.onniversDesktop?.whisper;
   if (!whisper?.transcribe) {
-    throw new Error("Whisper no está disponible en este OnniVers.");
+    throw new Error("Whisper no está disponible en este OnniVers. Cierra y abre el instalador nuevo.");
   }
 
   const audioBase64 = await blobToBase64(blob);
-  const result = await whisper.transcribe({
-    audioBase64,
-    mimeType: blob.type || "audio/webm",
-  });
-
-  return String(result?.text ?? "").trim();
+  try {
+    const result = await whisper.transcribe({
+      audioBase64,
+      mimeType: blob.type || "audio/webm",
+    });
+    return String(result?.text ?? "").trim();
+  } catch (error) {
+    const raw = error instanceof Error ? error.message : String(error);
+    if (/EBML|Invalid data|Error opening input|ffmpeg version/i.test(raw)) {
+      throw new Error("No pude leer el audio grabado. Habla cuando veas el micrófono activo e inténtalo otra vez.");
+    }
+    throw error instanceof Error ? error : new Error(raw);
+  }
 }
 
 export function isOnniElectronWhisperAvailable(): boolean {

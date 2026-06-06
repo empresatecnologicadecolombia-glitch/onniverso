@@ -4,8 +4,9 @@ import { transcribeOnniElectronWhisper } from "@/lib/onniElectronWhisperStt";
 
 /** Grabación corta: ~3 s típico, máximo 4 s (usuario pidió máx. 5 s). */
 const SESSION_MAX_MS = 4000;
-const RECORDER_SLICE_MS = 250;
-const MIN_AUDIO_BYTES = 600;
+/** Mínimo antes de cerrar el clip (evita WebM sin cabecera EBML). */
+const MIN_RECORD_MS = 1200;
+const MIN_AUDIO_BYTES = 2000;
 
 type NativeVoiceBridge = {
   startListening: () => void;
@@ -32,13 +33,18 @@ function speakDesktop(text: string) {
   window.speechSynthesis.speak(utterance);
 }
 
+const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
+
 let mediaStream: MediaStream | null = null;
 let mediaRecorder: MediaRecorder | null = null;
-let audioChunks: Blob[] = [];
+let recordedBlob: Blob | null = null;
+let recordingStartedAt = 0;
 let sessionTimer: ReturnType<typeof setTimeout> | null = null;
+let minRecordTimer: ReturnType<typeof setTimeout> | null = null;
 let listeningActive = false;
 let transcribeBusy = false;
 let pendingListen = false;
+let stopRequested = false;
 let lastSttErrorMessage = "";
 let lastSttErrorAt = 0;
 
@@ -48,6 +54,13 @@ function clearSessionTimer() {
   if (sessionTimer) {
     clearTimeout(sessionTimer);
     sessionTimer = null;
+  }
+}
+
+function clearMinRecordTimer() {
+  if (minRecordTimer) {
+    clearTimeout(minRecordTimer);
+    minRecordTimer = null;
   }
 }
 
@@ -109,28 +122,37 @@ function dispatchSttError(message: string) {
   });
 }
 
+async function hasValidAudioContainer(blob: Blob): Promise<boolean> {
+  if (blob.size < MIN_AUDIO_BYTES) return false;
+  const header = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+  const isWebm =
+    header[0] === 0x1a && header[1] === 0x45 && header[2] === 0xdf && header[3] === 0xa3;
+  const isOgg =
+    header[0] === 0x4f && header[1] === 0x67 && header[2] === 0x67 && header[3] === 0x53;
+  const isWav =
+    header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46;
+  return isWebm || isOgg || isWav;
+}
+
 async function finalizeRecording() {
   if (transcribeBusy) return;
   transcribeBusy = true;
   clearSessionTimer();
-
-  const chunks = audioChunks;
-  audioChunks = [];
+  clearMinRecordTimer();
   listeningActive = false;
+  stopRequested = false;
 
-  const recorder = mediaRecorder;
+  const blob = recordedBlob;
+  recordedBlob = null;
   mediaRecorder = null;
 
   try {
-    if (chunks.length === 0) {
+    if (!blob || blob.size < MIN_AUDIO_BYTES) {
       dispatchVoiceEvent("voice:error", { code: "empty_audio", message: null });
       return;
     }
 
-    const mimeType = recorder?.mimeType || pickRecorderMimeType() || "audio/webm";
-    const blob = new Blob(chunks, { type: mimeType });
-
-    if (blob.size < MIN_AUDIO_BYTES) {
+    if (!(await hasValidAudioContainer(blob))) {
       dispatchVoiceEvent("voice:error", { code: "empty_audio", message: null });
       return;
     }
@@ -153,25 +175,88 @@ async function finalizeRecording() {
   }
 }
 
-function stopRecorderTracks() {
+async function stopRecorderTracks() {
   clearSessionTimer();
+  stopRequested = true;
+
   const recorder = mediaRecorder;
-  if (!recorder) {
-    void finalizeRecording();
-    return;
-  }
-  if (recorder.state === "inactive") {
-    void finalizeRecording();
-    return;
-  }
-  try {
-    if (typeof recorder.requestData === "function") {
-      recorder.requestData();
+  if (!recorder || recorder.state === "inactive") {
+    if (recordedBlob) {
+      await finalizeRecording();
+    } else {
+      dispatchVoiceEvent("voice:error", { code: "empty_audio", message: null });
+      listeningActive = false;
+      dispatchVoiceEvent("voice:end");
+      schedulePendingListen();
     }
-    recorder.stop();
-  } catch {
-    void finalizeRecording();
+    return;
   }
+
+  const elapsed = Date.now() - recordingStartedAt;
+  const waitMs = Math.max(0, MIN_RECORD_MS - elapsed);
+  if (waitMs > 0) {
+    await sleep(waitMs);
+  }
+
+  if (!mediaRecorder || mediaRecorder.state === "inactive") {
+    if (recordedBlob) {
+      await finalizeRecording();
+    }
+    return;
+  }
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const active = mediaRecorder;
+      if (!active) {
+        resolve();
+        return;
+      }
+
+      active.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedBlob = event.data;
+        }
+      };
+      active.onstop = () => resolve();
+      active.onerror = () => reject(new Error("audio"));
+
+      try {
+        active.stop();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  } catch {
+    listeningActive = false;
+    dispatchVoiceEvent("voice:error", {
+      code: "audio",
+      message: "Falló la captura de audio. Cierra otras apps que usen el micrófono.",
+    });
+    dispatchVoiceEvent("voice:end");
+    return;
+  }
+
+  await finalizeRecording();
+}
+
+function requestStopRecorder() {
+  if (!listeningActive && !mediaRecorder) return;
+  if (stopRequested && minRecordTimer) return;
+
+  clearMinRecordTimer();
+  const elapsed = Date.now() - recordingStartedAt;
+  const waitMs = Math.max(0, MIN_RECORD_MS - elapsed);
+
+  if (waitMs > 0) {
+    minRecordTimer = setTimeout(() => {
+      minRecordTimer = null;
+      void stopRecorderTracks();
+    }, waitMs);
+    return;
+  }
+
+  void stopRecorderTracks();
 }
 
 async function startListeningSession() {
@@ -182,7 +267,9 @@ async function startListeningSession() {
   }
 
   listeningActive = true;
-  audioChunks = [];
+  stopRequested = false;
+  recordedBlob = null;
+  recordingStartedAt = Date.now();
 
   try {
     const stream = await ensureMicrophoneStream();
@@ -191,13 +278,14 @@ async function startListeningSession() {
     mediaRecorder = recorder;
 
     recorder.ondataavailable = (event) => {
-      if (event.data.size > 0) audioChunks.push(event.data);
-    };
-    recorder.onstop = () => {
-      void finalizeRecording();
+      if (event.data.size > 0) {
+        recordedBlob = event.data;
+      }
     };
     recorder.onerror = () => {
       listeningActive = false;
+      mediaRecorder = null;
+      recordedBlob = null;
       dispatchVoiceEvent("voice:error", {
         code: "audio",
         message: "Falló la captura de audio. Cierra otras apps que usen el micrófono.",
@@ -207,8 +295,9 @@ async function startListeningSession() {
     };
 
     dispatchVoiceEvent("voice:start");
-    recorder.start(RECORDER_SLICE_MS);
-    sessionTimer = setTimeout(() => stopRecorderTracks(), SESSION_MAX_MS);
+    // Un solo blob al detener: WebM válido con cabecera EBML (timeslice rompe clips en Electron).
+    recorder.start();
+    sessionTimer = setTimeout(() => requestStopRecorder(), SESSION_MAX_MS);
   } catch (error) {
     listeningActive = false;
     releaseStream();
@@ -237,7 +326,7 @@ const mediaRecorderBridge: NativeVoiceBridge = {
   stopListening() {
     pendingListen = false;
     if (!listeningActive && !mediaRecorder) return;
-    stopRecorderTracks();
+    requestStopRecorder();
   },
   speak: speakDesktop,
   stopSpeaking() {
