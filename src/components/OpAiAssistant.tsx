@@ -492,7 +492,7 @@ export default function OpAiAssistant() {
             )}
             {isOnniAndroidVoice() && nativeWakeListening && (
               <p className="text-[10px] font-medium text-emerald-300/90">
-                Escuchando… di «Hola Onni, llévame a…» en una sola frase.
+                Escuchando… di «Hola Onni, llévame a…» en una frase. Toca el mic para cancelar.
               </p>
             )}
             {supportsNativeWakeSwitch &&
