@@ -65,8 +65,6 @@ export function useOnniChatVoice() {
   const speakPauseUntilRef = useRef(0);
   const followUpUntilRef = useRef(0);
   const nativeHandoffRef = useRef<Promise<void>>(Promise.resolve());
-  /** APK: mic ON hasta transcribir un comando; luego apaga (A). Reabre sesión Google si aún no hay comando (B). */
-  const androidMicAwaitingCommandRef = useRef(true);
 
   const usesOneShotNativeMic = voiceMode === "native";
   /** Switch «Hola Onni» en .exe; en APK solo botón micrófono (isOnniAndroidVoice). */
@@ -74,7 +72,6 @@ export function useOnniChatVoice() {
 
   const resumeAndroidWakeSession = useCallback(() => {
     if (!isOnniAndroidVoice() || !wakeActiveRef.current || captureActiveRef.current) return;
-    if (!androidMicAwaitingCommandRef.current) return;
     if (!startNativeVoiceListening()) {
       wakeActiveRef.current = false;
       setNativeWakeListening(false);
@@ -232,7 +229,6 @@ export function useOnniChatVoice() {
     setNativeWakeListening(false);
     lastWakeHandledRef.current = "";
     followUpUntilRef.current = 0;
-    androidMicAwaitingCommandRef.current = true;
     clearNativeRestartTimer();
 
     if (captureActiveRef.current) {
@@ -305,7 +301,6 @@ export function useOnniChatVoice() {
 
       wakeActiveRef.current = true;
       setNativeWakeListening(true);
-      androidMicAwaitingCommandRef.current = true;
 
       if (isOnniAndroidVoice()) {
         if (!startNativeVoiceListening()) {
@@ -394,16 +389,19 @@ export function useOnniChatVoice() {
       }
 
       if (!command) {
-        if (isOnniAndroidVoice()) androidMicAwaitingCommandRef.current = false;
         wakeCallbacksRef.current?.onWakeWithoutCommand?.();
-        scheduleNativeRestart();
+      } else {
+        wakeCallbacksRef.current?.onWake(command);
+      }
+
+      if (isOnniAndroidVoice()) {
+        stopNativeWakeListening();
         return;
       }
-      if (isOnniAndroidVoice()) androidMicAwaitingCommandRef.current = false;
-      wakeCallbacksRef.current?.onWake(command);
+
       scheduleNativeRestart();
     },
-    [deliverCaptureTranscript, scheduleNativeRestart],
+    [deliverCaptureTranscript, scheduleNativeRestart, stopNativeWakeListening],
   );
 
   const startVoiceCapture = useCallback(
@@ -558,10 +556,6 @@ export function useOnniChatVoice() {
           setNativeWakeListening(false);
           return;
         }
-        if (!androidMicAwaitingCommandRef.current) {
-          stopNativeWakeListening();
-          return;
-        }
         resumeAndroidWakeSession();
         return;
       }
@@ -587,11 +581,7 @@ export function useOnniChatVoice() {
         if (captureActiveRef.current) {
           releaseCaptureSession();
         } else if (isOnniAndroidVoice() && wakeActiveRef.current) {
-          if (androidMicAwaitingCommandRef.current) {
-            resumeAndroidWakeSession();
-          } else {
-            stopNativeWakeListening();
-          }
+          resumeAndroidWakeSession();
         } else if (isNativeSessionActive()) {
           scheduleNativeRestart();
         }
