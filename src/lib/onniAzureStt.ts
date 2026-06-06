@@ -3,6 +3,8 @@ import { stopAzureVoice } from "@/lib/onniAzureTts";
 
 const TARGET_SAMPLE_RATE = 16_000;
 const MAX_RECORD_MS = 25_000;
+/** Duración de cada turno con el switch «Escuchar» activo (Android). */
+export const AZURE_SWITCH_CHUNK_MS = 9_000;
 
 type ActiveSession = {
   recorder: MediaRecorder;
@@ -122,7 +124,9 @@ async function blobToBase64(blob: Blob): Promise<string> {
   return btoa(binary);
 }
 
-export async function startAzureMicRecording(): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function startAzureMicRecording(
+  maxRecordMs = MAX_RECORD_MS,
+): Promise<{ ok: true } | { ok: false; error: string }> {
   if (activeSession) {
     return { ok: false, error: "El micrófono ya está activo." };
   }
@@ -164,7 +168,7 @@ export async function startAzureMicRecording(): Promise<{ ok: true } | { ok: fal
       if (activeSession?.recorder === recorder && recorder.state === "recording") {
         recorder.stop();
       }
-    }, MAX_RECORD_MS);
+    }, maxRecordMs);
 
     return { ok: true };
   } catch {
