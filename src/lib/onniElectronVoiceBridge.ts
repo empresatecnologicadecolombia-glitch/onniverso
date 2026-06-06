@@ -13,6 +13,54 @@ type NativeVoiceBridge = {
   stopSpeaking: () => void;
 };
 
+let resolvedBridge: NativeVoiceBridge | null | undefined;
+let resolveBridgePromise: Promise<NativeVoiceBridge | null> | null = null;
+
+function dispatchVoiceEvent(name: string, detail?: unknown) {
+  window.dispatchEvent(new CustomEvent(name, { detail }));
+}
+
+function speakDesktop(text: string) {
+  if (!text.trim() || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  const clean = text.replace(/\n+/g, ". ").trim();
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(clean);
+  const voice = pickOnniSpanishVoice(window.speechSynthesis.getVoices());
+  utterance.lang = voice?.lang ?? "es-CO";
+  if (voice) utterance.voice = voice;
+  window.speechSynthesis.speak(utterance);
+}
+
+function getWindowsIpcBridge(): NativeVoiceBridge | null {
+  const voice = window.onniversDesktop?.voice;
+  if (!voice?.startListening || !voice?.stopListening) return null;
+  return {
+    startListening() {
+      void voice.startListening?.().then((started) => {
+        if (started === false) {
+          dispatchVoiceEvent("voice:error", {
+            code: "not_available",
+            message:
+              "Voz de Windows no disponible. Reinstala OnniVers o activa Español en Configuración → Hora e idioma → Voz.",
+          });
+          dispatchVoiceEvent("voice:end");
+        }
+      });
+    },
+    stopListening() {
+      void voice.stopListening?.();
+    },
+    speak: speakDesktop,
+    stopSpeaking() {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    },
+  };
+}
+
+// --- Fallback: grabación + Gemini STT (cuando no hay voz nativa de Windows) ---
+
 let mediaStream: MediaStream | null = null;
 let mediaRecorder: MediaRecorder | null = null;
 let audioChunks: Blob[] = [];
@@ -24,10 +72,6 @@ let lastSttErrorMessage = "";
 let lastSttErrorAt = 0;
 
 const STT_ERROR_COOLDOWN_MS = 20000;
-
-function dispatchVoiceEvent(name: string, detail?: unknown) {
-  window.dispatchEvent(new CustomEvent(name, { detail }));
-}
 
 function clearSessionTimer() {
   if (sessionTimer) {
@@ -63,17 +107,6 @@ function pickRecorderMimeType(): string | undefined {
   const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus"];
   if (typeof MediaRecorder === "undefined") return undefined;
   return candidates.find((type) => MediaRecorder.isTypeSupported(type));
-}
-
-function speakDesktop(text: string) {
-  if (!text.trim() || typeof window === "undefined" || !("speechSynthesis" in window)) return;
-  const clean = text.replace(/\n+/g, ". ").trim();
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(clean);
-  const voice = pickOnniSpanishVoice(window.speechSynthesis.getVoices());
-  utterance.lang = voice?.lang ?? "es-CO";
-  if (voice) utterance.voice = voice;
-  window.speechSynthesis.speak(utterance);
 }
 
 function schedulePendingListen() {
@@ -223,7 +256,7 @@ async function startListeningSession() {
   }
 }
 
-const electronVoiceBridge: NativeVoiceBridge = {
+const mediaRecorderBridge: NativeVoiceBridge = {
   startListening() {
     if (listeningActive) return;
     if (transcribeBusy) {
@@ -237,12 +270,7 @@ const electronVoiceBridge: NativeVoiceBridge = {
     if (!listeningActive && !mediaRecorder) return;
     stopRecorderTracks();
   },
-  speak(text: string) {
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
-    speakDesktop(text);
-  },
+  speak: speakDesktop,
   stopSpeaking() {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
@@ -250,9 +278,46 @@ const electronVoiceBridge: NativeVoiceBridge = {
   },
 };
 
-export function getElectronVoiceBridge(): NativeVoiceBridge | null {
-  if (!isElectronDesktopApp()) return null;
+function getMediaRecorderBridge(): NativeVoiceBridge | null {
   if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) return null;
   if (typeof MediaRecorder === "undefined") return null;
-  return electronVoiceBridge;
+  return mediaRecorderBridge;
+}
+
+async function pickElectronVoiceBridge(): Promise<NativeVoiceBridge | null> {
+  if (!isElectronDesktopApp()) return null;
+
+  const windowsBridge = getWindowsIpcBridge();
+  if (windowsBridge && window.onniversDesktop?.voice?.isAvailable) {
+    try {
+      const available = await window.onniversDesktop.voice.isAvailable();
+      if (available) return windowsBridge;
+    } catch {
+      /* fallback below */
+    }
+  }
+
+  return getMediaRecorderBridge();
+}
+
+/** Resuelve una sola vez si usar voz nativa de Windows o fallback Gemini STT. */
+export function warmUpElectronVoiceBridge(): Promise<NativeVoiceBridge | null> {
+  if (resolvedBridge !== undefined) {
+    return Promise.resolve(resolvedBridge);
+  }
+  if (!resolveBridgePromise) {
+    resolveBridgePromise = pickElectronVoiceBridge().then((bridge) => {
+      resolvedBridge = bridge;
+      return bridge;
+    });
+  }
+  return resolveBridgePromise;
+}
+
+export function getElectronVoiceBridge(): NativeVoiceBridge | null {
+  if (resolvedBridge !== undefined) return resolvedBridge;
+  if (window.onniversDesktop?.windowsNativeVoice && getWindowsIpcBridge()) {
+    return getWindowsIpcBridge();
+  }
+  return getMediaRecorderBridge();
 }

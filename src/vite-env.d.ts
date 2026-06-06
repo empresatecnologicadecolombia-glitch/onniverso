@@ -52,5 +52,11 @@ interface Window {
     platform?: string;
     version?: string;
     isDesktopApp?: boolean;
+    windowsNativeVoice?: boolean;
+    voice?: {
+      isAvailable?: () => Promise<boolean>;
+      startListening?: () => Promise<boolean>;
+      stopListening?: () => Promise<boolean>;
+    };
   };
 }

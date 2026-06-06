@@ -1,5 +1,6 @@
-const { app, BrowserWindow, shell, session, systemPreferences } = require("electron");
-const path = require("path");
+const { app, BrowserWindow, shell, session, systemPreferences, ipcMain } = require("electron");
+const path = require("node:path");
+const { WinSpeechEngine } = require("./winSpeechEngine.cjs");
 
 const START_URL = process.env.ONNIVERS_URL || "https://onnivers.com";
 
@@ -21,6 +22,8 @@ const ALLOWED_PERMISSIONS = new Set([
 
 /** @type {import("electron").BrowserWindow | null} */
 let mainWindow = null;
+/** @type {WinSpeechEngine | null} */
+let winSpeechEngine = null;
 
 function isMediaPermission(permission, details) {
   if (ALLOWED_PERMISSIONS.has(permission)) return true;
@@ -65,6 +68,37 @@ async function ensureOsMediaAccess() {
   }
 }
 
+function getWinSpeechEngine() {
+  if (process.platform !== "win32") return null;
+  if (!winSpeechEngine) {
+    winSpeechEngine = new WinSpeechEngine(mainWindow?.webContents ?? null);
+  } else if (mainWindow?.webContents) {
+    winSpeechEngine.setWebContents(mainWindow.webContents);
+  }
+  return winSpeechEngine;
+}
+
+function registerVoiceIpc() {
+  ipcMain.handle("onnivers:voice:isAvailable", async () => {
+    const engine = getWinSpeechEngine();
+    if (!engine) return false;
+    return engine.probe();
+  });
+
+  ipcMain.handle("onnivers:voice:start", async () => {
+    const engine = getWinSpeechEngine();
+    if (!engine) return false;
+    return engine.start();
+  });
+
+  ipcMain.handle("onnivers:voice:stop", async () => {
+    const engine = getWinSpeechEngine();
+    if (!engine) return false;
+    engine.stop();
+    return true;
+  });
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1366,
@@ -89,6 +123,10 @@ function createWindow() {
     mainWindow?.show();
   });
 
+  mainWindow.webContents.on("did-finish-load", () => {
+    getWinSpeechEngine()?.setWebContents(mainWindow.webContents);
+  });
+
   void mainWindow.loadURL(START_URL);
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -97,6 +135,11 @@ function createWindow() {
     }
     return { action: "deny" };
   });
+
+  mainWindow.on("closed", () => {
+    mainWindow = null;
+    getWinSpeechEngine()?.setWebContents(null);
+  });
 }
 
 app.commandLine.appendSwitch("enable-features", "WebRtcAllowInputVolumeAdjustment");
@@ -104,6 +147,7 @@ app.commandLine.appendSwitch("enable-usermedia-screen-capturing");
 
 app.whenReady().then(async () => {
   configureMediaPermissions(session.defaultSession);
+  registerVoiceIpc();
   await ensureOsMediaAccess();
   createWindow();
 
@@ -115,6 +159,8 @@ app.whenReady().then(async () => {
 });
 
 app.on("window-all-closed", () => {
+  winSpeechEngine?.dispose();
+  winSpeechEngine = null;
   if (process.platform !== "darwin") {
     app.quit();
   }

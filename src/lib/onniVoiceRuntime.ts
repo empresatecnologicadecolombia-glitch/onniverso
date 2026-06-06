@@ -54,7 +54,7 @@ export function markPreferNativeVoice(): void {
 /**
  * PC navegador: Web Speech API (Chrome/Edge).
  * APK Android: micrófono y reconocimiento nativos (AndroidBridge).
- * OnniVers .exe: captura de micrófono + transcripción Gemini (Web Speech no escucha en Electron).
+ * OnniVers .exe: voz nativa de Windows (WinRT) o captura + Gemini STT como respaldo.
  */
 export function getOnniVoiceMode(): OnniVoiceMode {
   if (isDesktopWebBrowser()) {

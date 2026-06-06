@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isDesktopWebBrowser, isElectronDesktopApp } from "@/lib/deviceDetection";
+import { warmUpElectronVoiceBridge } from "@/lib/onniElectronVoiceBridge";
 import {
   parseNativeVoiceErrorDetail,
   isNativeVoiceSoftError,
@@ -49,6 +50,13 @@ export function useOnniChatVoice() {
   const wakeCallbacksRef = useRef<NativeWakeCallbacks | null>(null);
   const captureActiveRef = useRef(false);
   const wakeActiveRef = useRef(false);
+
+  useEffect(() => {
+    if (!isElectronDesktopApp()) return;
+    void warmUpElectronVoiceBridge().then(() => {
+      setVoiceMode(getOnniVoiceMode());
+    });
+  }, []);
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastWakeHandledRef = useRef("");
   const speakPauseUntilRef = useRef(0);
@@ -542,7 +550,9 @@ export function useOnniChatVoice() {
       ? "Voz del navegador"
       : voiceMode === "native"
         ? isElectronDesktopApp()
-          ? "Voz OnniVers (.exe)"
+          ? window.onniversDesktop?.windowsNativeVoice
+            ? "Voz Windows (.exe)"
+            : "Voz OnniVers (.exe)"
           : "Voz nativa Android"
         : "Voz no disponible";
 

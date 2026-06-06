@@ -47,7 +47,10 @@ export function formatNativeVoiceErrorMessage(code: string, fallback?: string): 
     case "permission_denied":
       return "Activa el micrófono: Ajustes → Apps → OnniVers → Permisos → Micrófono.";
     case "not_available":
-      return "Este celular no tiene reconocimiento de voz disponible.";
+      return (
+        fallback?.trim() ||
+        "Activa el reconocimiento de voz en español: Configuración → Hora e idioma → Voz."
+      );
     case "4":
     case "server":
       return "El servicio de voz no respondió. Inténtalo en unos segundos.";
