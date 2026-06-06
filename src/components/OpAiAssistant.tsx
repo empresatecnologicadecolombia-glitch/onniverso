@@ -24,7 +24,7 @@ import { shouldShowNativeVoiceError } from "@/lib/onniNativeVoiceErrors";
 import { useOnniChatVoice } from "@/hooks/useOnniChatVoice";
 import { useOnniVoice, useOnniVoicePrefs } from "@/hooks/useOnniVoice";
 import { useAuth } from "@/hooks/useAuth";
-import { isDesktopWebBrowser, isElectronDesktopApp } from "@/lib/deviceDetection";
+import { isDesktopWebBrowser, isElectronDesktopApp, isAndroidNativeApp } from "@/lib/deviceDetection";
 import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -94,6 +94,8 @@ export default function OpAiAssistant() {
     stopNativeWakeListening,
     usesContinuousMic,
     usesOneShotNativeMic,
+    usesAndroidMicToggle,
+    usesElectronOneShotMic,
     supportsNativeWakeSwitch,
     canListen,
     canSpeak,
@@ -421,7 +423,7 @@ export default function OpAiAssistant() {
             <OnniAvatar size="md" state={avatarState} className="mt-0.5" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-cyan-100">Onni</p>
-              {canListen && (isDesktopWebBrowser() || supportsNativeWakeSwitch) && (
+              {canListen && !isAndroidNativeApp() && (isDesktopWebBrowser() || supportsNativeWakeSwitch) && (
                 <div className="mt-1.5 flex items-center gap-2">
                   <Switch
                     id="onni-wake-listen"
@@ -458,7 +460,12 @@ export default function OpAiAssistant() {
               </div>
             ))}
             <p className="text-[11px] text-muted-foreground">{hint}</p>
-            {usesOneShotNativeMic && captureMicActive && (
+            {usesAndroidMicToggle && captureMicActive && (
+              <p className="text-[10px] font-medium text-emerald-300/90">
+                Grabando… pulsa el micrófono otra vez para enviar tu pedido a Onni.
+              </p>
+            )}
+            {usesElectronOneShotMic && captureMicActive && (
               <p className="text-[10px] font-medium text-emerald-300/90">
                 Escuchando en OnniVers… di tu pedido completo (ej. «llévame a clases»).
               </p>
@@ -543,16 +550,20 @@ export default function OpAiAssistant() {
                   onContextMenu={(event) => event.preventDefault()}
                   aria-label={
                     captureMicActive
-                      ? usesOneShotNativeMic
-                        ? "Detener micrófono de Onni"
-                        : usesContinuousMic
+                      ? usesAndroidMicToggle
+                        ? "Detener y enviar a Onni"
+                        : usesOneShotNativeMic
                           ? "Detener micrófono de Onni"
-                          : "Soltar micrófono de Onni"
-                      : usesOneShotNativeMic
-                        ? "Pulsa y di tu pedido a Onni"
-                        : usesContinuousMic
-                          ? "Activar micrófono de Onni (escucha continua)"
-                          : "Mantener pulsado para hablar con Onni"
+                          : usesContinuousMic
+                            ? "Detener micrófono de Onni"
+                            : "Soltar micrófono de Onni"
+                      : usesAndroidMicToggle
+                        ? "Tocar para hablar con Onni"
+                        : usesOneShotNativeMic
+                          ? "Pulsa y di tu pedido a Onni"
+                          : usesContinuousMic
+                            ? "Activar micrófono de Onni (escucha continua)"
+                            : "Mantener pulsado para hablar con Onni"
                   }
                 >
                   {captureMicActive ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
