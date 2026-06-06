@@ -247,7 +247,8 @@ export default function OpAiAssistant() {
   const captureMicActive = voiceCaptureActive;
 
   const nativeWakeActive =
-    supportsNativeWakeSwitch && canListen && listenEnabled && !processing && !voiceCaptureActive;
+    (supportsNativeWakeSwitch && canListen && listenEnabled && !processing && !voiceCaptureActive) ||
+    (isAndroidNativeApp() && canListen && !processing && !voiceCaptureActive);
 
   const { isListening: wakeListening, isSpeaking: wakeSpeaking } = useOnniVoice({
     enabled: wakeWordActive,
@@ -468,6 +469,11 @@ export default function OpAiAssistant() {
             {usesContinuousMic && captureMicActive && (
               <p className="text-[10px] font-medium text-emerald-300/90">
                 Micrófono activo — habla cuando quieras. Pulsa el micrófono otra vez para apagar.
+              </p>
+            )}
+            {isAndroidNativeApp() && nativeWakeListening && !captureMicActive && (
+              <p className="text-[10px] font-medium text-emerald-300/90">
+                Onni te escucha — di «Hola Onni» + tu pedido, o usa el micrófono.
               </p>
             )}
             {supportsNativeWakeSwitch && nativeWakeListening && listenEnabled && !captureMicActive && (
