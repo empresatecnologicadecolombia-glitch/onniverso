@@ -2,8 +2,8 @@ import { isElectronDesktopApp } from "@/lib/deviceDetection";
 import { pickOnniSpanishVoice } from "@/lib/onniVoice";
 import { transcribeOnniElectronWhisper } from "@/lib/onniElectronWhisperStt";
 
-/** Grabación corta: ~3 s típico, máximo 4 s (usuario pidió máx. 5 s). */
-const SESSION_MAX_MS = 4000;
+/** Grabación corta: máximo 5 s (usuario pidió 3–5 s). */
+const SESSION_MAX_MS = 5000;
 /** Mínimo antes de cerrar el clip (evita WebM sin cabecera EBML). */
 const MIN_RECORD_MS = 1200;
 const MIN_AUDIO_BYTES = 2000;

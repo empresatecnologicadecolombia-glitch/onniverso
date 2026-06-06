@@ -20,8 +20,28 @@ export function normalizeVoiceText(input: string): string {
     .trim();
 }
 
+/** Corrige errores típicos de Whisper al transcribir «Onni». */
+export function normalizeWhisperWakeText(input: string): string {
+  let text = normalizeVoiceText(input);
+  const replacements: Array<[RegExp, string]> = [
+    [/\bhola?\s+only\b/g, "hola onni"],
+    [/\bhola?\s+uni\b/g, "hola onni"],
+    [/\bhola?\s+omni\b/g, "hola onni"],
+    [/\boye\s+only\b/g, "oye onni"],
+    [/\boye\s+uni\b/g, "oye onni"],
+    [/\bhony\b/g, "onni"],
+    [/\bhoni\b/g, "onni"],
+    [/\boh ni\b/g, "onni"],
+    [/\bo ni\b/g, "onni"],
+  ];
+  for (const [pattern, replacement] of replacements) {
+    text = text.replace(pattern, replacement);
+  }
+  return text;
+}
+
 export function parseOnniWakePhrase(transcript: string): { heard: boolean; command: string } {
-  const text = normalizeVoiceText(transcript);
+  const text = normalizeWhisperWakeText(transcript);
 
   const greetingHit = text.match(GREETING_WAKE_RE);
   if (greetingHit) {

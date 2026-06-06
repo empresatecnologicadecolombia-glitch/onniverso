@@ -83,6 +83,7 @@ export default function OpAiAssistant() {
   const {
     voiceListening,
     nativeWakeListening,
+    electronFollowUpActive,
     voiceCaptureActive,
     setVoiceListening,
     speakAnswer,
@@ -429,12 +430,13 @@ export default function OpAiAssistant() {
                     aria-label="Escuchar la palabra Onni"
                   />
                   <Label htmlFor="onni-wake-listen" className="text-[10px] font-normal text-muted-foreground">
-                    Di «Hola Onni» o «Onni…»{" "}
-                    {supportsNativeWakeSwitch
-                      ? isElectronDesktopApp()
-                        ? "(OnniVers PC)"
-                        : "(micrófono nativo)"
-                      : "(sin abrir el chat)"}
+                    {isElectronDesktopApp()
+                      ? "Escucha automática (OnniVers PC)"
+                      : "Di «Hola Onni» o «Onni…»"}{" "}
+                    {!isElectronDesktopApp() &&
+                      (supportsNativeWakeSwitch
+                        ? "(micrófono nativo)"
+                        : "(sin abrir el chat)")}
                   </Label>
                 </div>
               )}
@@ -468,7 +470,11 @@ export default function OpAiAssistant() {
             )}
             {supportsNativeWakeSwitch && nativeWakeListening && listenEnabled && !captureMicActive && (
               <p className="text-[10px] font-medium text-emerald-300/90">
-                Onni te escucha — di «Hola Onni» o «Onni…» + tu pedido.
+                {isElectronDesktopApp()
+                  ? electronFollowUpActive
+                    ? "Te escucho — di tu pedido (sin repetir «Hola Onni»)."
+                    : "Di «Hola Onni, llévame a…» en una frase, o solo «Hola Onni» y luego tu pedido."
+                  : "Onni te escucha — di «Hola Onni» o «Onni…» + tu pedido."}
               </p>
             )}
           </div>

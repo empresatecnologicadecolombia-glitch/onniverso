@@ -35,6 +35,8 @@ export type NativeWakeCallbacks = {
 const NATIVE_RESTART_MS = 900;
 const NATIVE_MIC_HANDOFF_MS = 480;
 const NATIVE_SPEAK_PAUSE_MS = 2200;
+/** Tras «Hola Onni», aceptar el siguiente pedido sin repetir la palabra clave. */
+const ELECTRON_FOLLOW_UP_MS = 30_000;
 
 const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 
@@ -43,6 +45,7 @@ export function useOnniChatVoice() {
   const voiceModeRef = useRef(voiceMode);
   const [voiceListening, setVoiceListening] = useState(false);
   const [nativeWakeListening, setNativeWakeListening] = useState(false);
+  const [electronFollowUpActive, setElectronFollowUpActive] = useState(false);
   const [voiceCaptureActive, setVoiceCaptureActive] = useState(false);
   const stopWebCaptureRef = useRef<(() => void) | null>(null);
   const pendingTranscriptRef = useRef("");
@@ -60,10 +63,21 @@ export function useOnniChatVoice() {
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastWakeHandledRef = useRef("");
   const speakPauseUntilRef = useRef(0);
+  const followUpUntilRef = useRef(0);
   const nativeHandoffRef = useRef<Promise<void>>(Promise.resolve());
 
   const usesOneShotNativeMic = voiceMode === "native";
   const supportsNativeWakeSwitch = usesOneShotNativeMic;
+
+  useEffect(() => {
+    if (!isElectronDesktopApp()) return;
+    const tick = () => {
+      setElectronFollowUpActive(Date.now() < followUpUntilRef.current);
+    };
+    tick();
+    const id = window.setInterval(tick, 500);
+    return () => window.clearInterval(id);
+  }, []);
 
   useEffect(() => {
     voiceModeRef.current = voiceMode;
@@ -192,6 +206,7 @@ export function useOnniChatVoice() {
     wakeActiveRef.current = false;
     setNativeWakeListening(false);
     lastWakeHandledRef.current = "";
+    followUpUntilRef.current = 0;
     clearNativeRestartTimer();
 
     if (captureActiveRef.current) {
@@ -314,6 +329,18 @@ export function useOnniChatVoice() {
 
       pendingTranscriptRef.current = "";
       const { heard, command } = parseOnniWakePhrase(trimmed);
+      const inFollowUp =
+        isElectronDesktopApp() && Date.now() < followUpUntilRef.current;
+
+      if (!heard && inFollowUp && trimmed.length > 2) {
+        followUpUntilRef.current = Date.now() + ELECTRON_FOLLOW_UP_MS;
+        speakPauseUntilRef.current = Date.now() + NATIVE_SPEAK_PAUSE_MS;
+        lastWakeHandledRef.current = `${trimmed}|${trimmed}`;
+        wakeCallbacksRef.current?.onWake(trimmed);
+        scheduleNativeRestart();
+        return;
+      }
+
       if (!heard) return;
 
       const signature = `${command}|${trimmed}`;
@@ -321,6 +348,10 @@ export function useOnniChatVoice() {
       lastWakeHandledRef.current = signature;
 
       speakPauseUntilRef.current = Date.now() + NATIVE_SPEAK_PAUSE_MS;
+
+      if (isElectronDesktopApp()) {
+        followUpUntilRef.current = Date.now() + ELECTRON_FOLLOW_UP_MS;
+      }
 
       if (!command) {
         wakeCallbacksRef.current?.onWakeWithoutCommand?.();
@@ -568,6 +599,7 @@ export function useOnniChatVoice() {
     toggleVoiceCapture,
     startNativeWakeListening,
     stopNativeWakeListening,
+    electronFollowUpActive,
     usesContinuousMic: false,
     usesOneShotNativeMic,
     supportsNativeWakeSwitch,

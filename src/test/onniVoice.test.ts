@@ -25,6 +25,17 @@ describe("parseOnniWakePhrase", () => {
     });
   });
 
+  it("corrige variantes tipicas de Whisper", () => {
+    expect(parseOnniWakePhrase("hola only llevame al lobby")).toEqual({
+      heard: true,
+      command: "llevame al lobby",
+    });
+    expect(parseOnniWakePhrase("hola uni que hora es")).toEqual({
+      heard: true,
+      command: "que hora es",
+    });
+  });
+
   it("ignora frases sin palabra de activacion", () => {
     expect(parseOnniWakePhrase("llevame al lobby").heard).toBe(false);
   });

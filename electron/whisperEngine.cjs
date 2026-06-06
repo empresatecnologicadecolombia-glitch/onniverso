@@ -205,6 +205,8 @@ class WhisperEngine {
         "es",
         "-nt",
         "-np",
+        "--prompt",
+        "Onni, español colombiano, hola onni, navegación web, conciertos, clases, lobby",
       ]);
 
       const text = stdout
