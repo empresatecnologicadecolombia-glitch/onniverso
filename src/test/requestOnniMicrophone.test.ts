@@ -27,4 +27,16 @@ describe("requestOnniMicrophoneAccess", () => {
     await expect(requestOnniMicrophoneAccess()).resolves.toBe("granted");
     expect(stop).toHaveBeenCalled();
   });
+
+  it("Omite getUserMedia en OnniVers .exe con voz Windows", async () => {
+    window.onniversDesktop = {
+      isDesktopApp: true,
+      voice: { startListening: vi.fn(), stopListening: vi.fn() },
+    };
+    const getUserMedia = vi.fn();
+    vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } });
+    await expect(requestOnniMicrophoneAccess()).resolves.toBe("granted");
+    expect(getUserMedia).not.toHaveBeenCalled();
+    delete window.onniversDesktop;
+  });
 });

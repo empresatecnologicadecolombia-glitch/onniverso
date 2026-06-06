@@ -1,13 +1,24 @@
+import { isElectronDesktopApp } from "@/lib/deviceDetection";
+
 type MicPermissionStatus = "granted" | "denied" | "unsupported";
 
 function isValidCallbackName(name: string): boolean {
   return /^[a-zA-Z_$][\w$]*$/.test(name);
 }
 
+/** Voz WinRT en .exe: el micrófono lo usa onni-win-speech.exe, no getUserMedia. */
+function usesElectronWindowsNativeVoice(): boolean {
+  return (
+    isElectronDesktopApp() &&
+    typeof window.onniversDesktop?.voice?.startListening === "function"
+  );
+}
+
 /**
  * Pide permiso de micrófono para Onni.
  * - APK Android: diálogo nativo vía AndroidBridge.
- * - Navegador: getUserMedia (dispara el popup del sistema / sitio).
+ * - OnniVers .exe con voz Windows: no requiere getUserMedia.
+ * - Navegador / fallback Electron: getUserMedia.
  */
 export function requestOnniMicrophoneAccess(): Promise<MicPermissionStatus> {
   const nativeRequest = window.AndroidBridge?.requestOnniMicrophonePermission;
@@ -26,6 +37,10 @@ export function requestOnniMicrophoneAccess(): Promise<MicPermissionStatus> {
         resolve("unsupported");
       }
     });
+  }
+
+  if (usesElectronWindowsNativeVoice()) {
+    return Promise.resolve("granted");
   }
 
   if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
@@ -47,6 +62,9 @@ export function requestOnniMicrophoneAccess(): Promise<MicPermissionStatus> {
 }
 
 export function onniMicDeniedMessage(): string {
+  if (usesElectronWindowsNativeVoice() || isElectronDesktopApp()) {
+    return "Permite el micrófono: Configuración de Windows → Privacidad → Micrófono → OnniVers.";
+  }
   const isNative = typeof window.AndroidBridge?.requestOnniMicrophonePermission === "function";
   if (isNative) {
     return "Activa el micrófono: Ajustes → Apps → ViveVR → Permisos → Micrófono → Permitir.";
