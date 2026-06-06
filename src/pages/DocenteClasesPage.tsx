@@ -12,6 +12,11 @@ import { toast } from "sonner";
 import DocenteContentLibraryPanel from "@/components/docente/DocenteContentLibraryPanel";
 import { onOpCommand } from "@/lib/opCommandBus";
 
+const ONNI_DOCENTE_RETRY_MS = 450;
+const ONNI_DOCENTE_MAX_ATTEMPTS = 8;
+
+const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
+
 type AulaCard = {
   id: string;
   slug: string;
@@ -110,6 +115,7 @@ export default function DocenteClasesPage() {
 
   const canManage = useMemo(() => role === "docente" || role === "admin", [role]);
   const pendingOnniDocenteRef = useRef<"start" | "enter" | null>(null);
+  const onniDocenteRunRef = useRef(0);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -546,27 +552,45 @@ export default function DocenteClasesPage() {
     await enterClassroom(target.id, draft);
   }, [canManage, saving, aulas, drafts]);
 
+  const runDocenteOnniAction = useCallback(
+    async (action: "start" | "enter") => {
+      const runId = ++onniDocenteRunRef.current;
+      for (let attempt = 0; attempt < ONNI_DOCENTE_MAX_ATTEMPTS; attempt += 1) {
+        if (runId !== onniDocenteRunRef.current) return;
+        if (!canManage) return;
+        if (loading || saving) {
+          await sleep(ONNI_DOCENTE_RETRY_MS);
+          continue;
+        }
+        if (action === "start") await startClassFromOnni();
+        else await enterClassFromOnni();
+        return;
+      }
+      toast.message("Onni sigue esperando — termina de cargar el panel e inténtalo otra vez.");
+    },
+    [canManage, loading, saving, startClassFromOnni, enterClassFromOnni],
+  );
+
   useEffect(() => {
     return onOpCommand((cmd) => {
       if (cmd.type === "docente.startClass") {
         pendingOnniDocenteRef.current = "start";
-        if (!loading && canManage) void startClassFromOnni();
+        void runDocenteOnniAction("start");
         return;
       }
       if (cmd.type === "docente.enterClass") {
         pendingOnniDocenteRef.current = "enter";
-        if (!loading && canManage) void enterClassFromOnni();
+        void runDocenteOnniAction("enter");
       }
     });
-  }, [loading, canManage, startClassFromOnni, enterClassFromOnni]);
+  }, [runDocenteOnniAction]);
 
   useEffect(() => {
     const action = pendingOnniDocenteRef.current;
     if (!action || loading || !canManage) return;
     pendingOnniDocenteRef.current = null;
-    if (action === "start") void startClassFromOnni();
-    else void enterClassFromOnni();
-  }, [loading, canManage, aulas.length, startClassFromOnni, enterClassFromOnni]);
+    void runDocenteOnniAction(action);
+  }, [loading, canManage, aulas.length, runDocenteOnniAction]);
 
   const setMemberStatus = async (memberId: string, estado: "approved" | "blocked") => {
     if (saving) return;

@@ -71,6 +71,8 @@ export function useOnniVoicePrefs() {
   return { listenEnabled, setListenEnabled, speakEnabled, setSpeakEnabled };
 }
 
+const WAKE_REPEAT_COOLDOWN_MS = 2_500;
+
 export function useOnniVoice({ enabled, speakEnabled, onWake, onWakeWithoutCommand, onError }: UseOnniVoiceOptions) {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -79,6 +81,7 @@ export function useOnniVoice({ enabled, speakEnabled, onWake, onWakeWithoutComma
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
   const lastHandledRef = useRef("");
+  const lastHandledAtRef = useRef(0);
   const enabledRef = useRef(enabled);
   const callbacksRef = useRef({ onWake, onWakeWithoutCommand, onError });
 
@@ -166,8 +169,15 @@ export function useOnniVoice({ enabled, speakEnabled, onWake, onWakeWithoutComma
       if (!heard) return;
 
       const signature = `${command}|${trimmed}`;
-      if (signature === lastHandledRef.current) return;
+      const now = Date.now();
+      if (
+        signature === lastHandledRef.current &&
+        now - lastHandledAtRef.current < WAKE_REPEAT_COOLDOWN_MS
+      ) {
+        return;
+      }
       lastHandledRef.current = signature;
+      lastHandledAtRef.current = now;
 
       if (!command) {
         callbacksRef.current.onWakeWithoutCommand?.();

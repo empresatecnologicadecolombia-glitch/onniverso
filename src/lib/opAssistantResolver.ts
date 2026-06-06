@@ -64,7 +64,7 @@ function wantsEnterClassPhrase(text: string, core: string): boolean {
 
 function wantsStartClassPhrase(text: string, core: string): boolean {
   return (
-    /\b(iniciar|inicia|inia|inicie|iniciemos|comenzar|comencemos|comence|empezar|empieza|empecemos)\b/.test(
+    /\b(iniciar|inicia|inia|inicie|iniciemos|iniciar la|inicia la|comenzar|comencemos|comence|comenzar la|empezar|empieza|empecemos)\b/.test(
       core,
     ) && /\bclase(s)?\b/.test(core)
   );
@@ -674,8 +674,9 @@ function matchStartDocenteClass(
 ): OpResolveResult | null {
   const core = stripNavVerbs(text) || text;
   const wantsStart =
-    /\b(iniciar|inicia|inia|inicie|iniciemos|comenzar|comencemos|comence|empezar|empieza|empecemos)\b/.test(core) &&
-    /\bclase(s)?\b/.test(core);
+    /\b(iniciar|inicia|inia|inicie|iniciemos|iniciar la|inicia la|comenzar|comencemos|comence|comenzar la|empezar|empieza|empecemos)\b/.test(
+      core,
+    ) && /\bclase(s)?\b/.test(core);
 
   if (!wantsStart) return null;
 
