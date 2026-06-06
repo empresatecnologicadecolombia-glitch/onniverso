@@ -22,6 +22,7 @@ import {
 import { openHomeSocialRedes } from "@/lib/homeSocialRedesOpen";
 import { shouldShowNativeVoiceError } from "@/lib/onniNativeVoiceErrors";
 import { useOnniChatVoice } from "@/hooks/useOnniChatVoice";
+import { useOnniAzureMic } from "@/hooks/useOnniAzureMic";
 import { useOnniVoice, useOnniVoicePrefs } from "@/hooks/useOnniVoice";
 import { useAuth } from "@/hooks/useAuth";
 import { isDesktopWebBrowser, isElectronDesktopApp, isOnniAndroidVoice } from "@/lib/deviceDetection";
@@ -98,6 +99,9 @@ export default function OpAiAssistant() {
     canListen,
     canSpeak,
   } = useOnniChatVoice();
+
+  const { status, isRecording, isProcessing, toggle, cancel, isSupported } = useOnniAzureMic();
+  const showAzureMic = isOnniAndroidVoice() && isSupported;
 
   const { listenEnabled, setListenEnabled } = useOnniVoicePrefs();
   const runCommandRef = useRef<(raw: string) => Promise<string | undefined>>(async () => undefined);
@@ -281,7 +285,11 @@ export default function OpAiAssistant() {
   });
 
   const avatarState =
-    wakeSpeaking ? "speaking" : wakeListening || voiceListening || nativeWakeListening ? "listening" : "idle";
+    wakeSpeaking
+      ? "speaking"
+      : wakeListening || voiceListening || nativeWakeListening || isRecording
+        ? "listening"
+        : "idle";
 
   const nativeWakeCallbacks = useMemo(
     () => ({
@@ -332,6 +340,40 @@ export default function OpAiAssistant() {
       stopNativeWakeListening();
     };
   }, [nativeWakeActive, startNativeWakeListening, stopNativeWakeListening]);
+
+  useEffect(() => {
+    if (!open && showAzureMic) {
+      cancel();
+    }
+  }, [open, showAzureMic, cancel]);
+
+  const azureMicCallbacks = useMemo(
+    () => ({
+      onCommand: (command: string) => {
+        void runCommandRef.current(command);
+      },
+      onWakeWithoutCommand: () => {
+        const prompt = getOnniIntroduction();
+        sessionRef.current.lastAnswer = prompt;
+        if (openRef.current) {
+          setMessages((prev) => [
+            ...prev,
+            { role: "user", text: "Hola Onni" },
+            { role: "assistant", text: prompt },
+          ]);
+        }
+        speakAnswer(prompt);
+      },
+      onError: (message: string) => {
+        if (openRef.current) {
+          setMessages((prev) => [...prev, { role: "assistant", text: message }]);
+        } else {
+          toast.error(message);
+        }
+      },
+    }),
+    [speakAnswer],
+  );
 
   const voiceCallbacks = useMemo(
     () => ({
@@ -475,6 +517,14 @@ export default function OpAiAssistant() {
                 Micrófono activo — habla cuando quieras. Pulsa el micrófono otra vez para apagar.
               </p>
             )}
+            {showAzureMic && isRecording && (
+              <p className="text-[10px] font-medium text-emerald-300/90">
+                Grabando… di «Hola Onni, llévame a…» y pulsa el mic otra vez.
+              </p>
+            )}
+            {showAzureMic && isProcessing && (
+              <p className="text-[10px] font-medium text-emerald-300/90">Transcribiendo con Azure…</p>
+            )}
             {supportsNativeWakeSwitch &&
               nativeWakeListening &&
               listenEnabled &&
@@ -495,7 +545,7 @@ export default function OpAiAssistant() {
               onChange={(e) => setText(e.target.value)}
               placeholder="conciertos, lobby, ayuda o pregunta libre"
             />
-            {(canSpeak || canListen) && (
+            {(canSpeak || canListen || showAzureMic) && (
               <>
                 {canSpeak && (
                   <Button
@@ -506,6 +556,22 @@ export default function OpAiAssistant() {
                     aria-label="Escuchar la última respuesta de Onni"
                   >
                     <Volume2 className="h-4 w-4" />
+                  </Button>
+                )}
+                {showAzureMic && (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant={isRecording ? "secondary" : "outline"}
+                    disabled={processing || isProcessing}
+                    onClick={() => void toggle(azureMicCallbacks)}
+                    aria-label={
+                      isRecording
+                        ? "Detener y enviar a Onni"
+                        : "Grabar voz — di Hola Onni y tu pedido"
+                    }
+                  >
+                    {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                   </Button>
                 )}
                 {canListen && (
