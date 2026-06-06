@@ -1,9 +1,13 @@
 import { isElectronDesktopApp } from "@/lib/deviceDetection";
 import { pickOnniSpanishVoice } from "@/lib/onniVoice";
-import { transcribeOnniElectronWhisper } from "@/lib/onniElectronWhisperStt";
+import { transcribeBlobWithAzure } from "@/lib/onniAzureStt";
+import {
+  isOnniElectronWhisperAvailable,
+  transcribeOnniElectronWhisper,
+} from "@/lib/onniElectronWhisperStt";
 
-/** Grabación corta: máximo 5 s (usuario pidió 3–5 s). */
-const SESSION_MAX_MS = 5000;
+/** Grabación por turno (switch «Hola Onni» en .exe con Azure STT). */
+const SESSION_MAX_MS = 9000;
 /** Mínimo antes de cerrar el clip (evita WebM sin cabecera EBML). */
 const MIN_RECORD_MS = 1200;
 const MIN_AUDIO_BYTES = 2000;
@@ -134,6 +138,19 @@ async function hasValidAudioContainer(blob: Blob): Promise<boolean> {
   return isWebm || isOgg || isWav;
 }
 
+async function transcribeRecording(blob: Blob): Promise<string> {
+  try {
+    const text = await transcribeBlobWithAzure(blob);
+    if (text) return text;
+  } catch (azureError) {
+    if (isOnniElectronWhisperAvailable()) {
+      return transcribeOnniElectronWhisper(blob);
+    }
+    throw azureError;
+  }
+  return "";
+}
+
 async function finalizeRecording() {
   if (transcribeBusy) return;
   transcribeBusy = true;
@@ -157,7 +174,7 @@ async function finalizeRecording() {
       return;
     }
 
-    const text = await transcribeOnniElectronWhisper(blob);
+    const text = await transcribeRecording(blob);
     if (text) {
       dispatchVoiceEvent("voice:result", { text, isFinal: true });
       return;

@@ -175,6 +175,31 @@ export async function startAzureMicRecording(
   }
 }
 
+export async function transcribeBlobWithAzure(blob: Blob): Promise<string> {
+  if (!blob.size) return "";
+
+  const wav = await recordedBlobToWav(blob);
+  const audioBase64 = await blobToBase64(wav);
+  const res = await fetch("/api/azure/speech-stt", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ audioBase64 }),
+  });
+
+  const payload = (await res.json().catch(() => null)) as {
+    ok?: boolean;
+    text?: string;
+    error?: string;
+    message?: string;
+  } | null;
+
+  if (!res.ok || !payload?.ok) {
+    throw new Error(payload?.error ?? payload?.message ?? "No pude transcribir tu voz.");
+  }
+
+  return String(payload.text ?? "").trim();
+}
+
 export async function stopAzureMicRecordingAndTranscribe(): Promise<string> {
   const session = activeSession;
   if (!session) return "";
@@ -192,26 +217,7 @@ export async function stopAzureMicRecordingAndTranscribe(): Promise<string> {
 
   if (!recorded.size) return "";
 
-  const wav = await recordedBlobToWav(recorded);
-  const audioBase64 = await blobToBase64(wav);
-  const res = await fetch("/api/azure/speech-stt", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ audioBase64 }),
-  });
-
-  const payload = (await res.json().catch(() => null)) as {
-    ok?: boolean;
-    text?: string;
-    error?: string;
-    message?: string;
-  } | null;
-
-  if (!res.ok || !payload?.ok) {
-    throw new Error(payload?.error ?? "No pude transcribir tu voz.");
-  }
-
-  return String(payload.text ?? "").trim();
+  return transcribeBlobWithAzure(recorded);
 }
 
 export function cancelAzureMicRecording(): void {

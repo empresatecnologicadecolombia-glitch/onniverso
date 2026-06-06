@@ -602,9 +602,7 @@ export function useOnniChatVoice() {
       ? "Voz del navegador"
       : voiceMode === "native"
         ? isElectronDesktopApp()
-          ? window.onniversDesktop?.whisper?.transcribe
-            ? "Voz Whisper (.exe)"
-            : "Voz OnniVers (.exe)"
+          ? "Voz Azure (OnniVers PC)"
           : isOnniAndroidVoice()
             ? "Voz nativa + Azure (Android)"
             : "Voz nativa Android"
