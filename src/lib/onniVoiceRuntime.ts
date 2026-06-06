@@ -5,6 +5,13 @@ import { isOnniVoiceSupported, pickOnniSpanishVoice } from "@/lib/onniVoice";
 
 export type OnniVoiceMode = "web" | "native" | "none";
 
+export type OnniSpeakOptions = {
+  /** Respuesta generada por Gemini — usa Azure TTS en Android. */
+  fromGemini?: boolean;
+};
+
+const ONNI_AZURE_TTS_MIN_LINES = 3;
+
 const ONNI_VOICE_USE_NATIVE_KEY = "onniverso.onni.voiceUseNative";
 
 type NativeVoiceBridge = {
@@ -146,16 +153,34 @@ export function stopOnniSpokenVoice(): void {
   }
 }
 
+function countOnniAnswerLines(text: string): number {
+  return text
+    .trim()
+    .split(/\n+/)
+    .filter((line) => line.trim().length > 0).length;
+}
+
+/** Android: Azure solo para Gemini o respuestas largas (>2 líneas); lo demás va nativo. */
+export function shouldUseAzureTtsOnAndroid(text: string, options?: OnniSpeakOptions): boolean {
+  if (options?.fromGemini) return true;
+  return countOnniAnswerLines(text) >= ONNI_AZURE_TTS_MIN_LINES;
+}
+
 export function speakOnniAnswer(
   text: string,
   mode: OnniVoiceMode,
   onPreferNative?: () => void,
+  options?: OnniSpeakOptions,
 ): boolean {
   if (mode === "native" && isOnniAndroidVoice() && text.trim()) {
     stopOnniSpokenVoice();
-    void speakWithAzureVoice(text).then((ok) => {
-      if (!ok) speakWithNativeVoice(text);
-    });
+    if (shouldUseAzureTtsOnAndroid(text, options)) {
+      void speakWithAzureVoice(text).then((ok) => {
+        if (!ok) speakWithNativeVoice(text);
+      });
+    } else {
+      speakWithNativeVoice(text);
+    }
     return true;
   }
   if (mode === "web") {

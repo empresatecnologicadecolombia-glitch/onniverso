@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  AZURE_SWITCH_CHUNK_MS,
+  AZURE_SWITCH_COMMAND_CHUNK_MS,
+  AZURE_SWITCH_WAKE_CHUNK_MS,
   cancelAzureMicRecording,
   isAzureMicRecording,
   isAzureMicSupported,
@@ -15,12 +16,17 @@ export type AzureMicCallbacks = {
   onError: (message: string) => void;
 };
 
-export type AzureMicStatus = "idle" | "recording" | "processing";
+export type AzureMicStatus = "idle" | "awaiting_wake" | "recording" | "processing";
 
 type UseOnniAzureMicOptions = {
   /** Switch «Escuchar» — conversación por turnos; desactiva el botón mic. */
   switchEnabled?: boolean;
 };
+
+/** Tras «Hola Onni» sin pedido, el siguiente turno acepta el comando sin repetir la clave. */
+const AZURE_SWITCH_FOLLOW_UP_MS = 30_000;
+/** Pausa tras ejecutar un pedido para no grabar la respuesta de Onni. */
+const AZURE_SWITCH_POST_COMMAND_MS = 3_200;
 
 function applyAzureTranscript(transcript: string, callbacks: AzureMicCallbacks): boolean {
   const trimmed = transcript.trim();
@@ -53,12 +59,16 @@ export function useOnniAzureMic(
   const callbacksRef = useRef(callbacks);
   const switchEnabledRef = useRef(switchEnabled);
   const switchLoopRef = useRef(false);
+  const followUpUntilRef = useRef(0);
+  const lastWakeHandledRef = useRef("");
 
   callbacksRef.current = callbacks;
   switchEnabledRef.current = switchEnabled;
 
   const cancel = useCallback(() => {
     switchLoopRef.current = false;
+    followUpUntilRef.current = 0;
+    lastWakeHandledRef.current = "";
     cancelAzureMicRecording();
     setStatus("idle");
   }, []);
@@ -79,9 +89,55 @@ export function useOnniAzureMic(
     }
   }, []);
 
+  const processSwitchTranscript = useCallback(async (transcript: string) => {
+    const trimmed = transcript.trim();
+    if (!trimmed) return;
+
+    const inFollowUp = Date.now() < followUpUntilRef.current;
+
+    if (inFollowUp) {
+      followUpUntilRef.current = 0;
+      if (trimmed.length > 2) {
+        callbacksRef.current.onCommand(trimmed);
+        await sleep(AZURE_SWITCH_POST_COMMAND_MS);
+      }
+      return;
+    }
+
+    const { heard, command } = parseOnniWakePhrase(trimmed);
+    if (!heard) return;
+
+    const signature = `${command}|${trimmed}`;
+    if (signature === lastWakeHandledRef.current) return;
+    lastWakeHandledRef.current = signature;
+
+    followUpUntilRef.current = Date.now() + AZURE_SWITCH_FOLLOW_UP_MS;
+
+    if (command) {
+      callbacksRef.current.onCommand(command);
+      await sleep(AZURE_SWITCH_POST_COMMAND_MS);
+    } else {
+      callbacksRef.current.onWakeWithoutCommand?.();
+    }
+  }, []);
+
+  const finishSwitchTurn = useCallback(async () => {
+    setStatus("processing");
+    try {
+      const transcript = await stopAzureMicRecordingAndTranscribe();
+      if (!transcript) return;
+      await processSwitchTranscript(transcript);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "No pude escuchar. Intenta de nuevo.";
+      callbacksRef.current.onError(message);
+    }
+  }, [processSwitchTranscript]);
+
   useEffect(() => {
     if (!switchEnabled || !isAzureMicSupported()) {
       switchLoopRef.current = false;
+      followUpUntilRef.current = 0;
+      lastWakeHandledRef.current = "";
       cancelAzureMicRecording();
       if (!switchEnabled) setStatus("idle");
       return;
@@ -89,6 +145,8 @@ export function useOnniAzureMic(
 
     let cancelled = false;
     switchLoopRef.current = true;
+    followUpUntilRef.current = 0;
+    lastWakeHandledRef.current = "";
 
     void (async () => {
       while (!cancelled && switchEnabledRef.current) {
@@ -97,14 +155,17 @@ export function useOnniAzureMic(
           continue;
         }
 
-        const started = await startAzureMicRecording(AZURE_SWITCH_CHUNK_MS);
+        const inFollowUp = Date.now() < followUpUntilRef.current;
+        const chunkMs = inFollowUp ? AZURE_SWITCH_COMMAND_CHUNK_MS : AZURE_SWITCH_WAKE_CHUNK_MS;
+        setStatus(inFollowUp ? "recording" : "awaiting_wake");
+
+        const started = await startAzureMicRecording(chunkMs);
         if (!started.ok) {
           callbacksRef.current.onError(started.error);
           break;
         }
-        setStatus("recording");
 
-        await sleep(AZURE_SWITCH_CHUNK_MS + 120);
+        await sleep(chunkMs + 120);
 
         if (cancelled || !switchEnabledRef.current) {
           cancelAzureMicRecording();
@@ -112,30 +173,38 @@ export function useOnniAzureMic(
         }
 
         if (isAzureMicRecording()) {
-          await finishRecordingTurn();
+          await finishSwitchTurn();
         }
 
         if (cancelled || !switchEnabledRef.current) break;
-        await sleep(450);
+
+        if (Date.now() >= followUpUntilRef.current) {
+          setStatus("awaiting_wake");
+        }
+
+        await sleep(inFollowUp ? 450 : 300);
       }
 
       switchLoopRef.current = false;
+      followUpUntilRef.current = 0;
       if (!cancelled) setStatus("idle");
     })();
 
     return () => {
       cancelled = true;
       switchLoopRef.current = false;
+      followUpUntilRef.current = 0;
+      lastWakeHandledRef.current = "";
       cancelAzureMicRecording();
       setStatus("idle");
     };
-  }, [switchEnabled, finishRecordingTurn]);
+  }, [switchEnabled, finishSwitchTurn]);
 
   const toggle = useCallback(async () => {
     if (switchEnabledRef.current) return;
     if (status === "processing") return;
 
-    if (status === "recording" || isAzureMicRecording()) {
+    if (status === "recording" || status === "awaiting_wake" || isAzureMicRecording()) {
       await finishRecordingTurn();
       setStatus("idle");
       return;
@@ -156,7 +225,8 @@ export function useOnniAzureMic(
 
   return {
     status,
-    isRecording: status === "recording",
+    isRecording: status === "recording" || status === "awaiting_wake",
+    isAwaitingWake: status === "awaiting_wake",
     isProcessing: status === "processing",
     isSwitchActive: switchEnabled,
     toggle,

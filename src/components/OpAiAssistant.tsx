@@ -27,6 +27,7 @@ import { useOnniVoice, useOnniVoicePrefs } from "@/hooks/useOnniVoice";
 import { useAuth } from "@/hooks/useAuth";
 import { isDesktopWebBrowser, isElectronDesktopApp, isOnniAndroidVoice } from "@/lib/deviceDetection";
 import { isAzureMicSupported } from "@/lib/onniAzureStt";
+import type { OnniSpeakOptions } from "@/lib/onniVoiceRuntime";
 import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -37,11 +38,12 @@ function appendAssistantAnswer(
   setMessages: Dispatch<SetStateAction<UiMessage[]>>,
   sessionRef: MutableRefObject<{ lastAnswer?: string }>,
   answer: string,
-  speak: (text: string) => void,
+  speak: (text: string, options?: OnniSpeakOptions) => void,
+  speakOptions?: OnniSpeakOptions,
 ) {
   sessionRef.current.lastAnswer = answer;
   setMessages((prev) => [...prev, { role: "assistant", text: answer }]);
-  speak(answer);
+  speak(answer, speakOptions);
 }
 
 export default function OpAiAssistant() {
@@ -200,14 +202,14 @@ export default function OpAiAssistant() {
               sourceUrl: "https://ai.google.dev/gemini-api/docs",
             });
           }
-          appendAssistantAnswer(setMessages, sessionRef, geminiAnswer, speakAnswer);
+          appendAssistantAnswer(setMessages, sessionRef, geminiAnswer, speakAnswer, { fromGemini: true });
           return geminiAnswer;
         }
 
         if (asksAboutGemini) {
           const fallbackGemini =
             "Sí, estoy conectada a Google Gemini para preguntas libres. Ahora mismo la API no respondió (cuota o red); inténtalo de nuevo en un minuto.";
-          appendAssistantAnswer(setMessages, sessionRef, fallbackGemini, speakAnswer);
+          appendAssistantAnswer(setMessages, sessionRef, fallbackGemini, speakAnswer, { fromGemini: true });
           return fallbackGemini;
         }
 
@@ -273,7 +275,7 @@ export default function OpAiAssistant() {
     [speakAnswer],
   );
 
-  const { isRecording, isProcessing, toggle, cancel } = useOnniAzureMic(azureMicCallbacks, {
+  const { isRecording, isAwaitingWake, isProcessing, toggle, cancel } = useOnniAzureMic(azureMicCallbacks, {
     switchEnabled: showAzureMic && listenEnabled && open,
   });
 
@@ -534,20 +536,25 @@ export default function OpAiAssistant() {
                 Micrófono activo — habla cuando quieras. Pulsa el micrófono otra vez para apagar.
               </p>
             )}
-            {showAzureMic && listenEnabled && (
+            {showAzureMic && listenEnabled && !isRecording && !isProcessing && (
               <p className="text-[10px] font-medium text-emerald-300/90">
-                Switch activo — Onni escucha por turnos. Di «Hola Onni, llévame a…». Apaga el switch para
-                usar el botón mic.
+                Switch activo — esperando «Onni», «Oni», «Hony» u «Ony». Apaga el switch para usar el botón
+                mic.
+              </p>
+            )}
+            {showAzureMic && isAwaitingWake && (
+              <p className="text-[10px] font-medium text-emerald-300/90">
+                Escuchando la palabra Onni… di «Hola Onni» o «Onni, llévame a…».
+              </p>
+            )}
+            {showAzureMic && isRecording && listenEnabled && !isAwaitingWake && (
+              <p className="text-[10px] font-medium text-emerald-300/90">
+                Te escucho — di tu pedido (sin repetir «Hola Onni»).
               </p>
             )}
             {showAzureMic && isRecording && !listenEnabled && (
               <p className="text-[10px] font-medium text-emerald-300/90">
                 Grabando… di «Hola Onni, llévame a…» y pulsa el mic otra vez.
-              </p>
-            )}
-            {showAzureMic && isRecording && listenEnabled && (
-              <p className="text-[10px] font-medium text-emerald-300/90">
-                Escuchando… di tu pedido en voz alta.
               </p>
             )}
             {showAzureMic && isProcessing && (

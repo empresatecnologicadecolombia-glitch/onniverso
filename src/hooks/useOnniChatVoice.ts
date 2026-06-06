@@ -14,6 +14,7 @@ import {
   startNativeVoiceListening,
   stopNativeVoiceListening,
   stopOnniSpokenVoice,
+  type OnniSpeakOptions,
   type OnniVoiceMode,
 } from "@/lib/onniVoiceRuntime";
 import { parseOnniWakePhrase } from "@/lib/onniVoice";
@@ -162,16 +163,21 @@ export function useOnniChatVoice() {
   }, []);
 
   const speakAnswer = useCallback(
-    (text: string) => {
+    (text: string, options?: OnniSpeakOptions) => {
       if (voiceModeRef.current === "native" && text.trim() && !isOnniAndroidVoice()) {
         speakPauseUntilRef.current = Date.now() + NATIVE_SPEAK_PAUSE_MS;
         pauseNativeRecognizer();
       }
-      speakOnniAnswer(text, voiceMode, () => {
-        if (switchToNativeVoice()) {
-          /* speakOnniAnswer ya reprodujo con nativa en el callback */
-        }
-      });
+      speakOnniAnswer(
+        text,
+        voiceMode,
+        () => {
+          if (switchToNativeVoice()) {
+            /* speakOnniAnswer ya reprodujo con nativa en el callback */
+          }
+        },
+        options,
+      );
     },
     [voiceMode, pauseNativeRecognizer, switchToNativeVoice],
   );
@@ -600,7 +606,7 @@ export function useOnniChatVoice() {
             ? "Voz Whisper (.exe)"
             : "Voz OnniVers (.exe)"
           : isOnniAndroidVoice()
-            ? "Voz Azure (Android)"
+            ? "Voz nativa + Azure (Android)"
             : "Voz nativa Android"
         : "Voz no disponible";
 
