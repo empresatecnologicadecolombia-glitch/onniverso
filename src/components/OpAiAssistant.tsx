@@ -275,7 +275,15 @@ export default function OpAiAssistant() {
     [speakAnswer],
   );
 
-  const { isRecording, isAwaitingWake, isProcessing, toggle, cancel } = useOnniAzureMic(azureMicCallbacks, {
+  const {
+    isManualRecording,
+    isManualProcessing,
+    isAwaitingWake,
+    isSwitchListening,
+    isSwitchProcessing,
+    toggle,
+    cancel,
+  } = useOnniAzureMic(azureMicCallbacks, {
     switchEnabled: showAzureMic && listenEnabled && open,
   });
 
@@ -321,7 +329,7 @@ export default function OpAiAssistant() {
   const avatarState =
     wakeSpeaking
       ? "speaking"
-      : wakeListening || voiceListening || nativeWakeListening || isRecording
+      : wakeListening || voiceListening || nativeWakeListening || isManualRecording || isSwitchListening
         ? "listening"
         : "idle";
 
@@ -536,30 +544,25 @@ export default function OpAiAssistant() {
                 Micrófono activo — habla cuando quieras. Pulsa el micrófono otra vez para apagar.
               </p>
             )}
-            {showAzureMic && listenEnabled && !isRecording && !isProcessing && (
+            {showAzureMic && listenEnabled && isAwaitingWake && (
               <p className="text-[10px] font-medium text-emerald-300/90">
-                Switch activo — esperando «Onni», «Oni», «Hony» u «Ony». Apaga el switch para usar el botón
-                mic.
+                Switch activo — esperando «Onni», «Oni», «Hony» u «Ony». Di «Hola Onni» o «Onni,
+                llévame a…».
               </p>
             )}
-            {showAzureMic && isAwaitingWake && (
-              <p className="text-[10px] font-medium text-emerald-300/90">
-                Escuchando la palabra Onni… di «Hola Onni» o «Onni, llévame a…».
-              </p>
-            )}
-            {showAzureMic && isRecording && listenEnabled && !isAwaitingWake && (
+            {showAzureMic && listenEnabled && isSwitchListening && !isAwaitingWake && !isSwitchProcessing && (
               <p className="text-[10px] font-medium text-emerald-300/90">
                 Te escucho — di tu pedido (sin repetir «Hola Onni»).
               </p>
             )}
-            {showAzureMic && isRecording && !listenEnabled && (
+            {showAzureMic && isManualRecording && (
               <p className="text-[10px] font-medium text-emerald-300/90">
                 Grabando… di «Hola Onni, llévame a…» y pulsa el mic otra vez.
               </p>
             )}
-            {showAzureMic && isProcessing && (
+            {(showAzureMic && isManualProcessing) || (showAzureMic && isSwitchProcessing) ? (
               <p className="text-[10px] font-medium text-emerald-300/90">Transcribiendo con Azure…</p>
-            )}
+            ) : null}
             {supportsNativeWakeSwitch &&
               nativeWakeListening &&
               listenEnabled &&
@@ -597,21 +600,16 @@ export default function OpAiAssistant() {
                   <Button
                     type="button"
                     size="icon"
-                    variant={isRecording ? "secondary" : "outline"}
-                    disabled={processing || isProcessing || listenEnabled}
-                    onClick={() => {
-                      if (listenEnabled) return;
-                      void toggle();
-                    }}
+                    variant={isManualRecording ? "secondary" : "outline"}
+                    disabled={processing || isManualProcessing}
+                    onClick={() => void toggle()}
                     aria-label={
-                      listenEnabled
-                        ? "Micrófono desactivado — usa el switch Escuchar"
-                        : isRecording
-                          ? "Detener y enviar a Onni"
-                          : "Grabar voz — di Hola Onni y tu pedido"
+                      isManualRecording
+                        ? "Detener y enviar a Onni"
+                        : "Grabar voz — di Hola Onni y tu pedido"
                     }
                   >
-                    {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    {isManualRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                   </Button>
                 )}
                 {canListen && (

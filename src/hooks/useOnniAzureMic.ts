@@ -16,10 +16,11 @@ export type AzureMicCallbacks = {
   onError: (message: string) => void;
 };
 
-export type AzureMicStatus = "idle" | "awaiting_wake" | "recording" | "processing";
+type ManualMicStatus = "idle" | "recording" | "processing";
+type SwitchMicStatus = "idle" | "awaiting_wake" | "recording" | "processing";
 
 type UseOnniAzureMicOptions = {
-  /** Switch «Escuchar» — conversación por turnos; desactiva el botón mic. */
+  /** Switch «Escuchar» — conversación por turnos (independiente del botón mic). */
   switchEnabled?: boolean;
 };
 
@@ -55,10 +56,12 @@ export function useOnniAzureMic(
   options: UseOnniAzureMicOptions = {},
 ) {
   const { switchEnabled = false } = options;
-  const [status, setStatus] = useState<AzureMicStatus>("idle");
+  const [manualStatus, setManualStatus] = useState<ManualMicStatus>("idle");
+  const [switchStatus, setSwitchStatus] = useState<SwitchMicStatus>("idle");
   const callbacksRef = useRef(callbacks);
   const switchEnabledRef = useRef(switchEnabled);
   const switchLoopRef = useRef(false);
+  const manualActiveRef = useRef(false);
   const followUpUntilRef = useRef(0);
   const lastWakeHandledRef = useRef("");
 
@@ -67,14 +70,16 @@ export function useOnniAzureMic(
 
   const cancel = useCallback(() => {
     switchLoopRef.current = false;
+    manualActiveRef.current = false;
     followUpUntilRef.current = 0;
     lastWakeHandledRef.current = "";
     cancelAzureMicRecording();
-    setStatus("idle");
+    setManualStatus("idle");
+    setSwitchStatus("idle");
   }, []);
 
-  const finishRecordingTurn = useCallback(async () => {
-    setStatus("processing");
+  const finishManualRecording = useCallback(async () => {
+    setManualStatus("processing");
     try {
       const transcript = await stopAzureMicRecordingAndTranscribe();
       if (!transcript) return;
@@ -83,9 +88,8 @@ export function useOnniAzureMic(
       const message = err instanceof Error ? err.message : "No pude escuchar. Intenta de nuevo.";
       callbacksRef.current.onError(message);
     } finally {
-      if (!switchEnabledRef.current) {
-        setStatus("idle");
-      }
+      manualActiveRef.current = false;
+      setManualStatus("idle");
     }
   }, []);
 
@@ -122,7 +126,7 @@ export function useOnniAzureMic(
   }, []);
 
   const finishSwitchTurn = useCallback(async () => {
-    setStatus("processing");
+    setSwitchStatus("processing");
     try {
       const transcript = await stopAzureMicRecordingAndTranscribe();
       if (!transcript) return;
@@ -130,6 +134,12 @@ export function useOnniAzureMic(
     } catch (err) {
       const message = err instanceof Error ? err.message : "No pude escuchar. Intenta de nuevo.";
       callbacksRef.current.onError(message);
+    } finally {
+      if (switchEnabledRef.current && !manualActiveRef.current) {
+        setSwitchStatus("awaiting_wake");
+      } else if (!switchEnabledRef.current) {
+        setSwitchStatus("idle");
+      }
     }
   }, [processSwitchTranscript]);
 
@@ -138,8 +148,10 @@ export function useOnniAzureMic(
       switchLoopRef.current = false;
       followUpUntilRef.current = 0;
       lastWakeHandledRef.current = "";
-      cancelAzureMicRecording();
-      if (!switchEnabled) setStatus("idle");
+      if (!manualActiveRef.current) {
+        cancelAzureMicRecording();
+      }
+      setSwitchStatus("idle");
       return;
     }
 
@@ -147,29 +159,35 @@ export function useOnniAzureMic(
     switchLoopRef.current = true;
     followUpUntilRef.current = 0;
     lastWakeHandledRef.current = "";
+    setSwitchStatus("awaiting_wake");
 
     void (async () => {
       while (!cancelled && switchEnabledRef.current) {
-        if (isAzureMicRecording()) {
+        if (manualActiveRef.current || isAzureMicRecording()) {
           await sleep(200);
           continue;
         }
 
         const inFollowUp = Date.now() < followUpUntilRef.current;
         const chunkMs = inFollowUp ? AZURE_SWITCH_COMMAND_CHUNK_MS : AZURE_SWITCH_WAKE_CHUNK_MS;
-        setStatus(inFollowUp ? "recording" : "awaiting_wake");
+        setSwitchStatus(inFollowUp ? "recording" : "awaiting_wake");
 
         const started = await startAzureMicRecording(chunkMs);
         if (!started.ok) {
-          callbacksRef.current.onError(started.error);
+          if (!manualActiveRef.current) {
+            callbacksRef.current.onError(started.error);
+          }
           break;
         }
 
         await sleep(chunkMs + 120);
 
-        if (cancelled || !switchEnabledRef.current) {
-          cancelAzureMicRecording();
-          break;
+        if (cancelled || !switchEnabledRef.current || manualActiveRef.current) {
+          if (!manualActiveRef.current) {
+            cancelAzureMicRecording();
+          }
+          if (cancelled || !switchEnabledRef.current) break;
+          continue;
         }
 
         if (isAzureMicRecording()) {
@@ -179,7 +197,7 @@ export function useOnniAzureMic(
         if (cancelled || !switchEnabledRef.current) break;
 
         if (Date.now() >= followUpUntilRef.current) {
-          setStatus("awaiting_wake");
+          setSwitchStatus("awaiting_wake");
         }
 
         await sleep(inFollowUp ? 450 : 300);
@@ -187,7 +205,9 @@ export function useOnniAzureMic(
 
       switchLoopRef.current = false;
       followUpUntilRef.current = 0;
-      if (!cancelled) setStatus("idle");
+      if (!cancelled && !manualActiveRef.current) {
+        setSwitchStatus("idle");
+      }
     })();
 
     return () => {
@@ -195,18 +215,18 @@ export function useOnniAzureMic(
       switchLoopRef.current = false;
       followUpUntilRef.current = 0;
       lastWakeHandledRef.current = "";
-      cancelAzureMicRecording();
-      setStatus("idle");
+      if (!manualActiveRef.current) {
+        cancelAzureMicRecording();
+        setSwitchStatus("idle");
+      }
     };
   }, [switchEnabled, finishSwitchTurn]);
 
   const toggle = useCallback(async () => {
-    if (switchEnabledRef.current) return;
-    if (status === "processing") return;
+    if (manualStatus === "processing") return;
 
-    if (status === "recording" || status === "awaiting_wake" || isAzureMicRecording()) {
-      await finishRecordingTurn();
-      setStatus("idle");
+    if (manualStatus === "recording" || (manualActiveRef.current && isAzureMicRecording())) {
+      await finishManualRecording();
       return;
     }
 
@@ -215,20 +235,24 @@ export function useOnniAzureMic(
       return;
     }
 
+    cancelAzureMicRecording();
+    manualActiveRef.current = true;
+
     const started = await startAzureMicRecording();
     if (!started.ok) {
+      manualActiveRef.current = false;
       callbacksRef.current.onError(started.error);
       return;
     }
-    setStatus("recording");
-  }, [status, finishRecordingTurn]);
+    setManualStatus("recording");
+  }, [manualStatus, finishManualRecording]);
 
   return {
-    status,
-    isRecording: status === "recording" || status === "awaiting_wake",
-    isAwaitingWake: status === "awaiting_wake",
-    isProcessing: status === "processing",
-    isSwitchActive: switchEnabled,
+    isManualRecording: manualStatus === "recording",
+    isManualProcessing: manualStatus === "processing",
+    isAwaitingWake: switchEnabled && switchStatus === "awaiting_wake",
+    isSwitchListening: switchEnabled && switchStatus !== "idle",
+    isSwitchProcessing: switchEnabled && switchStatus === "processing",
     toggle,
     cancel,
     isSupported: isAzureMicSupported(),
