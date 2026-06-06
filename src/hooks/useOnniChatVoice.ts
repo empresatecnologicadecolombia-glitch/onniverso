@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { isDesktopWebBrowser, isElectronDesktopApp } from "@/lib/deviceDetection";
+import { isDesktopWebBrowser, isElectronDesktopApp, isOnniAndroidVoice } from "@/lib/deviceDetection";
 import { warmUpElectronVoiceBridge } from "@/lib/onniElectronVoiceBridge";
 import {
   parseNativeVoiceErrorDetail,
@@ -67,8 +67,20 @@ export function useOnniChatVoice() {
   const nativeHandoffRef = useRef<Promise<void>>(Promise.resolve());
 
   const usesOneShotNativeMic = voiceMode === "native";
-  /** Escucha «Hola Onni» nativa (.exe y APK). En APK el botón micrófono la enciende/apaga. */
-  const supportsNativeWakeSwitch = usesOneShotNativeMic;
+  /** Switch «Hola Onni» en .exe; en APK solo botón micrófono (isOnniAndroidVoice). */
+  const supportsNativeWakeSwitch = usesOneShotNativeMic && !isOnniAndroidVoice();
+
+  const resumeAndroidWakeSession = useCallback(() => {
+    if (!isOnniAndroidVoice() || !wakeActiveRef.current || captureActiveRef.current) return;
+    if (!startNativeVoiceListening()) {
+      wakeActiveRef.current = false;
+      setNativeWakeListening(false);
+      setVoiceListening(false);
+      return;
+    }
+    setVoiceListening(true);
+    setNativeWakeListening(true);
+  }, []);
 
   useEffect(() => {
     if (!isElectronDesktopApp()) return;
@@ -125,6 +137,7 @@ export function useOnniChatVoice() {
   }, [clearNativeRestartTimer, pauseNativeRecognizer]);
 
   const scheduleNativeRestart = useCallback(() => {
+    if (isOnniAndroidVoice()) return;
     clearNativeRestartTimer();
     if (!isNativeSessionActive() || voiceModeRef.current !== "native") return;
 
@@ -165,6 +178,18 @@ export function useOnniChatVoice() {
       if (voiceModeRef.current === "native" && text.trim()) {
         speakPauseUntilRef.current = Date.now() + NATIVE_SPEAK_PAUSE_MS;
         pauseNativeRecognizer();
+        speakOnniAnswer(text, voiceMode, () => {
+          if (switchToNativeVoice()) {
+            /* speakOnniAnswer ya reprodujo con nativa en el callback */
+          }
+        });
+        if (isOnniAndroidVoice() && wakeActiveRef.current) {
+          window.setTimeout(() => {
+            if (Date.now() < speakPauseUntilRef.current) return;
+            resumeAndroidWakeSession();
+          }, NATIVE_SPEAK_PAUSE_MS);
+        }
+        return;
       }
       speakOnniAnswer(text, voiceMode, () => {
         if (switchToNativeVoice()) {
@@ -172,7 +197,7 @@ export function useOnniChatVoice() {
         }
       });
     },
-    [voiceMode, pauseNativeRecognizer, switchToNativeVoice],
+    [voiceMode, pauseNativeRecognizer, switchToNativeVoice, resumeAndroidWakeSession],
   );
 
   const stopVoiceCapture = useCallback(() => {
@@ -219,6 +244,8 @@ export function useOnniChatVoice() {
   }, [clearNativeRestartTimer, pauseNativeRecognizer]);
 
   const beginNativeCapture = useCallback(async (callbacks: VoiceCaptureCallbacks): Promise<boolean> => {
+    if (isOnniAndroidVoice()) return false;
+
     captureCallbacksRef.current = callbacks;
 
     const micPermission = await requestOnniMicrophoneAccess();
@@ -278,6 +305,17 @@ export function useOnniChatVoice() {
 
       wakeActiveRef.current = true;
       setNativeWakeListening(true);
+
+      if (isOnniAndroidVoice()) {
+        if (!startNativeVoiceListening()) {
+          wakeActiveRef.current = false;
+          setNativeWakeListening(false);
+          callbacks.onError?.("No se pudo iniciar el micrófono nativo.");
+          return false;
+        }
+        setVoiceListening(true);
+        return true;
+      }
 
       try {
         await queueNativeHandoff(() => {
@@ -431,6 +469,8 @@ export function useOnniChatVoice() {
 
   const toggleVoiceCapture = useCallback(
     async (callbacks: VoiceCaptureCallbacks) => {
+      if (isOnniAndroidVoice()) return false;
+
       captureCallbacksRef.current = callbacks;
 
       if (captureActiveRef.current) {
@@ -509,6 +549,16 @@ export function useOnniChatVoice() {
         return;
       }
 
+      if (isOnniAndroidVoice()) {
+        if (!wakeActiveRef.current) {
+          setVoiceListening(false);
+          setNativeWakeListening(false);
+          return;
+        }
+        resumeAndroidWakeSession();
+        return;
+      }
+
       if (captureActiveRef.current) {
         setVoiceListening(true);
         return;
@@ -529,6 +579,8 @@ export function useOnniChatVoice() {
       if (isNativeVoiceSoftError(code) || message === null) {
         if (captureActiveRef.current) {
           releaseCaptureSession();
+        } else if (isOnniAndroidVoice() && wakeActiveRef.current) {
+          resumeAndroidWakeSession();
         } else if (isNativeSessionActive()) {
           scheduleNativeRestart();
         }
@@ -562,6 +614,7 @@ export function useOnniChatVoice() {
     notifyVoiceError,
     releaseCaptureSession,
     scheduleNativeRestart,
+    resumeAndroidWakeSession,
   ]);
 
   useEffect(

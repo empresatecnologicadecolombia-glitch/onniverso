@@ -24,7 +24,7 @@ import { shouldShowNativeVoiceError } from "@/lib/onniNativeVoiceErrors";
 import { useOnniChatVoice } from "@/hooks/useOnniChatVoice";
 import { useOnniVoice, useOnniVoicePrefs } from "@/hooks/useOnniVoice";
 import { useAuth } from "@/hooks/useAuth";
-import { isDesktopWebBrowser, isElectronDesktopApp, isAndroidNativeApp } from "@/lib/deviceDetection";
+import { isDesktopWebBrowser, isElectronDesktopApp, isOnniAndroidVoice } from "@/lib/deviceDetection";
 import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -100,8 +100,6 @@ export default function OpAiAssistant() {
   } = useOnniChatVoice();
 
   const { listenEnabled, setListenEnabled } = useOnniVoicePrefs();
-  /** APK: micrófono manual ON/OFF (no escucha al abrir el chat). */
-  const [androidMicOn, setAndroidMicOn] = useState(false);
   const runCommandRef = useRef<(raw: string) => Promise<string | undefined>>(async () => undefined);
   const openRef = useRef(open);
   openRef.current = open;
@@ -248,11 +246,13 @@ export default function OpAiAssistant() {
 
   const captureMicActive = voiceCaptureActive;
 
-  const nativeWakeActive = isAndroidNativeApp()
-    ? supportsNativeWakeSwitch && canListen && androidMicOn && !processing && !voiceCaptureActive
-    : supportsNativeWakeSwitch && canListen && listenEnabled && !processing && !voiceCaptureActive;
-
-  const androidMicWakeActive = isAndroidNativeApp() && androidMicOn && nativeWakeListening;
+  const nativeWakeActive =
+    !isOnniAndroidVoice() &&
+    supportsNativeWakeSwitch &&
+    canListen &&
+    listenEnabled &&
+    !processing &&
+    !voiceCaptureActive;
 
   const { isListening: wakeListening, isSpeaking: wakeSpeaking } = useOnniVoice({
     enabled: wakeWordActive,
@@ -315,6 +315,8 @@ export default function OpAiAssistant() {
   nativeWakeCallbacksRef.current = nativeWakeCallbacks;
 
   useEffect(() => {
+    if (isOnniAndroidVoice()) return;
+
     if (!nativeWakeActive) {
       stopNativeWakeListening();
       return;
@@ -332,15 +334,19 @@ export default function OpAiAssistant() {
   }, [nativeWakeActive, startNativeWakeListening, stopNativeWakeListening]);
 
   useEffect(() => {
-    if (!open && isAndroidNativeApp()) {
-      setAndroidMicOn(false);
+    if (!open && isOnniAndroidVoice()) {
+      stopNativeWakeListening();
     }
-  }, [open]);
+  }, [open, stopNativeWakeListening]);
 
   const handleAndroidMicToggle = useCallback(() => {
     if (processing) return;
-    setAndroidMicOn((prev) => !prev);
-  }, [processing]);
+    if (nativeWakeListening) {
+      stopNativeWakeListening();
+      return;
+    }
+    void startNativeWakeListening(nativeWakeCallbacksRef.current);
+  }, [nativeWakeListening, processing, startNativeWakeListening, stopNativeWakeListening]);
 
   const voiceCallbacks = useMemo(
     () => ({
@@ -437,7 +443,7 @@ export default function OpAiAssistant() {
             <OnniAvatar size="md" state={avatarState} className="mt-0.5" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-cyan-100">Onni</p>
-              {canListen && !isAndroidNativeApp() && (isDesktopWebBrowser() || supportsNativeWakeSwitch) && (
+              {canListen && !isOnniAndroidVoice() && (isDesktopWebBrowser() || supportsNativeWakeSwitch) && (
                 <div className="mt-1.5 flex items-center gap-2">
                   <Switch
                     id="onni-wake-listen"
@@ -474,7 +480,7 @@ export default function OpAiAssistant() {
               </div>
             ))}
             <p className="text-[11px] text-muted-foreground">{hint}</p>
-            {usesOneShotNativeMic && captureMicActive && !isAndroidNativeApp() && (
+            {usesOneShotNativeMic && captureMicActive && !isOnniAndroidVoice() && (
               <p className="text-[10px] font-medium text-emerald-300/90">
                 Escuchando en OnniVers… di tu pedido completo (ej. «llévame a clases»).
               </p>
@@ -484,7 +490,7 @@ export default function OpAiAssistant() {
                 Micrófono activo — habla cuando quieras. Pulsa el micrófono otra vez para apagar.
               </p>
             )}
-            {androidMicWakeActive && (
+            {isOnniAndroidVoice() && nativeWakeListening && (
               <p className="text-[10px] font-medium text-emerald-300/90">
                 Onni te escucha — di «Hola Onni» + tu pedido. Pulsa el micrófono otra vez para apagar.
               </p>
@@ -493,7 +499,7 @@ export default function OpAiAssistant() {
               nativeWakeListening &&
               listenEnabled &&
               !captureMicActive &&
-              !isAndroidNativeApp() && (
+              !isOnniAndroidVoice() && (
               <p className="text-[10px] font-medium text-emerald-300/90">
                 {isElectronDesktopApp()
                   ? electronFollowUpActive
@@ -525,8 +531,8 @@ export default function OpAiAssistant() {
                   type="button"
                   size="icon"
                   variant={
-                    isAndroidNativeApp()
-                      ? androidMicWakeActive
+                    isOnniAndroidVoice()
+                      ? nativeWakeListening
                         ? "secondary"
                         : "outline"
                       : captureMicActive
@@ -534,7 +540,7 @@ export default function OpAiAssistant() {
                         : "outline"
                   }
                   onClick={
-                    isAndroidNativeApp()
+                    isOnniAndroidVoice()
                       ? handleAndroidMicToggle
                       : usesOneShotNativeMic
                         ? () => void handleToggleVoiceCapture()
@@ -543,7 +549,7 @@ export default function OpAiAssistant() {
                           : undefined
                   }
                   onPointerDown={
-                    isAndroidNativeApp() || usesOneShotNativeMic || usesContinuousMic
+                    isOnniAndroidVoice() || usesOneShotNativeMic || usesContinuousMic
                       ? undefined
                       : (event) => {
                           event.preventDefault();
@@ -551,7 +557,7 @@ export default function OpAiAssistant() {
                         }
                   }
                   onPointerUp={
-                    isAndroidNativeApp() || usesOneShotNativeMic || usesContinuousMic
+                    isOnniAndroidVoice() || usesOneShotNativeMic || usesContinuousMic
                       ? undefined
                       : (event) => {
                           event.preventDefault();
@@ -559,7 +565,7 @@ export default function OpAiAssistant() {
                         }
                   }
                   onPointerCancel={
-                    isAndroidNativeApp() || usesOneShotNativeMic || usesContinuousMic
+                    isOnniAndroidVoice() || usesOneShotNativeMic || usesContinuousMic
                       ? undefined
                       : (event) => {
                           event.preventDefault();
@@ -567,7 +573,7 @@ export default function OpAiAssistant() {
                         }
                   }
                   onPointerLeave={
-                    isAndroidNativeApp() || usesOneShotNativeMic || usesContinuousMic
+                    isOnniAndroidVoice() || usesOneShotNativeMic || usesContinuousMic
                       ? undefined
                       : (event) => {
                           if (!captureMicActive) return;
@@ -577,8 +583,8 @@ export default function OpAiAssistant() {
                   }
                   onContextMenu={(event) => event.preventDefault()}
                   aria-label={
-                    isAndroidNativeApp()
-                      ? androidMicWakeActive
+                    isOnniAndroidVoice()
+                      ? nativeWakeListening
                         ? "Apagar escucha de Onni"
                         : "Encender escucha — di Hola Onni y tu pedido"
                       : captureMicActive
@@ -594,8 +600,8 @@ export default function OpAiAssistant() {
                             : "Mantener pulsado para hablar con Onni"
                   }
                 >
-                  {isAndroidNativeApp() ? (
-                    androidMicWakeActive ? (
+                  {isOnniAndroidVoice() ? (
+                    nativeWakeListening ? (
                       <MicOff className="h-4 w-4" />
                     ) : (
                       <Mic className="h-4 w-4" />
