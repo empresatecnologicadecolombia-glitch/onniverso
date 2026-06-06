@@ -333,21 +333,6 @@ export default function OpAiAssistant() {
     };
   }, [nativeWakeActive, startNativeWakeListening, stopNativeWakeListening]);
 
-  useEffect(() => {
-    if (!open && isOnniAndroidVoice()) {
-      stopNativeWakeListening();
-    }
-  }, [open, stopNativeWakeListening]);
-
-  const handleAndroidMicToggle = useCallback(() => {
-    if (processing) return;
-    if (nativeWakeListening) {
-      stopNativeWakeListening();
-      return;
-    }
-    void startNativeWakeListening(nativeWakeCallbacksRef.current);
-  }, [nativeWakeListening, processing, startNativeWakeListening, stopNativeWakeListening]);
-
   const voiceCallbacks = useMemo(
     () => ({
       onTranscript: (transcript: string) => {
@@ -490,11 +475,6 @@ export default function OpAiAssistant() {
                 Micrófono activo — habla cuando quieras. Pulsa el micrófono otra vez para apagar.
               </p>
             )}
-            {isOnniAndroidVoice() && nativeWakeListening && (
-              <p className="text-[10px] font-medium text-emerald-300/90">
-                Escuchando… di «Hola Onni, llévame a…» en una frase. Toca el mic para cancelar.
-              </p>
-            )}
             {supportsNativeWakeSwitch &&
               nativeWakeListening &&
               listenEnabled &&
@@ -515,79 +495,67 @@ export default function OpAiAssistant() {
               onChange={(e) => setText(e.target.value)}
               placeholder="conciertos, lobby, ayuda o pregunta libre"
             />
-            {canListen && (
+            {(canSpeak || canListen) && (
               <>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="outline"
-                  onClick={onSpeakLastAnswer}
-                  disabled={!canSpeak}
-                  aria-label="Escuchar la última respuesta de Onni"
-                >
-                  <Volume2 className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant={
-                    isOnniAndroidVoice()
-                      ? nativeWakeListening
-                        ? "secondary"
-                        : "outline"
-                      : captureMicActive
-                        ? "secondary"
-                        : "outline"
-                  }
-                  onClick={
-                    isOnniAndroidVoice()
-                      ? handleAndroidMicToggle
-                      : usesOneShotNativeMic
+                {canSpeak && (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    onClick={onSpeakLastAnswer}
+                    aria-label="Escuchar la última respuesta de Onni"
+                  >
+                    <Volume2 className="h-4 w-4" />
+                  </Button>
+                )}
+                {canListen && (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant={captureMicActive ? "secondary" : "outline"}
+                    onClick={
+                      usesOneShotNativeMic
                         ? () => void handleToggleVoiceCapture()
                         : usesContinuousMic
                           ? () => void handleToggleVoiceCapture()
                           : undefined
-                  }
-                  onPointerDown={
-                    isOnniAndroidVoice() || usesOneShotNativeMic || usesContinuousMic
-                      ? undefined
-                      : (event) => {
-                          event.preventDefault();
-                          handleStartVoiceCapture();
-                        }
-                  }
-                  onPointerUp={
-                    isOnniAndroidVoice() || usesOneShotNativeMic || usesContinuousMic
-                      ? undefined
-                      : (event) => {
-                          event.preventDefault();
-                          stopVoiceCaptureHandler();
-                        }
-                  }
-                  onPointerCancel={
-                    isOnniAndroidVoice() || usesOneShotNativeMic || usesContinuousMic
-                      ? undefined
-                      : (event) => {
-                          event.preventDefault();
-                          stopVoiceCaptureHandler();
-                        }
-                  }
-                  onPointerLeave={
-                    isOnniAndroidVoice() || usesOneShotNativeMic || usesContinuousMic
-                      ? undefined
-                      : (event) => {
-                          if (!captureMicActive) return;
-                          event.preventDefault();
-                          stopVoiceCaptureHandler();
-                        }
-                  }
-                  onContextMenu={(event) => event.preventDefault()}
-                  aria-label={
-                    isOnniAndroidVoice()
-                      ? nativeWakeListening
-                        ? "Cancelar escucha"
-                        : "Pulsa y di «Hola Onni, tu pedido» en una frase"
-                      : captureMicActive
+                    }
+                    onPointerDown={
+                      usesOneShotNativeMic || usesContinuousMic
+                        ? undefined
+                        : (event) => {
+                            event.preventDefault();
+                            handleStartVoiceCapture();
+                          }
+                    }
+                    onPointerUp={
+                      usesOneShotNativeMic || usesContinuousMic
+                        ? undefined
+                        : (event) => {
+                            event.preventDefault();
+                            stopVoiceCaptureHandler();
+                          }
+                    }
+                    onPointerCancel={
+                      usesOneShotNativeMic || usesContinuousMic
+                        ? undefined
+                        : (event) => {
+                            event.preventDefault();
+                            stopVoiceCaptureHandler();
+                          }
+                    }
+                    onPointerLeave={
+                      usesOneShotNativeMic || usesContinuousMic
+                        ? undefined
+                        : (event) => {
+                            if (!captureMicActive) return;
+                            event.preventDefault();
+                            stopVoiceCaptureHandler();
+                          }
+                    }
+                    onContextMenu={(event) => event.preventDefault()}
+                    aria-label={
+                      captureMicActive
                         ? usesOneShotNativeMic
                           ? "Detener micrófono de Onni"
                           : usesContinuousMic
@@ -598,16 +566,11 @@ export default function OpAiAssistant() {
                           : usesContinuousMic
                             ? "Activar micrófono de Onni (escucha continua)"
                             : "Mantener pulsado para hablar con Onni"
-                  }
-                >
-                  {isOnniAndroidVoice() ? (
-                    <Mic className="h-4 w-4" />
-                  ) : captureMicActive ? (
-                    <MicOff className="h-4 w-4" />
-                  ) : (
-                    <Mic className="h-4 w-4" />
-                  )}
-                </Button>
+                    }
+                  >
+                    {captureMicActive ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  </Button>
+                )}
               </>
             )}
             <Button type="submit" size="icon" variant="hero" aria-label="Enviar" disabled={processing}>
