@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { isAndroidNativeApp, isDesktopWebBrowser, isElectronDesktopApp } from "@/lib/deviceDetection";
+import { isDesktopWebBrowser, isElectronDesktopApp, isAndroidNativeApp } from "@/lib/deviceDetection";
 import { warmUpElectronVoiceBridge } from "@/lib/onniElectronVoiceBridge";
 import {
   parseNativeVoiceErrorDetail,
@@ -53,7 +53,6 @@ export function useOnniChatVoice() {
   const wakeCallbacksRef = useRef<NativeWakeCallbacks | null>(null);
   const captureActiveRef = useRef(false);
   const wakeActiveRef = useRef(false);
-  const manualCaptureStopRef = useRef(false);
 
   useEffect(() => {
     if (!isElectronDesktopApp()) return;
@@ -67,11 +66,9 @@ export function useOnniChatVoice() {
   const followUpUntilRef = useRef(0);
   const nativeHandoffRef = useRef<Promise<void>>(Promise.resolve());
 
-  const usesAndroidMicToggle = voiceMode === "native" && isAndroidNativeApp();
-  const usesElectronOneShotMic = voiceMode === "native" && isElectronDesktopApp();
-  /** Switch «Hola Onni» solo en .exe; en APK se usa el botón micrófono. */
-  const supportsNativeWakeSwitch = usesElectronOneShotMic;
-  const usesOneShotNativeMic = usesAndroidMicToggle || usesElectronOneShotMic;
+  const usesOneShotNativeMic = voiceMode === "native";
+  /** Switch «Hola Onni» solo en .exe; en APK solo botón micrófono. */
+  const supportsNativeWakeSwitch = voiceMode === "native" && isElectronDesktopApp();
 
   useEffect(() => {
     if (!isElectronDesktopApp()) return;
@@ -180,13 +177,11 @@ export function useOnniChatVoice() {
 
   const stopVoiceCapture = useCallback(() => {
     const wasCapturing = captureActiveRef.current;
-    if (wasCapturing && (isAndroidNativeApp() || isElectronDesktopApp())) {
-      manualCaptureStopRef.current = true;
+    if (wasCapturing && isAndroidNativeApp()) {
       stopNativeVoiceListening();
       setVoiceListening(false);
-      return pendingTranscriptRef.current.trim();
+      return "";
     }
-
     if (wasCapturing) {
       releaseCaptureSession();
       return "";
@@ -310,7 +305,6 @@ export function useOnniChatVoice() {
 
   const deliverCaptureTranscript = useCallback(
     (text: string) => {
-      manualCaptureStopRef.current = false;
       pendingTranscriptRef.current = "";
       captureCallbacksRef.current?.onTranscript(text);
       releaseCaptureSession();
@@ -510,24 +504,9 @@ export function useOnniChatVoice() {
     const onVoiceEnd = () => {
       if (voiceModeRef.current !== "native") return;
 
-      if (captureActiveRef.current && manualCaptureStopRef.current) {
-        manualCaptureStopRef.current = false;
-        const transcript = pendingTranscriptRef.current.trim();
-        pendingTranscriptRef.current = "";
-        if (transcript) {
-          deliverCaptureTranscript(transcript);
-        } else {
-          releaseCaptureSession();
-        }
-        setVoiceListening(false);
-        return;
-      }
-
       const transcript = pendingTranscriptRef.current.trim();
       pendingTranscriptRef.current = "";
-      if (transcript && wakeActiveRef.current) {
-        handleNativeTranscript(transcript, true);
-      }
+      if (transcript) handleNativeTranscript(transcript, true);
 
       if (!isNativeSessionActive()) {
         setVoiceListening(false);
@@ -536,7 +515,7 @@ export function useOnniChatVoice() {
       }
 
       if (captureActiveRef.current) {
-        setVoiceListening(false);
+        setVoiceListening(true);
         return;
       }
 
@@ -583,7 +562,6 @@ export function useOnniChatVoice() {
     };
   }, [
     clearNativeRestartTimer,
-    deliverCaptureTranscript,
     handleNativeTranscript,
     isNativeSessionActive,
     notifyVoiceError,
@@ -629,8 +607,6 @@ export function useOnniChatVoice() {
     stopNativeWakeListening,
     electronFollowUpActive,
     usesContinuousMic: false,
-    usesAndroidMicToggle,
-    usesElectronOneShotMic,
     usesOneShotNativeMic,
     supportsNativeWakeSwitch,
     canListen: voiceMode !== "none",

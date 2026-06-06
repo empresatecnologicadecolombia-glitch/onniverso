@@ -94,8 +94,6 @@ export default function OpAiAssistant() {
     stopNativeWakeListening,
     usesContinuousMic,
     usesOneShotNativeMic,
-    usesAndroidMicToggle,
-    usesElectronOneShotMic,
     supportsNativeWakeSwitch,
     canListen,
     canSpeak,
@@ -460,14 +458,11 @@ export default function OpAiAssistant() {
               </div>
             ))}
             <p className="text-[11px] text-muted-foreground">{hint}</p>
-            {usesAndroidMicToggle && captureMicActive && (
+            {usesOneShotNativeMic && captureMicActive && (
               <p className="text-[10px] font-medium text-emerald-300/90">
-                Grabando… pulsa el micrófono otra vez para enviar tu pedido a Onni.
-              </p>
-            )}
-            {usesElectronOneShotMic && captureMicActive && (
-              <p className="text-[10px] font-medium text-emerald-300/90">
-                Escuchando en OnniVers… di tu pedido completo (ej. «llévame a clases»).
+                {isAndroidNativeApp()
+                  ? "Grabando… pulsa el micrófono otra vez para enviar."
+                  : "Escuchando en OnniVers… di tu pedido completo (ej. «llévame a clases»)."}
               </p>
             )}
             {usesContinuousMic && captureMicActive && (
@@ -550,20 +545,16 @@ export default function OpAiAssistant() {
                   onContextMenu={(event) => event.preventDefault()}
                   aria-label={
                     captureMicActive
-                      ? usesAndroidMicToggle
-                        ? "Detener y enviar a Onni"
-                        : usesOneShotNativeMic
+                      ? usesOneShotNativeMic
+                        ? "Detener micrófono de Onni"
+                        : usesContinuousMic
                           ? "Detener micrófono de Onni"
-                          : usesContinuousMic
-                            ? "Detener micrófono de Onni"
-                            : "Soltar micrófono de Onni"
-                      : usesAndroidMicToggle
-                        ? "Tocar para hablar con Onni"
-                        : usesOneShotNativeMic
-                          ? "Pulsa y di tu pedido a Onni"
-                          : usesContinuousMic
-                            ? "Activar micrófono de Onni (escucha continua)"
-                            : "Mantener pulsado para hablar con Onni"
+                          : "Soltar micrófono de Onni"
+                      : usesOneShotNativeMic
+                        ? "Pulsa y di tu pedido a Onni"
+                        : usesContinuousMic
+                          ? "Activar micrófono de Onni (escucha continua)"
+                          : "Mantener pulsado para hablar con Onni"
                   }
                 >
                   {captureMicActive ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
