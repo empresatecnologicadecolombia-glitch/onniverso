@@ -89,5 +89,9 @@ export function pickOnniSpanishVoice(voices: SpeechSynthesisVoice[]): SpeechSynt
 
 export const ONNI_STORAGE_KEYS = {
   listen: "onniverso.onni.listen",
+  /** Escucha «Hola Onni» en Chrome/Edge PC — separado del celular. */
+  listenDesktop: "onniverso.onni.listen.desktop",
+  /** Escucha automática en OnniVers .exe */
+  listenElectron: "onniverso.onni.listen.electron",
   speak: "onniverso.onni.speak",
 } as const;

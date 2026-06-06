@@ -6,6 +6,7 @@ import {
   parseOnniWakePhrase,
   pickOnniSpanishVoice,
 } from "@/lib/onniVoice";
+import { isDesktopWebBrowser, isElectronDesktopApp, isOnniAndroidVoice } from "@/lib/deviceDetection";
 
 type UseOnniVoiceOptions = {
   enabled: boolean;
@@ -25,13 +26,35 @@ function readBool(key: string, fallback: boolean): boolean {
   }
 }
 
+function readListenEnabledDefault(): boolean {
+  if (isOnniAndroidVoice()) return false;
+  if (isDesktopWebBrowser()) {
+    return readBool(ONNI_STORAGE_KEYS.listenDesktop, true);
+  }
+  if (isElectronDesktopApp()) {
+    const electron = localStorage.getItem(ONNI_STORAGE_KEYS.listenElectron);
+    if (electron !== null) return electron === "1" || electron === "true";
+    return readBool(ONNI_STORAGE_KEYS.listen, true);
+  }
+  return readBool(ONNI_STORAGE_KEYS.listen, true);
+}
+
+function resolveListenStorageKey(): string | null {
+  if (isOnniAndroidVoice()) return null;
+  if (isDesktopWebBrowser()) return ONNI_STORAGE_KEYS.listenDesktop;
+  if (isElectronDesktopApp()) return ONNI_STORAGE_KEYS.listenElectron;
+  return ONNI_STORAGE_KEYS.listen;
+}
+
 export function useOnniVoicePrefs() {
-  const [listenEnabled, setListenEnabled] = useState(() => readBool(ONNI_STORAGE_KEYS.listen, true));
+  const [listenEnabled, setListenEnabled] = useState(readListenEnabledDefault);
   const [speakEnabled, setSpeakEnabled] = useState(() => readBool(ONNI_STORAGE_KEYS.speak, true));
 
   useEffect(() => {
+    const key = resolveListenStorageKey();
+    if (!key) return;
     try {
-      localStorage.setItem(ONNI_STORAGE_KEYS.listen, listenEnabled ? "1" : "0");
+      localStorage.setItem(key, listenEnabled ? "1" : "0");
     } catch {
       /* ignore */
     }

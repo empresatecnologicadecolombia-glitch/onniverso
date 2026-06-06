@@ -22,7 +22,7 @@ import {
 import { openHomeSocialRedes } from "@/lib/homeSocialRedesOpen";
 import { shouldShowNativeVoiceError } from "@/lib/onniNativeVoiceErrors";
 import { useOnniChatVoice } from "@/hooks/useOnniChatVoice";
-import { useOnniAzureMic } from "@/hooks/useOnniAzureMic";
+import OpAiAndroidAzureMic from "@/components/OpAiAndroidAzureMic";
 import { useOnniVoice, useOnniVoicePrefs } from "@/hooks/useOnniVoice";
 import { useAuth } from "@/hooks/useAuth";
 import { isDesktopWebBrowser, isElectronDesktopApp, isOnniAndroidVoice } from "@/lib/deviceDetection";
@@ -51,6 +51,7 @@ export default function OpAiAssistant() {
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const [androidMicState, setAndroidMicState] = useState({ isRecording: false, isProcessing: false });
   const [text, setText] = useState("");
   const [processing, setProcessing] = useState(false);
   const [messages, setMessages] = useState<UiMessage[]>([
@@ -276,8 +277,6 @@ export default function OpAiAssistant() {
     [speakAnswer],
   );
 
-  const { isRecording, isProcessing, toggle, cancel } = useOnniAzureMic(azureMicCallbacks);
-
   const wakeWordActive =
     isDesktopWebBrowser() && canListen && listenEnabled && !voiceListening && !processing && !nativeWakeListening;
 
@@ -320,7 +319,7 @@ export default function OpAiAssistant() {
   const avatarState =
     wakeSpeaking
       ? "speaking"
-      : wakeListening || voiceListening || nativeWakeListening || isRecording
+      : wakeListening || voiceListening || nativeWakeListening || androidMicState.isRecording
         ? "listening"
         : "idle";
 
@@ -373,12 +372,6 @@ export default function OpAiAssistant() {
       stopNativeWakeListening();
     };
   }, [nativeWakeActive, startNativeWakeListening, stopNativeWakeListening]);
-
-  useEffect(() => {
-    if (!open && showAzureMic) {
-      cancel();
-    }
-  }, [open, showAzureMic, cancel]);
 
   const voiceCallbacks = useMemo(
     () => ({
@@ -524,12 +517,12 @@ export default function OpAiAssistant() {
                 Micrófono activo — habla cuando quieras. Pulsa el micrófono otra vez para apagar.
               </p>
             )}
-            {showAzureMic && isRecording && (
+            {showAzureMic && androidMicState.isRecording && (
               <p className="text-[10px] font-medium text-emerald-300/90">
                 Grabando… di «Hola Onni, llévame a…» y pulsa el mic otra vez.
               </p>
             )}
-            {showAzureMic && isProcessing && (
+            {showAzureMic && androidMicState.isProcessing && (
               <p className="text-[10px] font-medium text-emerald-300/90">Transcribiendo con Azure…</p>
             )}
             {supportsNativeWakeSwitch &&
@@ -566,20 +559,12 @@ export default function OpAiAssistant() {
                   </Button>
                 )}
                 {showAzureMic && (
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant={isRecording ? "secondary" : "outline"}
-                    disabled={processing || isProcessing}
-                    onClick={() => void toggle()}
-                    aria-label={
-                      isRecording
-                        ? "Detener y enviar a Onni"
-                        : "Grabar voz — di Hola Onni y tu pedido"
-                    }
-                  >
-                    {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                  </Button>
+                  <OpAiAndroidAzureMic
+                    callbacks={azureMicCallbacks}
+                    processing={processing}
+                    panelOpen={open}
+                    onStateChange={setAndroidMicState}
+                  />
                 )}
                 {canListen && (
                   <Button
