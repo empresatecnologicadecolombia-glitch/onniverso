@@ -10,7 +10,8 @@ export type OpCommand =
   | { type: "lobby.gyro.toggle" }
   | { type: "lobby.gyro.recenter" }
   | { type: "docente.startClass" }
-  | { type: "docente.enterClass" };
+  | { type: "docente.enterClass" }
+  | { type: "docente.endClass" };
 
 const EVENT_NAME = "onniverso:op-command";
 

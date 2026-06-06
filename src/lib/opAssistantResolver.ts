@@ -70,9 +70,20 @@ function wantsStartClassPhrase(text: string, core: string): boolean {
   );
 }
 
+function wantsEndClassPhrase(text: string, core: string): boolean {
+  return (
+    (/\b(finalizar|finaliza|finalicemos|finalizar la|finaliza la|terminar|termina|termine|terminar la|termina la|cerrar|cierra|cierre|cerrar la|cierra la|acabar|acaba|acabe)\b/.test(
+      core,
+    ) &&
+      /\bclase(s)?\b/.test(core)) ||
+    /\b(finalizar clases|finaliza clases|terminar clases|termina clases)\b/.test(text)
+  );
+}
+
 /** Ir a la sección Clase Virtual del menú (/3d), no al lobby «aula virtual». */
 function wantsClaseVirtualSectionPhrase(text: string, core: string): boolean {
   if (wantsStartClassPhrase(text, core)) return false;
+  if (wantsEndClassPhrase(text, core)) return false;
   if (wantsDocentePanelPhrase(text, core)) return false;
 
   const genericAula =
@@ -702,6 +713,36 @@ function matchStartDocenteClass(
   };
 }
 
+function matchEndDocenteClass(
+  text: string,
+  currentPath: string,
+  appRole?: string | null,
+): OpResolveResult | null {
+  const core = stripNavVerbs(text) || text;
+  if (!wantsEndClassPhrase(text, core)) return null;
+
+  if (!isTeacherOrAdmin(appRole)) {
+    return {
+      answer: sayOnni("Finalizar clase es solo para docentes. Usa una cuenta con rol docente o admin."),
+    };
+  }
+
+  const answer = sayOnni("Finalizo la clase en vivo por ti, como si pulsaras Finalizar clase.");
+
+  if (currentPath !== DOCENTE_PANEL_PATH) {
+    return {
+      navigateTo: DOCENTE_PANEL_PATH,
+      command: { type: "docente.endClass" },
+      answer,
+    };
+  }
+
+  return {
+    command: { type: "docente.endClass" },
+    answer,
+  };
+}
+
 function matchClaseVirtual(
   text: string,
   currentPath: string,
@@ -876,6 +917,9 @@ export function resolveOpCommand(
   const startClass = matchStartDocenteClass(text, currentPath, session.appRole);
   if (startClass) return startClass;
 
+  const endClass = matchEndDocenteClass(text, currentPath, session.appRole);
+  if (endClass) return endClass;
+
   const inicio = matchInicio(text);
   if (inicio) return inicio;
 
@@ -891,6 +935,9 @@ export function getOpAssistantHint(currentPath: string): string {
   }
   if (currentPath.startsWith("/sala/espectador")) {
     return 'Di: "salir a conciertos", "reproductor mp4", "¿qué es esto?".';
+  }
+  if (currentPath === DOCENTE_PANEL_PATH) {
+    return 'Di: "iniciar clase", "entrar a clase", "finalizar clase".';
   }
   return "Di lo que quieres hacer o adónde ir.";
 }

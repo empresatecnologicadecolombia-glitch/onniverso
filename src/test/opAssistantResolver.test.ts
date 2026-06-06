@@ -62,6 +62,24 @@ describe("resolveOpCommand", () => {
     expect(denied.answer.toLowerCase()).toContain("docente");
   });
 
+  it("finalizar clase dispara comando docente.endClass para docentes", () => {
+    const onPanel = resolveOpCommand("finalizar clase", "/docente-clases", { appRole: "docente" });
+    expect(onPanel.command).toEqual({ type: "docente.endClass" });
+    expect(onPanel.navigateTo).toBeUndefined();
+
+    const fromElsewhere = resolveOpCommand("finaliza la clase", "/coliseo", { appRole: "docente" });
+    expect(fromElsewhere.command).toEqual({ type: "docente.endClass" });
+    expect(fromElsewhere.navigateTo).toBe("/docente-clases");
+
+    expect(resolveOpCommand("terminar clases", "/docente-clases", { appRole: "admin" }).command).toEqual({
+      type: "docente.endClass",
+    });
+
+    const denied = resolveOpCommand("finalizar clase", "/", { appRole: "particular" });
+    expect(denied.command).toBeUndefined();
+    expect(denied.answer.toLowerCase()).toContain("docente");
+  });
+
   it("panel docente solo navega con rol docente o admin", () => {
     expect(
       resolveOpCommand("llevame al panel de docente", "/", { appRole: "docente" }).navigateTo,

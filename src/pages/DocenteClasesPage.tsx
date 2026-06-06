@@ -114,7 +114,7 @@ export default function DocenteClasesPage() {
   });
 
   const canManage = useMemo(() => role === "docente" || role === "admin", [role]);
-  const pendingOnniDocenteRef = useRef<"start" | "enter" | null>(null);
+  const pendingOnniDocenteRef = useRef<"start" | "enter" | "end" | null>(null);
   const onniDocenteRunRef = useRef(0);
 
   const loadData = useCallback(async () => {
@@ -552,8 +552,18 @@ export default function DocenteClasesPage() {
     await enterClassroom(target.id, draft);
   }, [canManage, saving, aulas, drafts]);
 
+  const endClassFromOnni = useCallback(async () => {
+    if (!canManage || saving) return;
+    const liveAula = aulas.find((aula) => sessionsByAula[aula.id]?.status === "live");
+    if (!liveAula) {
+      toast.info("No hay ninguna clase en vivo para finalizar.");
+      return;
+    }
+    await endSession(liveAula.id);
+  }, [canManage, saving, aulas, sessionsByAula]);
+
   const runDocenteOnniAction = useCallback(
-    async (action: "start" | "enter") => {
+    async (action: "start" | "enter" | "end") => {
       const runId = ++onniDocenteRunRef.current;
       for (let attempt = 0; attempt < ONNI_DOCENTE_MAX_ATTEMPTS; attempt += 1) {
         if (runId !== onniDocenteRunRef.current) return;
@@ -563,12 +573,13 @@ export default function DocenteClasesPage() {
           continue;
         }
         if (action === "start") await startClassFromOnni();
-        else await enterClassFromOnni();
+        else if (action === "enter") await enterClassFromOnni();
+        else await endClassFromOnni();
         return;
       }
       toast.message("Onni sigue esperando — termina de cargar el panel e inténtalo otra vez.");
     },
-    [canManage, loading, saving, startClassFromOnni, enterClassFromOnni],
+    [canManage, loading, saving, startClassFromOnni, enterClassFromOnni, endClassFromOnni],
   );
 
   useEffect(() => {
@@ -581,6 +592,11 @@ export default function DocenteClasesPage() {
       if (cmd.type === "docente.enterClass") {
         pendingOnniDocenteRef.current = "enter";
         void runDocenteOnniAction("enter");
+        return;
+      }
+      if (cmd.type === "docente.endClass") {
+        pendingOnniDocenteRef.current = "end";
+        void runDocenteOnniAction("end");
       }
     });
   }, [runDocenteOnniAction]);

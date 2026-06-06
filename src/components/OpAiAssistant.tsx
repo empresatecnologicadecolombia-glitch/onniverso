@@ -173,7 +173,8 @@ export default function OpAiAssistant() {
           if (result.command) {
             const isDocenteVoiceCmd =
               result.command.type === "docente.startClass" ||
-              result.command.type === "docente.enterClass";
+              result.command.type === "docente.enterClass" ||
+              result.command.type === "docente.endClass";
             const needsMountDelay = Boolean(result.navigateTo) && isDocenteVoiceCmd;
             const dispatchDelay = needsMountDelay ? 1_000 : isDocenteVoiceCmd ? 300 : 0;
             window.setTimeout(() => dispatchOpCommand(result.command!), dispatchDelay);
