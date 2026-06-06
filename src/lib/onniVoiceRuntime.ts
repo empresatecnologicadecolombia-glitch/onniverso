@@ -175,9 +175,7 @@ export function speakOnniAnswer(
   if (mode === "native" && isOnniAndroidVoice() && text.trim()) {
     stopOnniSpokenVoice();
     if (shouldUseAzureTtsOnAndroid(text, options)) {
-      void speakWithAzureVoice(text).then((ok) => {
-        if (!ok) speakWithNativeVoice(text);
-      });
+      void speakWithAzureVoice(text);
     } else {
       speakWithNativeVoice(text);
     }

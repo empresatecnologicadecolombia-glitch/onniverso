@@ -3,12 +3,6 @@ import { stopAzureVoice } from "@/lib/onniAzureTts";
 
 const TARGET_SAMPLE_RATE = 16_000;
 const MAX_RECORD_MS = 25_000;
-/** Escaneo corto para detectar «Onni» con el switch activo (Android). */
-export const AZURE_SWITCH_WAKE_CHUNK_MS = 4_500;
-/** Grabación del pedido tras oír la palabra clave (Android). */
-export const AZURE_SWITCH_COMMAND_CHUNK_MS = 9_000;
-/** @deprecated Usar AZURE_SWITCH_COMMAND_CHUNK_MS */
-export const AZURE_SWITCH_CHUNK_MS = AZURE_SWITCH_COMMAND_CHUNK_MS;
 
 type ActiveSession = {
   recorder: MediaRecorder;

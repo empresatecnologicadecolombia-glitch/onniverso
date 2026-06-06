@@ -36,12 +36,13 @@ type UiMessage = { role: "user" | "assistant"; text: string };
 
 function appendAssistantAnswer(
   setMessages: Dispatch<SetStateAction<UiMessage[]>>,
-  sessionRef: MutableRefObject<{ lastAnswer?: string }>,
+  sessionRef: MutableRefObject<{ lastAnswer?: string; lastAnswerFromGemini?: boolean }>,
   answer: string,
   speak: (text: string, options?: OnniSpeakOptions) => void,
   speakOptions?: OnniSpeakOptions,
 ) {
   sessionRef.current.lastAnswer = answer;
+  sessionRef.current.lastAnswerFromGemini = speakOptions?.fromGemini ?? false;
   setMessages((prev) => [...prev, { role: "assistant", text: answer }]);
   speak(answer, speakOptions);
 }
@@ -55,7 +56,7 @@ export default function OpAiAssistant() {
   const [messages, setMessages] = useState<UiMessage[]>([
     { role: "assistant", text: getOnniIntroduction() },
   ]);
-  const sessionRef = useRef<{ lastAnswer?: string }>({});
+  const sessionRef = useRef<{ lastAnswer?: string; lastAnswerFromGemini?: boolean }>({});
   const appRoleRef = useRef<string | null>(null);
   const pendingVoiceRef = useRef("");
   const { user } = useAuth();
@@ -275,17 +276,7 @@ export default function OpAiAssistant() {
     [speakAnswer],
   );
 
-  const {
-    isManualRecording,
-    isManualProcessing,
-    isAwaitingWake,
-    isSwitchListening,
-    isSwitchProcessing,
-    toggle,
-    cancel,
-  } = useOnniAzureMic(azureMicCallbacks, {
-    switchEnabled: showAzureMic && listenEnabled && open,
-  });
+  const { isRecording, isProcessing, toggle, cancel } = useOnniAzureMic(azureMicCallbacks);
 
   const wakeWordActive =
     isDesktopWebBrowser() && canListen && listenEnabled && !voiceListening && !processing && !nativeWakeListening;
@@ -329,7 +320,7 @@ export default function OpAiAssistant() {
   const avatarState =
     wakeSpeaking
       ? "speaking"
-      : wakeListening || voiceListening || nativeWakeListening || isManualRecording || isSwitchListening
+      : wakeListening || voiceListening || nativeWakeListening || isRecording
         ? "listening"
         : "idle";
 
@@ -446,7 +437,9 @@ export default function OpAiAssistant() {
       ]);
       return;
     }
-    speakAnswer(textToSpeak);
+    speakAnswer(textToSpeak, {
+      fromGemini: sessionRef.current.lastAnswerFromGemini ?? false,
+    });
   }, [canSpeak, speakAnswer]);
 
   const onSend = (e: FormEvent) => {
@@ -503,19 +496,6 @@ export default function OpAiAssistant() {
                   </Label>
                 </div>
               )}
-              {showAzureMic && (
-                <div className="mt-1.5 flex items-center gap-2">
-                  <Switch
-                    id="onni-azure-listen"
-                    checked={listenEnabled}
-                    onCheckedChange={setListenEnabled}
-                    aria-label="Escuchar con Azure en Android"
-                  />
-                  <Label htmlFor="onni-azure-listen" className="text-[10px] font-normal text-muted-foreground">
-                    Escuchar (Azure) — conversación automática
-                  </Label>
-                </div>
-              )}
             </div>
             <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>
               Cerrar
@@ -544,25 +524,14 @@ export default function OpAiAssistant() {
                 Micrófono activo — habla cuando quieras. Pulsa el micrófono otra vez para apagar.
               </p>
             )}
-            {showAzureMic && listenEnabled && isAwaitingWake && (
-              <p className="text-[10px] font-medium text-emerald-300/90">
-                Switch activo — esperando «Onni», «Oni», «Hony» u «Ony». Di «Hola Onni» o «Onni,
-                llévame a…».
-              </p>
-            )}
-            {showAzureMic && listenEnabled && isSwitchListening && !isAwaitingWake && !isSwitchProcessing && (
-              <p className="text-[10px] font-medium text-emerald-300/90">
-                Te escucho — di tu pedido (sin repetir «Hola Onni»).
-              </p>
-            )}
-            {showAzureMic && isManualRecording && (
+            {showAzureMic && isRecording && (
               <p className="text-[10px] font-medium text-emerald-300/90">
                 Grabando… di «Hola Onni, llévame a…» y pulsa el mic otra vez.
               </p>
             )}
-            {(showAzureMic && isManualProcessing) || (showAzureMic && isSwitchProcessing) ? (
+            {showAzureMic && isProcessing && (
               <p className="text-[10px] font-medium text-emerald-300/90">Transcribiendo con Azure…</p>
-            ) : null}
+            )}
             {supportsNativeWakeSwitch &&
               nativeWakeListening &&
               listenEnabled &&
@@ -600,16 +569,16 @@ export default function OpAiAssistant() {
                   <Button
                     type="button"
                     size="icon"
-                    variant={isManualRecording ? "secondary" : "outline"}
-                    disabled={processing || isManualProcessing}
+                    variant={isRecording ? "secondary" : "outline"}
+                    disabled={processing || isProcessing}
                     onClick={() => void toggle()}
                     aria-label={
-                      isManualRecording
+                      isRecording
                         ? "Detener y enviar a Onni"
                         : "Grabar voz — di Hola Onni y tu pedido"
                     }
                   >
-                    {isManualRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                   </Button>
                 )}
                 {canListen && (
