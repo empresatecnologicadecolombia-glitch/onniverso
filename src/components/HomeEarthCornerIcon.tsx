@@ -11,7 +11,6 @@ const MOON_TEXTURE_URL = "/assets/textures/moon/moon_1024.jpg";
 
 /** 72px −25 % ≈ 54px */
 const ICON_PX = 54;
-const ICON_PX_MOBILE = 48;
 
 const EARTH_RADIUS = 0.72;
 const MOON_RADIUS = EARTH_RADIUS * 0.27;
