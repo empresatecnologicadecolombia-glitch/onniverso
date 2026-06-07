@@ -22,7 +22,6 @@ import {
   getRoomMode,
   type MiMundoEnvironmentId,
 } from "@/data/miMundoEnvironments";
-import { AULA_VIRTUAL_LOBBY_PATH } from "@/lib/aulaVirtual";
 import { useAulaVirtualCardChoice } from "@/hooks/useAulaVirtualCardChoice";
 import {
   MAX_WEBGL_PIXEL_RATIO,
@@ -756,7 +755,7 @@ const MiMundoVRSection = ({
 
   const onAulaVirtualClick = useCallback(() => {
     if (requestAulaVirtualEntry()) return;
-    navigate(AULA_VIRTUAL_LOBBY_PATH);
+    navigate(LOBBY_IMMERSIVE_PATH);
   }, [navigate, requestAulaVirtualEntry]);
 
   const onProfileConfirm = async (payload: ProfileCardConfirmPayload) => {
