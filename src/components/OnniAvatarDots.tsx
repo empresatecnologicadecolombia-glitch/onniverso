@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import type { OnniAvatarState } from "@/components/OnniAvatar";
 
 type OnniAvatarDotsProps = {
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "hero";
   state?: OnniAvatarState;
   className?: string;
   title?: string;
@@ -13,13 +13,20 @@ const sizeBox = {
   sm: "h-10 w-10",
   md: "h-[55px] w-[55px]",
   lg: "h-[70px] w-[70px]",
+  hero: "h-[168px] w-[168px]",
+} as const;
+
+const CANVAS_PX_BY_SIZE = {
+  sm: 88,
+  md: 110,
+  lg: 110,
+  hero: 168,
 } as const;
 
 type Vec3 = { x: number; y: number; z: number };
 
 const PARTICLE_COUNT = 112;
 const MORPH_MS = 5200;
-const CANVAS_PX = 110;
 const WORLD_SCALE = 0.425;
 /** Tiempo en cada figura antes de empezar a transformarse */
 const HOLD_RATIO = 0.74;
@@ -441,9 +448,10 @@ export default function OnniAvatarDots({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    const canvasPx = CANVAS_PX_BY_SIZE[size];
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = CANVAS_PX * dpr;
-    canvas.height = CANVAS_PX * dpr;
+    canvas.width = canvasPx * dpr;
+    canvas.height = canvasPx * dpr;
 
     let raf = 0;
     const start = performance.now();
@@ -477,8 +485,8 @@ export default function OnniAvatarDots({
 
       projected.sort((a, b) => a.z - b.z);
 
-      const w = CANVAS_PX;
-      const h = CANVAS_PX;
+      const w = canvasPx;
+      const h = canvasPx;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, w, h);
 
@@ -530,7 +538,7 @@ export default function OnniAvatarDots({
 
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
-  }, []);
+  }, [size]);
 
   return (
     <div

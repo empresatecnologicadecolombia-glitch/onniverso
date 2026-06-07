@@ -34,6 +34,7 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useVrModeActive } from "@/hooks/useVrModeActive";
 import ProfileCard, { type ProfileCardConfirmPayload } from "@/components/ProfileCard";
+import HomeEarthCornerIcon from "@/components/HomeEarthCornerIcon";
 import {
   LOCKED_CAMERA_FOV,
   LOCKED_CAMERA_ORBIT_TARGET_Y,
@@ -820,22 +821,27 @@ const MiMundoVRSection = ({
               </>
             ))}
 
-          <EarthMoonPivot earthSceneY={earthSceneY} scale={earthMoonScale} enabled={!vrStereoActive}>
-            <Suspense fallback={null}>
-              <CentralEarth
-                simpleGpu={isMobileCoarse || vrStereoActive}
-                vrStereo={vrStereoActive}
-                onOpenLobby={vrStereoActive ? undefined : handleLobbyOpen}
-              />
-            </Suspense>
-            <Suspense fallback={null}>
-              <OrbitingMoon simpleGpu={isMobileCoarse || vrStereoActive} vrStereo={vrStereoActive} />
-            </Suspense>
-          </EarthMoonPivot>
+          {vrStereoActive && (
+            <EarthMoonPivot earthSceneY={earthSceneY} scale={earthMoonScale} enabled={false}>
+              <Suspense fallback={null}>
+                <CentralEarth
+                  simpleGpu={isMobileCoarse || vrStereoActive}
+                  vrStereo={vrStereoActive}
+                  onOpenLobby={undefined}
+                />
+              </Suspense>
+              <Suspense fallback={null}>
+                <OrbitingMoon simpleGpu={isMobileCoarse || vrStereoActive} vrStereo={vrStereoActive} />
+              </Suspense>
+            </EarthMoonPivot>
+          )}
           <VrStereoPerfSync active={vrStereoActive} />
         </Canvas>
         </div>
       </div>
+      {!vrStereoActive && (
+        <HomeEarthCornerIcon onOpenLobby={handleLobbyOpen} />
+      )}
       {!vrStereoActive && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-4">
           <div className={LOCKED_PROFILE_CARD_WRAPPER_CLASS}>

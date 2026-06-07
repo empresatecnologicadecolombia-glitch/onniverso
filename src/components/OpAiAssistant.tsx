@@ -120,6 +120,7 @@ export default function OpAiAssistant() {
   const isAulaVirtualScene = location.pathname === "/aula-virtual";
   const shiftOnniRight = isColiseoClassScene || isAulaVirtualScene;
   const showSocialIcons = location.pathname === "/";
+  const isHomePortada = location.pathname === "/";
 
   const runCommand = useCallback(
     async (raw: string) => {
@@ -449,15 +450,21 @@ export default function OpAiAssistant() {
   return (
     <div
       className={`pointer-events-none fixed z-[80] w-[min(92vw,380px)] max-sm:flex max-sm:flex-col max-sm:items-start max-sm:gap-2 sm:block ${
-        shiftOnniRight
-          ? "bottom-10 left-12 max-sm:bottom-12 max-sm:left-14 sm:bottom-8 sm:left-[4.5rem]"
-          : "bottom-10 left-4 sm:bottom-8 sm:left-10"
+        isHomePortada && !open
+          ? "bottom-10 left-1/2 max-w-none -translate-x-1/2 max-sm:bottom-14 sm:bottom-8"
+          : shiftOnniRight
+            ? "bottom-10 left-12 max-sm:bottom-12 max-sm:left-14 sm:bottom-8 sm:left-[4.5rem]"
+            : "bottom-10 left-4 sm:bottom-8 sm:left-10"
       }`}
     >
       {!open ? (
         <button
           type="button"
-          className="pointer-events-auto relative z-[90] order-1 group flex flex-col items-center gap-3 rounded-2xl border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+          className={`pointer-events-auto relative z-[90] order-1 group flex flex-col items-center gap-3 rounded-2xl border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${
+            isHomePortada
+              ? "fixed left-1/2 top-[56%] -translate-x-1/2 -translate-y-1/2 max-sm:top-[58%]"
+              : ""
+          }`}
           onClick={() => setOpen(true)}
           aria-label={
             wakeListening || nativeWakeListening
@@ -465,7 +472,11 @@ export default function OpAiAssistant() {
               : "Abrir Onni, asistente de voz y texto"
           }
         >
-          <OnniAvatarDots size="lg" state={avatarState} className="max-sm:h-16 max-sm:w-16" />
+          <OnniAvatarDots
+            size={isHomePortada ? "hero" : "lg"}
+            state={avatarState}
+            className={isHomePortada ? "max-sm:h-32 max-sm:w-32" : "max-sm:h-16 max-sm:w-16"}
+          />
         </button>
       ) : (
         <div className="pointer-events-auto rounded-2xl border border-cyan-300/35 bg-card/90 backdrop-blur-xl shadow-[0_0_45px_-16px_rgba(34,211,238,0.8)]">
