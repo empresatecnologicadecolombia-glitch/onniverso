@@ -24,6 +24,7 @@ import { shouldShowNativeVoiceError } from "@/lib/onniNativeVoiceErrors";
 import { useOnniChatVoice } from "@/hooks/useOnniChatVoice";
 import OpAiAndroidAzureMic from "@/components/OpAiAndroidAzureMic";
 import OpAiElectronAzureMic from "@/components/OpAiElectronAzureMic";
+import { useOnniAzureMic } from "@/hooks/useOnniAzureMic";
 import { useOnniVoice, useOnniVoicePrefs } from "@/hooks/useOnniVoice";
 import { useAuth } from "@/hooks/useAuth";
 import { isDesktopWebBrowser, isElectronDesktopApp, isOnniAndroidVoice } from "@/lib/deviceDetection";
@@ -34,6 +35,13 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
 type UiMessage = { role: "user" | "assistant"; text: string };
+
+function isEditableKeyboardTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+  return target.isContentEditable;
+}
 
 function appendAssistantAnswer(
   setMessages: Dispatch<SetStateAction<UiMessage[]>>,
@@ -62,6 +70,7 @@ export default function OpAiAssistant() {
   const sessionRef = useRef<{ lastAnswer?: string; lastAnswerFromGemini?: boolean }>({});
   const appRoleRef = useRef<string | null>(null);
   const pendingVoiceRef = useRef("");
+  const electronSpaceHoldRef = useRef(false);
   const { user } = useAuth();
   const [appRole, setAppRole] = useState<string | null>(null);
 
@@ -279,6 +288,71 @@ export default function OpAiAssistant() {
     }),
     [speakAnswer],
   );
+
+  const electronAzureMic = useOnniAzureMic(azureMicCallbacks);
+  const {
+    isRecording: electronMicRecording,
+    isProcessing: electronMicProcessing,
+    beginHold: electronMicBeginHold,
+    endHold: electronMicEndHold,
+    cancel: electronMicCancel,
+  } = electronAzureMic;
+
+  useEffect(() => {
+    if (!showElectronMic) return;
+    setElectronMicState({
+      isRecording: electronMicRecording,
+      isProcessing: electronMicProcessing,
+    });
+  }, [showElectronMic, electronMicRecording, electronMicProcessing]);
+
+  useEffect(() => {
+    if (!showElectronMic || open || electronSpaceHoldRef.current) return;
+    electronMicCancel();
+  }, [open, showElectronMic, electronMicCancel]);
+
+  useEffect(() => {
+    if (!showElectronMic) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.code !== "Space" && event.key !== " ") return;
+      if (event.repeat) return;
+      if (isEditableKeyboardTarget(event.target)) return;
+      if (processing || electronMicProcessing) return;
+      event.preventDefault();
+      electronSpaceHoldRef.current = true;
+      void electronMicBeginHold();
+    };
+
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.code !== "Space" && event.key !== " ") return;
+      if (!electronSpaceHoldRef.current) return;
+      electronSpaceHoldRef.current = false;
+      event.preventDefault();
+      void electronMicEndHold();
+    };
+
+    const onBlur = () => {
+      if (!electronSpaceHoldRef.current) return;
+      electronSpaceHoldRef.current = false;
+      void electronMicEndHold();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, [
+    showElectronMic,
+    processing,
+    electronMicProcessing,
+    electronMicBeginHold,
+    electronMicEndHold,
+  ]);
 
   const wakeWordActive =
     isDesktopWebBrowser() && canListen && listenEnabled && !voiceListening && !processing && !nativeWakeListening;
@@ -590,10 +664,11 @@ export default function OpAiAssistant() {
                 )}
                 {showElectronMic && (
                   <OpAiElectronAzureMic
-                    callbacks={azureMicCallbacks}
                     processing={processing}
-                    panelOpen={open}
-                    onStateChange={setElectronMicState}
+                    isRecording={electronMicRecording}
+                    isProcessing={electronMicProcessing}
+                    beginHold={electronMicBeginHold}
+                    endHold={electronMicEndHold}
                   />
                 )}
                 {canListen && (

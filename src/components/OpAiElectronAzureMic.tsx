@@ -1,40 +1,24 @@
-import { useEffect, useRef, type PointerEvent } from "react";
+import { useRef, type PointerEvent } from "react";
 import { Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useOnniAzureMic, type AzureMicCallbacks } from "@/hooks/useOnniAzureMic";
-
-export type OpAiElectronAzureMicState = {
-  isRecording: boolean;
-  isProcessing: boolean;
-};
 
 type OpAiElectronAzureMicProps = {
-  callbacks: AzureMicCallbacks;
   processing: boolean;
-  panelOpen: boolean;
-  onStateChange?: (state: OpAiElectronAzureMicState) => void;
+  isRecording: boolean;
+  isProcessing: boolean;
+  beginHold: () => void | Promise<void>;
+  endHold: () => void | Promise<void>;
 };
 
 /** Micrófono Azure STT en OnniVers .exe — mantén pulsado para grabar, suelta para enviar. */
 export default function OpAiElectronAzureMic({
-  callbacks,
   processing,
-  panelOpen,
-  onStateChange,
+  isRecording,
+  isProcessing,
+  beginHold,
+  endHold,
 }: OpAiElectronAzureMicProps) {
-  const { isRecording, isProcessing, beginHold, endHold, cancel } = useOnniAzureMic(callbacks);
   const holdingRef = useRef(false);
-
-  useEffect(() => {
-    onStateChange?.({ isRecording, isProcessing });
-  }, [isRecording, isProcessing, onStateChange]);
-
-  useEffect(() => {
-    if (!panelOpen) {
-      holdingRef.current = false;
-      cancel();
-    }
-  }, [panelOpen, cancel]);
 
   const handlePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
     if (processing || isProcessing || holdingRef.current) return;
