@@ -24,7 +24,6 @@ import LobbyDeviceOrientationLook from "@/components/lobby/LobbyDeviceOrientatio
 import LobbyDecorEarthMoon from "@/components/lobby/LobbyDecorEarthMoon";
 import LobbyDecorHeartWall from "@/components/lobby/LobbyDecorHeartWall";
 import LobbyDecorFarolLantern from "@/components/lobby/LobbyDecorFarolLantern";
-import LobbyGyroToggleButton from "@/components/lobby/LobbyGyroToggleButton";
 import { requestDeviceOrientationPermission } from "@/lib/deviceOrientationCamera";
 import {
   attachCameraStreamToVideo,
@@ -1575,16 +1574,6 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
         inputRef={mouseMoveInput}
         onEscape={handleLobbyEscape}
       />
-
-      {isTouchOnlyLobby && (
-        <LobbyGyroToggleButton
-          active={gyroLookEnabled}
-          onActivate={() => void activateGyroLook()}
-          onDeactivate={deactivateGyroLook}
-          onRecenter={() => setGyroRecenterToken((t) => t + 1)}
-          errorMessage={gyroError}
-        />
-      )}
 
       {/*
         Barra de avisos inferior ("Pearl Room · WASD mover · ratón mirar")
