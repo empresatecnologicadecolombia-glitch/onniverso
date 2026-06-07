@@ -35,7 +35,7 @@ const NAV_ITEMS: { label: string; path: string; icon: LucideIcon }[] = [
   /** Clase Virtual 360 (Coliseo); solo tarjeta de aula en vivo. */
   { label: "CLASE VIRTUAL", path: GALERIA_AULA_SECTION_PATH, icon: Box },
   { label: "EDUCACIÓN", path: EDUCACION_SECTION_PATH, icon: GraduationCap },
-  { label: "CONCIERTOS LIVE", path: "/nuestras-salas", icon: Radio },
+  { label: "VIDEOS EDUCATIVOS", path: "/nuestras-salas", icon: Radio },
   { label: "CONTACTOS", path: "/comunidad", icon: MessageCircle },
   { label: "TIENDA", path: "/tienda", icon: ShoppingBag },
   { label: "QUIENES SOMOS", path: "/quienes-somos", icon: Building2 },
