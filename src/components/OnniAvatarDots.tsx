@@ -25,7 +25,8 @@ const CANVAS_PX_BY_SIZE = {
 
 type Vec3 = { x: number; y: number; z: number };
 
-const PARTICLE_COUNT = 112;
+const PARTICLE_COUNT = 168;
+const SPARKLE_COUNT = 104;
 const MORPH_MS = 5200;
 const WORLD_SCALE = 0.425;
 /** Tiempo en cada figura antes de empezar a transformarse */
@@ -146,32 +147,53 @@ function buildTorus(count: number): Vec3[] {
 
 function buildHelix(count: number): Vec3[] {
   const pts: Vec3[] = [];
-  const perStrand = Math.floor(count / 2);
-  const turns = 2.25;
-  const strandR = 0.28;
-  const sep = 0.34;
-  const height = 1.55;
+  const turns = 2.5;
+  const height = 1.72;
+  const helixR = 0.42;
+  const strandQuota = Math.floor(count * 0.34);
+  const rungSteps = 5;
 
   for (let strand = 0; strand < 2; strand += 1) {
-    const sign = strand === 0 ? 1 : -1;
-    for (let i = 0; i < perStrand; i += 1) {
-      const t = i / Math.max(perStrand - 1, 1);
-      const angle = t * Math.PI * 2 * turns + (strand === 1 ? Math.PI : 0);
+    for (let i = 0; i < strandQuota; i += 1) {
+      const t = i / Math.max(strandQuota - 1, 1);
+      const angle = t * Math.PI * 2 * turns + strand * Math.PI;
       const y = t * height - height / 2;
       pts.push({
-        x: Math.cos(angle) * strandR + sign * sep,
+        x: Math.cos(angle) * helixR,
         y,
-        z: Math.sin(angle) * strandR,
+        z: Math.sin(angle) * helixR,
+      });
+    }
+  }
+
+  const rungSlots = Math.max(8, Math.floor((count - pts.length) / rungSteps));
+  for (let ri = 0; ri < rungSlots && pts.length < count; ri += 1) {
+    const t = (ri + 0.5) / rungSlots;
+    const angle = t * Math.PI * 2 * turns;
+    const y = t * height - height / 2;
+    const ax = Math.cos(angle) * helixR;
+    const az = Math.sin(angle) * helixR;
+    const bx = Math.cos(angle + Math.PI) * helixR;
+    const bz = Math.sin(angle + Math.PI) * helixR;
+
+    for (let step = 0; step <= rungSteps && pts.length < count; step += 1) {
+      const u = step / rungSteps;
+      pts.push({
+        x: ax + (bx - ax) * u,
+        y,
+        z: az + (bz - az) * u,
       });
     }
   }
 
   while (pts.length < count) {
     const t = pts.length / count;
+    const angle = t * Math.PI * 2 * turns;
+    const y = t * height - height / 2;
     pts.push({
-      x: Math.cos(t * 14) * 0.35,
-      y: t * 1.4 - 0.7,
-      z: Math.sin(t * 14) * 0.35,
+      x: Math.cos(angle) * helixR * 0.55,
+      y,
+      z: Math.sin(angle) * helixR * 0.55,
     });
   }
 
@@ -365,16 +387,124 @@ function buildGalaxy(count: number): Vec3[] {
   return sortBySpherical(scaleToFit(pts.slice(0, count), 0.9));
 }
 
-const SHAPES = [
-  buildSphere,
-  buildCube,
-  buildTorus,
-  buildHelix,
-  buildPyramid,
-  buildOctahedron,
-  buildCone,
-  buildGalaxy,
-].map((fn) => sortBySpherical(fn(PARTICLE_COUNT)));
+function addStrokePoints(
+  pts: Vec3[],
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+  n: number,
+  max: number,
+  zBase = 0,
+): void {
+  for (let i = 0; i < n && pts.length < max; i += 1) {
+    const t = n <= 1 ? 0.5 : i / (n - 1);
+    pts.push({
+      x: ax + (bx - ax) * t,
+      y: ay + (by - ay) * t,
+      z: zBase + Math.sin(pts.length * 0.91) * 0.01,
+    });
+  }
+}
+
+function addThickStroke(
+  pts: Vec3[],
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+  n: number,
+  max: number,
+): void {
+  for (const zBase of [-0.055, 0, 0.055]) {
+    addStrokePoints(pts, ax, ay, bx, by, n, max, zBase);
+  }
+}
+
+/** Yod paleo (𐤉): tallo con brazos superiores. */
+function addPaleoYod(pts: Vec3[], cx: number, segN: number, max: number): void {
+  addThickStroke(pts, cx, -0.18, cx, 0.28, segN, max);
+  addThickStroke(pts, cx, 0.18, cx - 0.14, 0.44, Math.max(5, Math.ceil(segN * 0.55)), max);
+  addThickStroke(pts, cx, 0.18, cx + 0.14, 0.44, Math.max(5, Math.ceil(segN * 0.55)), max);
+}
+
+/** He paleo (𐤄): ventana con travesaño bajo. */
+function addPaleoHe(pts: Vec3[], cx: number, hw: number, hh: number, segN: number, max: number): void {
+  addThickStroke(pts, cx - hw, -hh, cx - hw, hh, segN, max);
+  addThickStroke(pts, cx - hw, hh, cx + hw, hh, segN, max);
+  addThickStroke(pts, cx + hw, hh, cx + hw, hh * 0.08, segN, max);
+  addThickStroke(pts, cx - hw, -hh * 0.08, cx + hw, -hh * 0.08, segN, max);
+}
+
+/** Vav paleo (𐤅): clavo vertical con gancho. */
+function addPaleoVav(pts: Vec3[], cx: number, hh: number, segN: number, max: number): void {
+  addThickStroke(pts, cx, -hh, cx, hh * 0.82, segN, max);
+  addThickStroke(pts, cx, hh * 0.82, cx - hh * 0.34, hh, Math.max(6, Math.ceil(segN * 0.55)), max);
+}
+
+/** Palabra יהוה en hebreo paleo/arcaico, de derecha a izquierda, una sola figura. */
+function buildArchaicHebrewWord(count: number): Vec3[] {
+  const pts: Vec3[] = [];
+  const hh = 0.46;
+  const hw = 0.15;
+  const nHe = Math.ceil(count * 0.19);
+  const nVav = Math.ceil(count * 0.17);
+  const nYod = Math.ceil(count * 0.13);
+
+  addPaleoYod(pts, 0.6, nYod, count);
+  addPaleoHe(pts, 0.2, hw, hh, nHe, count);
+  addPaleoVav(pts, -0.2, hh, nVav, count);
+  addPaleoHe(pts, -0.6, hw, hh, nHe, count);
+
+  while (pts.length < count) {
+    const src = pts[pts.length % Math.max(pts.length, 1)]!;
+    const t = pts.length / count;
+    pts.push({
+      x: src.x + Math.sin(t * 17) * 0.008,
+      y: src.y + Math.cos(t * 11) * 0.006,
+      z: src.z,
+    });
+  }
+
+  return scaleToFit(pts.slice(0, count), 0.9);
+}
+
+/** Puntitos pequeños alrededor de las figuras (no morphan; efecto brillo). */
+function buildSparkleCloud(count: number): Vec3[] {
+  const pts: Vec3[] = [];
+  const phi = Math.PI * (3 - Math.sqrt(5));
+  for (let i = 0; i < count; i += 1) {
+    const y = 1 - (i / Math.max(count - 1, 1)) * 2;
+    const ring = Math.sqrt(Math.max(0, 1 - y * y));
+    const theta = phi * i * 1.07;
+    const r = 0.72 + ((i * 0.137) % 0.42);
+    pts.push({
+      x: Math.cos(theta) * ring * r,
+      y: y * r * 0.88 + Math.sin(i * 1.41) * 0.07,
+      z: Math.sin(theta) * ring * r,
+    });
+  }
+  return pts;
+}
+
+const GEOMETRIC_SHAPE_COUNT = 8;
+const ARCHAIC_HEBREW_WORD_INDEX = GEOMETRIC_SHAPE_COUNT;
+
+const SHAPES: Vec3[][] = [
+  ...[
+    buildSphere,
+    buildCube,
+    buildTorus,
+    buildHelix,
+    buildPyramid,
+    buildOctahedron,
+    buildCone,
+    buildGalaxy,
+  ].map((fn) => sortBySpherical(fn(PARTICLE_COUNT))),
+  buildArchaicHebrewWord(PARTICLE_COUNT),
+];
+
+const SPARKLES = buildSparkleCloud(SPARKLE_COUNT);
 
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
@@ -403,14 +533,32 @@ function morphShapes(from: Vec3[], to: Vec3[], t: number): Vec3[] {
   });
 }
 
-function wobble(p: Vec3, i: number, elapsed: number, morphing: boolean): Vec3 {
+function wobble(p: Vec3, i: number, elapsed: number, morphing: boolean, ampScale = 1): Vec3 {
   const t = elapsed * 0.0016;
-  const amp = morphing ? 0.028 : 0.006;
+  const amp = (morphing ? 0.028 : 0.006) * ampScale;
   return {
     x: p.x + Math.sin(t + i * 0.73) * amp,
     y: p.y + Math.cos(t * 1.07 + i * 0.51) * amp,
     z: p.z + Math.sin(t * 0.89 + i * 0.37) * amp,
   };
+}
+
+function projectPoint(
+  p: Vec3,
+  i: number,
+  elapsed: number,
+  morphing: boolean,
+  rotY: number,
+  rotX: number,
+  rotZ: number,
+  ampScale = 1,
+) {
+  let v = wobble(p, i, elapsed, morphing, ampScale);
+  v = rotateY(v, rotY);
+  v = rotateX(v, rotX);
+  v = rotateZ(v, rotZ);
+  const depth = 2.6 / (2.6 + v.z);
+  return { x: v.x * depth, y: v.y * depth, z: v.z, depth };
 }
 
 function rotateX(p: Vec3, a: number): Vec3 {
@@ -431,7 +579,7 @@ function rotateZ(p: Vec3, a: number): Vec3 {
   return { x: p.x * c - p.y * s, y: p.x * s + p.y * c, z: p.z };
 }
 
-/** Morph: Esfera → Cubo → Toro → ADN → Pirámide → Diamante → Cono → Galaxia → Esfera… */
+/** Morph: Esfera → … → Galaxia → יהוה (paleo) → Esfera… */
 export default function OnniAvatarDots({
   size = "md",
   state = "idle",
@@ -470,20 +618,26 @@ export default function OnniAvatarDots({
 
       const base = morphShapes(SHAPES[shapeIndex]!, SHAPES[nextIndex]!, blendT);
 
-      const rotY = elapsed * 0.00062 * morphSpeed;
-      const rotX = 0.52 + Math.sin(elapsed * 0.00041) * 0.28;
-      const rotZ = 0.18 + Math.sin(elapsed * 0.00033 + 1.2) * 0.14;
+      const showingArchaicWord =
+        (shapeIndex === ARCHAIC_HEBREW_WORD_INDEX && blendT < 0.35) ||
+        (nextIndex === ARCHAIC_HEBREW_WORD_INDEX && blendT > 0.65);
+      const rotY = showingArchaicWord ? elapsed * 0.00012 : elapsed * 0.00062 * morphSpeed;
+      const rotX = showingArchaicWord ? 0.05 : 0.52 + Math.sin(elapsed * 0.00041) * 0.28;
+      const rotZ = showingArchaicWord ? 0 : 0.18 + Math.sin(elapsed * 0.00033 + 1.2) * 0.14;
 
-      const projected = base.map((p, i) => {
-        let v = wobble(p, i, elapsed, morphing);
-        v = rotateY(v, rotY);
-        v = rotateX(v, rotX);
-        v = rotateZ(v, rotZ);
-        const depth = 2.6 / (2.6 + v.z);
-        return { x: v.x * depth, y: v.y * depth, z: v.z, depth };
-      });
+      const projected = base.map((p, i) => ({
+        ...projectPoint(p, i, elapsed, morphing, rotY, rotX, rotZ),
+        kind: "main" as const,
+        index: i,
+      }));
 
-      projected.sort((a, b) => a.z - b.z);
+      const sparkles = SPARKLES.map((p, i) => ({
+        ...projectPoint(p, i + 1000, elapsed, morphing, rotY, rotX, rotZ, 1.65),
+        kind: "sparkle" as const,
+        index: i,
+      }));
+
+      const allPts = [...projected, ...sparkles].sort((a, b) => a.z - b.z);
 
       const w = canvasPx;
       const h = canvasPx;
@@ -502,21 +656,38 @@ export default function OnniAvatarDots({
       ctx.fillStyle = halo;
       ctx.fillRect(0, 0, w, h);
 
-      for (const pt of projected) {
+      for (const pt of allPts) {
         const px = cx + pt.x * scale * pulse;
         const py = cy + pt.y * scale * pulse;
         const depthNorm = (pt.z + 1.15) / 2.3;
+
+        if (pt.kind === "sparkle") {
+          const twinkle = 0.42 + Math.sin(elapsed * 0.0055 + pt.index * 1.83) * 0.28;
+          const radius = Math.max(
+            0.38,
+            (0.48 + pt.depth * 0.75) * twinkle * (stateRef.current === "listening" ? 1.08 : 1),
+          );
+          const alpha = Math.max(0.18, (0.22 + depthNorm * 0.35) * twinkle);
+          const g = ctx.createRadialGradient(px, py, 0, px, py, radius * 2.2);
+          g.addColorStop(0, `rgba(236, 254, 255, ${alpha})`);
+          g.addColorStop(0.5, `rgba(34, 211, 238, ${alpha * 0.75})`);
+          g.addColorStop(1, "rgba(99, 102, 241, 0)");
+          ctx.beginPath();
+          ctx.fillStyle = g;
+          ctx.arc(px, py, radius, 0, Math.PI * 2);
+          ctx.fill();
+          continue;
+        }
+
         const radius = Math.max(
           0.72,
           (0.9 + pt.depth * 1.45) * (stateRef.current === "listening" ? 1.12 : 1),
         );
         const alpha = Math.max(0.38, 0.4 + depthNorm * 0.52);
-
         const g = ctx.createRadialGradient(px, py, 0, px, py, radius * 2.4);
         g.addColorStop(0, `rgba(224, 254, 255, ${alpha})`);
         g.addColorStop(0.45, `rgba(34, 211, 238, ${alpha * 0.88})`);
         g.addColorStop(1, "rgba(99, 102, 241, 0)");
-
         ctx.beginPath();
         ctx.fillStyle = g;
         ctx.arc(px, py, radius, 0, Math.PI * 2);
