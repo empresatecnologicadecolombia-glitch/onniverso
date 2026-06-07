@@ -180,6 +180,27 @@
     animation: onni-speak-bob 0.35s ease-in-out infinite;
   }
 
+  /* Onni Dots — preview 3D canvas */
+  .onni-dots-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .onni-dots-avatar__canvas {
+    filter: drop-shadow(0 0 10px hsl(190 95% 55% / 0.45));
+    transition: filter 0.25s ease, transform 0.25s ease;
+  }
+
+  .onni-dots-avatar[data-state="listening"] .onni-dots-avatar__canvas {
+    filter: drop-shadow(0 0 16px hsl(185 100% 58% / 0.9));
+    transform: scale(1.08);
+  }
+
+  .onni-dots-avatar[data-state="speaking"] .onni-dots-avatar__canvas {
+    filter: drop-shadow(0 0 14px hsl(195 85% 62% / 0.85));
+  }
+
 }
 
 @keyframes onni-speak-bob {

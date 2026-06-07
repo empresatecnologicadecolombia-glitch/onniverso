@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Mic, MicOff, Send, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import OnniAvatar from "@/components/OnniAvatar";
+import OnniAvatarDots from "@/components/OnniAvatarDots";
 import HomeSocialRedesRow from "@/components/HomeSocialRedesRow";
 import { dispatchOpCommand } from "@/lib/opCommandBus";
 import { getOnniIntroduction } from "@/data/onniBrain";
@@ -457,7 +457,7 @@ export default function OpAiAssistant() {
       {!open ? (
         <button
           type="button"
-          className="pointer-events-auto relative z-[90] order-1 group flex flex-col items-center gap-1.5 rounded-2xl border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
+          className="pointer-events-auto relative z-[90] order-1 group flex flex-col items-center gap-3 rounded-2xl border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70"
           onClick={() => setOpen(true)}
           aria-label={
             wakeListening || nativeWakeListening
@@ -465,12 +465,12 @@ export default function OpAiAssistant() {
               : "Abrir Onni, asistente de voz y texto"
           }
         >
-          <OnniAvatar size="lg" state={avatarState} className="max-sm:h-16" />
+          <OnniAvatarDots size="lg" state={avatarState} className="max-sm:h-16 max-sm:w-16" />
         </button>
       ) : (
         <div className="pointer-events-auto rounded-2xl border border-cyan-300/35 bg-card/90 backdrop-blur-xl shadow-[0_0_45px_-16px_rgba(34,211,238,0.8)]">
           <div className="flex items-start gap-3 border-b border-white/10 px-3 py-3">
-            <OnniAvatar size="md" state={avatarState} className="mt-0.5" />
+            <OnniAvatarDots size="md" state={avatarState} className="mt-0.5 shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-cyan-100">Onni</p>
               {canListen && !isOnniAndroidVoice() && isDesktopWebBrowser() && (
