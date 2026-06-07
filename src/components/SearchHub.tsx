@@ -30,12 +30,20 @@ type SalaContentItem = {
 };
 
 const SALA_CONTENT_INDEX: SalaContentItem[] = [
-  { id: "beele", title: "Beele Live", tags: ["#Musica"], mp4Url: SALA_MP4_URL_BY_ID.beele },
-  { id: "j-balvin", title: "J Balvin Show", tags: ["#Musica"], mp4Url: SALA_MP4_URL_BY_ID["j-balvin"] },
-  { id: "shakira", title: "Shakira Performance", tags: ["#Musica"], mp4Url: SALA_MP4_URL_BY_ID.shakira },
-  { id: "franco-escamilla", title: "Franco Escamilla", tags: ["#Educacion"], mp4Url: SALA_MP4_URL_BY_ID["franco-escamilla"] },
-  { id: "luisito-comunica-er", title: "Luisito Comunica ER", tags: ["#Educacion"], mp4Url: SALA_MP4_URL_BY_ID["luisito-comunica-er"] },
-  { id: "vr-360", title: "Vuelo 360", tags: ["#Educacion", "#Aventura"], mp4Url: SALA_MP4_URL_BY_ID["vr-360"] },
+  {
+    id: "nova-byte",
+    title: "7 cambios de la economía gracias a la IA",
+    tags: ["#Educacion", "#IA"],
+    mp4Url: SALA_MP4_URL_BY_ID["nova-byte"],
+  },
+  {
+    id: "luisito-comunica-er",
+    title: "Por qué la IA transformará la economía",
+    tags: ["#Educacion", "#IA"],
+    mp4Url: SALA_MP4_URL_BY_ID["luisito-comunica-er"],
+  },
+  { id: "gopro-gpy", title: "GoPro GP", tags: ["#Aventura"], mp4Url: SALA_MP4_URL_BY_ID["gopro-gpy"] },
+  { id: "axon-king", title: "Silvestre Dangond", tags: ["#Musica"], mp4Url: SALA_MP4_URL_BY_ID["axon-king"] },
 ];
 
 const SearchHub = ({ currentUserId }: SearchHubProps) => {

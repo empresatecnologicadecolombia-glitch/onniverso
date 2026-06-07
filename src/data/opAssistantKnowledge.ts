@@ -380,32 +380,7 @@ export const OP_ROUTES: OpRouteEntry[] = [
 ];
 
 /** Salas de teatro (TeatroHub). */
-export const OP_TEATRO_ROOMS: { id: string; title: string; aliases: string[]; path: string }[] = [
-  {
-    id: "franco-escamilla",
-    title: "Franco Escamilla",
-    aliases: ["franco", "franco escamilla", "escamilla"],
-    path: "/teatro/franco-escamilla",
-  },
-  {
-    id: "hablando-huevadas",
-    title: "Hablando Huevadas",
-    aliases: ["hablando huevadas", "huevadas", "peru standup"],
-    path: "/teatro/hablando-huevadas",
-  },
-  {
-    id: "xavi",
-    title: "Xavi",
-    aliases: ["xavi", "corridos"],
-    path: "/teatro/xavi",
-  },
-  {
-    id: "michael-jackson",
-    title: "Michael Jackson",
-    aliases: ["michael jackson", "mj", "jackson", "rey del pop"],
-    path: "/teatro/michael-jackson",
-  },
-];
+export const OP_TEATRO_ROOMS: { id: string; title: string; aliases: string[]; path: string }[] = [];
 
 function streamerAliases(name: string, id: string, immersiveSalaName: string): string[] {
   const sala = immersiveSalaName.trim().toLowerCase();
@@ -418,32 +393,14 @@ function streamerAliases(name: string, id: string, immersiveSalaName: string): s
 }
 
 /** Artistas / salas derivados de podcastStreamers + salas fijas de NuestrasSalas. */
-export const OP_STREAMERS: OpStreamerEntry[] = [
-  ...podcastStreamers.map((s) => ({
-    id: s.id,
-    name: s.name,
-    immersiveSalaName: s.immersiveSalaName,
-    aliases: streamerAliases(s.name, s.id, s.immersiveSalaName),
-    espectadorPath: `/sala/espectador/${encodeURIComponent(buildAgoraChannel(s.id))}`,
-    podcastPath: `/podcast/${s.id}`,
-  })),
-  {
-    id: "hablando-huevadas",
-    name: "Hablando Huevadas",
-    immersiveSalaName: "Peru",
-    aliases: ["hablando huevadas", "huevadas"],
-    espectadorPath: `/sala/espectador/${encodeURIComponent(buildAgoraChannel("hablando-huevadas"))}`,
-    podcastPath: "/teatro/hablando-huevadas",
-  },
-  {
-    id: "michael-jackson",
-    name: "Michael Jackson",
-    immersiveSalaName: "USA",
-    aliases: ["michael jackson", "mj", "jackson"],
-    espectadorPath: `/sala/espectador/${encodeURIComponent(buildAgoraChannel("michael-jackson"))}`,
-    podcastPath: "/teatro/michael-jackson",
-  },
-];
+export const OP_STREAMERS: OpStreamerEntry[] = podcastStreamers.map((s) => ({
+  id: s.id,
+  name: s.name,
+  immersiveSalaName: s.immersiveSalaName,
+  aliases: streamerAliases(s.name, s.id, s.immersiveSalaName),
+  espectadorPath: `/sala/espectador/${encodeURIComponent(buildAgoraChannel(s.id))}`,
+  podcastPath: `/podcast/${s.id}`,
+}));
 
 /** Comandos del lobby (sin cambiar de ruta). */
 export const OP_LOBBY_HINTS = [

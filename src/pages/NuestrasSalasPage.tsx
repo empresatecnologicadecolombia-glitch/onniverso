@@ -126,33 +126,7 @@ const NuestrasSalasPage = () => {
       priceUsd: 0,
       mp4Url: SALA_MP4_URL_BY_ID[streamer.id],
     }));
-    return [...userConciertoRooms, ...shuffleArray([
-      ...streamerRooms,
-      {
-        id: "hablando-huevadas",
-        name: "Hablando Huevadas",
-        image: "/hablando-huevadas.png",
-        subtitle: "Peru",
-        description: "Live Show Oficial",
-        status: "En Vivo",
-        channel: buildAgoraChannel("hablando-huevadas"),
-        isPremium: false,
-        priceUsd: 0,
-        mp4Url: SALA_MP4_URL_BY_ID["hablando-huevadas"],
-      },
-      {
-        id: "michael-jackson",
-        name: "Michael Jackson",
-        image: "/michael-jackson-avatar.png",
-        subtitle: "USA",
-        description: "Show inmersivo y hits eternos",
-        status: "VIP",
-        channel: buildAgoraChannel("michael-jackson"),
-        isPremium: false,
-        priceUsd: 0,
-        mp4Url: SALA_MP4_URL_BY_ID["michael-jackson"],
-      },
-    ])];
+    return [...userConciertoRooms, ...shuffleArray(streamerRooms)];
   }, [userConciertoRooms]);
 
   const beginRoomSession = async (

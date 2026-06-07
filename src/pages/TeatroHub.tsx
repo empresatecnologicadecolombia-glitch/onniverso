@@ -13,46 +13,7 @@ interface TeatroRoom {
   vip: boolean;
 }
 
-const teatroRooms: TeatroRoom[] = [
-  {
-    id: "franco-escamilla",
-    title: "Franco Escamilla",
-    country: "Mexico",
-    hosts: "Monologo Premium",
-    description: "Humor filoso, storytelling en vivo y after-talk con la comunidad.",
-    image:
-      "https://images.unsplash.com/photo-1516307365426-bea591f05011?auto=format&fit=crop&w=1400&q=80",
-    vip: false,
-  },
-  {
-    id: "hablando-huevadas",
-    title: "Hablando Huevadas",
-    country: "Peru",
-    hosts: "Live Show Oficial",
-    description: "Formato irreverente, dinamico y participativo con dinamicas en tiempo real.",
-    image: "/hablando-huevadas.png",
-    vip: false,
-  },
-  {
-    id: "xavi",
-    title: "Xavi",
-    country: "USA / México",
-    hosts: "Regional mexicano",
-    description: "Corridos tumbados en vivo con la comunidad y sesiones exclusivas.",
-    image: "/xavi-avatar.png",
-    vip: false,
-  },
-  {
-    id: "michael-jackson",
-    title: "Michael Jackson",
-    country: "USA",
-    hosts: "El Rey del Pop",
-    description:
-      "Experiencia inmersiva con greatest hits, energía de tour y comunidad de fans en vivo.",
-    image: "/michael-jackson-avatar.png",
-    vip: true,
-  },
-];
+const teatroRooms: TeatroRoom[] = [];
 
 const TeatroHub = () => {
   return (
