@@ -1,8 +1,12 @@
 import { isElectronDesktopApp } from "@/lib/deviceDetection";
 import { pickOnniSpanishVoice } from "@/lib/onniVoice";
 import { transcribeBlobWithAzure } from "@/lib/onniAzureStt";
+import {
+  isOnniElectronWhisperAvailable,
+  transcribeOnniElectronWhisper,
+} from "@/lib/onniElectronWhisperStt";
 
-/** Grabación por turno (.exe: Azure STT). */
+/** Grabación por turno (.exe: Azure STT primero). */
 const SESSION_MAX_MS = 9000;
 /** Mínimo antes de cerrar el clip (evita WebM sin cabecera EBML). */
 const MIN_RECORD_MS = 1200;
@@ -141,7 +145,19 @@ async function hasValidAudioContainer(blob: Blob): Promise<boolean> {
 }
 
 async function transcribeRecording(blob: Blob): Promise<string> {
-  return transcribeBlobWithAzure(blob);
+  try {
+    const text = await transcribeBlobWithAzure(blob);
+    return text;
+  } catch {
+    if (isOnniElectronWhisperAvailable()) {
+      try {
+        return await transcribeOnniElectronWhisper(blob);
+      } catch {
+        /* sin respaldo */
+      }
+    }
+    return "";
+  }
 }
 
 async function finalizeRecording() {
