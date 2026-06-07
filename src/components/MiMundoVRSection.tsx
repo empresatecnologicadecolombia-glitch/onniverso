@@ -13,11 +13,9 @@ import {
 import { Canvas, useFrame, useLoader, useThree, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import { useNavigate } from "react-router-dom";
-import { GraduationCap, Radio } from "lucide-react";
+import { Radio } from "lucide-react";
 import { invokeOpenGalleryDirect } from "@/lib/galleryOpenDirect";
 import { LOBBY_IMMERSIVE_PATH } from "@/lib/lobbyImmersive";
-import { hasAndroidNativeBridge, invokeOpenLobby } from "@/lib/lobbyOpenDirect";
-import { isAndroidLiveStreamChoicePlatform } from "@/lib/liveStreamOpenDirect";
 import {
   getRoomMode,
   type MiMundoEnvironmentId,
@@ -736,14 +734,6 @@ const MiMundoVRSection = ({
     ],
     [isNarrowViewport],
   );
-  const handleLobbyOpen = useCallback(() => {
-    if (vrStereoActive) return;
-    const onApk =
-      hasAndroidNativeBridge() || isAndroidLiveStreamChoicePlatform();
-    if (onApk && invokeOpenLobby()) return;
-    navigate(LOBBY_IMMERSIVE_PATH);
-  }, [navigate, vrStereoActive]);
-
   const onLocalPlayerClick = useCallback(() => {
     if (invokeOpenGalleryDirect()) return;
     navigate("/reproductor-galeria");
@@ -839,9 +829,6 @@ const MiMundoVRSection = ({
         </div>
       </div>
       {!vrStereoActive && (
-        <HomeEarthCornerIcon onOpenLobby={handleLobbyOpen} />
-      )}
-      {!vrStereoActive && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-4">
           <div className={LOCKED_PROFILE_CARD_WRAPPER_CLASS}>
             <ProfileCard
@@ -857,6 +844,13 @@ const MiMundoVRSection = ({
       {!vrStereoActive && (
         <>
           <div className="pointer-events-none absolute bottom-32 right-4 z-20 flex flex-col items-center gap-3 md:bottom-6">
+            <HomeEarthCornerIcon
+              embedded
+              sizePx={56}
+              onOpenLobby={onAulaVirtualClick}
+              ariaLabel="Aula Virtual"
+              title="Aula Virtual"
+            />
             <button
               type="button"
               onClick={onEmitirLiveClick}
@@ -865,15 +859,6 @@ const MiMundoVRSection = ({
               title="Configurar Live"
             >
               <Radio className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              onClick={onAulaVirtualClick}
-              className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full border border-cyan-300/85 bg-[radial-gradient(circle_at_30%_30%,#67e8f9_0%,#06b6d4_45%,#155e75_100%)] text-white shadow-[0_0_30px_rgba(34,211,238,0.8),0_0_56px_rgba(14,116,144,0.42)] backdrop-blur-md transition hover:scale-105 hover:border-cyan-100 hover:brightness-110"
-              aria-label="Aula Virtual"
-              title="Aula Virtual"
-            >
-              <GraduationCap className="h-5 w-5" />
             </button>
             <button
               type="button"

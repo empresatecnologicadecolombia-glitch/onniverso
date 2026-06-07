@@ -10,7 +10,7 @@ const EARTH_DAY = `${EARTH_TEXTURES_BASE}/earth_day_4096.jpg`;
 const EARTH_CLOUDS = `${EARTH_TEXTURES_BASE}/earth_clouds_1024.png`;
 const MOON_TEXTURE_URL = "/assets/textures/moon/moon_1024.jpg";
 
-const ICON_PX = 82;
+const DEFAULT_ICON_PX = 82;
 
 /** Misma proporción Tierra/Luna que el planeta central, escalado para caber en el icono. */
 const SCENE_SCALE = 0.52;
@@ -93,54 +93,99 @@ function EarthMoonIconScene() {
   );
 }
 
-type HomeEarthCornerIconProps = {
+type HomeEarthIconProps = {
   onOpenLobby: () => void;
   className?: string;
+  sizePx?: number;
+  /** Sin contenedor fixed; para incrustar en la columna de acciones. */
+  embedded?: boolean;
+  ariaLabel?: string;
+  title?: string;
 };
 
-/** Tierra + Luna en esquina inferior izquierda (icono); tap abre lobby inmersivo. */
-export default function HomeEarthCornerIcon({ onOpenLobby, className }: HomeEarthCornerIconProps) {
+function EarthIconButton({
+  onOpenLobby,
+  className,
+  sizePx,
+  ariaLabel,
+  title,
+}: Required<Pick<HomeEarthIconProps, "onOpenLobby">> &
+  Pick<HomeEarthIconProps, "className" | "sizePx" | "ariaLabel" | "title">) {
+  const px = sizePx ?? DEFAULT_ICON_PX;
+
+  return (
+    <button
+      type="button"
+      onClick={onOpenLobby}
+      className={cn(
+        "pointer-events-auto relative block overflow-hidden border-0 bg-transparent p-0 outline-none",
+        "transition hover:scale-105 focus-visible:ring-2 focus-visible:ring-cyan-400/70",
+        className,
+      )}
+      style={{ width: px, height: px }}
+      aria-label={ariaLabel ?? "Abrir lobby inmersivo"}
+      title={title ?? "Lobby inmersivo"}
+    >
+      <Canvas
+        className="block h-full w-full touch-none"
+        dpr={[1, 1.5]}
+        gl={{
+          antialias: true,
+          alpha: true,
+          powerPreference: "high-performance",
+          premultipliedAlpha: false,
+        }}
+        onCreated={({ gl }) => {
+          applyPixelRatioCap(gl);
+          gl.setClearColor(0x000000, 0);
+          gl.toneMapping = THREE.NoToneMapping;
+        }}
+        camera={{ position: [0, 0, 2.18], fov: 48, near: 0.05, far: 20 }}
+      >
+        <ambientLight intensity={1} />
+        <directionalLight position={[2.5, 1.2, 2]} intensity={0.35} color="#ffffff" />
+        <Suspense fallback={null}>
+          <EarthMoonIconScene />
+        </Suspense>
+      </Canvas>
+    </button>
+  );
+}
+
+/** Tierra + Luna como icono táctil (lobby / aula virtual). */
+export default function HomeEarthCornerIcon({
+  onOpenLobby,
+  className,
+  sizePx,
+  embedded = false,
+  ariaLabel,
+  title,
+}: HomeEarthIconProps) {
+  if (embedded) {
+    return (
+      <EarthIconButton
+        onOpenLobby={onOpenLobby}
+        className={className}
+        sizePx={sizePx}
+        ariaLabel={ariaLabel}
+        title={title}
+      />
+    );
+  }
+
   return (
     <div
       className={cn(
-        "pointer-events-none fixed bottom-10 left-4 z-[78] max-sm:bottom-12 sm:bottom-8 sm:left-10",
+        "pointer-events-none fixed bottom-10 left-4 z-[78] max-sm:bottom-24 sm:bottom-8 sm:left-10",
         className,
       )}
     >
-      <button
-        type="button"
-        onClick={onOpenLobby}
-        className={cn(
-          "pointer-events-auto relative block overflow-hidden border-0 bg-transparent p-0 outline-none",
-          "transition hover:scale-105 focus-visible:ring-2 focus-visible:ring-cyan-400/70",
-        )}
-        style={{ width: ICON_PX, height: ICON_PX }}
-        aria-label="Abrir lobby inmersivo"
-        title="Lobby inmersivo"
-      >
-        <Canvas
-          className="block h-full w-full touch-none"
-          dpr={[1, 1.5]}
-          gl={{
-            antialias: true,
-            alpha: true,
-            powerPreference: "high-performance",
-            premultipliedAlpha: false,
-          }}
-          onCreated={({ gl }) => {
-            applyPixelRatioCap(gl);
-            gl.setClearColor(0x000000, 0);
-            gl.toneMapping = THREE.NoToneMapping;
-          }}
-          camera={{ position: [0, 0, 2.18], fov: 48, near: 0.05, far: 20 }}
-        >
-          <ambientLight intensity={1} />
-          <directionalLight position={[2.5, 1.2, 2]} intensity={0.35} color="#ffffff" />
-          <Suspense fallback={null}>
-            <EarthMoonIconScene />
-          </Suspense>
-        </Canvas>
-      </button>
+      <EarthIconButton
+        onOpenLobby={onOpenLobby}
+        sizePx={sizePx}
+        ariaLabel={ariaLabel}
+        title={title}
+      />
     </div>
   );
 }
