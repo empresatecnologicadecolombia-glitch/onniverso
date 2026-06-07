@@ -4,12 +4,13 @@ import {
   AulaVirtualCardChoiceDialog,
   type AulaVirtualCardAction,
 } from "@/components/galeria3d/AulaVirtualCardChoiceDialog";
-import { AULA_VIRTUAL_LOBBY_PATH, openAulaVirtualLobbyOnAndroid } from "@/lib/aulaVirtual";
+import { openAulaVirtualLobbyOnAndroid } from "@/lib/aulaVirtual";
+import { LOBBY_IMMERSIVE_PATH } from "@/lib/lobbyImmersive";
 import { isAndroidLiveStreamChoicePlatform } from "@/lib/liveStreamOpenDirect";
 
 /**
  * Tarjeta promocional de Aula Virtual (no el ítem del menú navbar).
- * APK: lobby VR nativo o lobby web en la app; web: enlace directo a /aula-virtual.
+ * APK: lobby VR nativo o lobby web en la app; web: enlace directo al lobby inmersivo.
  */
 export function useAulaVirtualCardChoice() {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ export function useAulaVirtualCardChoice() {
         openAulaVirtualLobbyOnAndroid();
         return;
       }
-      navigate(AULA_VIRTUAL_LOBBY_PATH);
+      navigate(LOBBY_IMMERSIVE_PATH);
     },
     [navigate],
   );
