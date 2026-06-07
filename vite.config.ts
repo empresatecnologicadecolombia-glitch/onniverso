@@ -51,6 +51,10 @@ export default defineConfig(({ mode }) => {
         changeOrigin: true,
         ws: true,
       },
+      "/api/azure": {
+        target: "https://onnivers.com",
+        changeOrigin: true,
+      },
     },
   },
   plugins: [react(), paypalSdkHeadPlugin(mode, env)],

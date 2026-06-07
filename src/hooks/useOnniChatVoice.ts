@@ -145,11 +145,14 @@ export function useOnniChatVoice() {
         setVoiceListening(true);
         if (wakeActiveRef.current) setNativeWakeListening(true);
       }).catch(() => {
-        captureActiveRef.current = false;
-        wakeActiveRef.current = false;
-        setVoiceCaptureActive(false);
-        setVoiceListening(false);
-        setNativeWakeListening(false);
+        if (!wakeActiveRef.current) {
+          setVoiceListening(false);
+          setNativeWakeListening(false);
+          return;
+        }
+        restartTimerRef.current = setTimeout(() => {
+          if (wakeActiveRef.current && isNativeSessionActive()) scheduleNativeRestart();
+        }, 2_000);
       });
     }, delay);
   }, [clearNativeRestartTimer, isNativeSessionActive, queueNativeHandoff]);
@@ -613,7 +616,9 @@ export function useOnniChatVoice() {
       ? "Voz del navegador"
       : voiceMode === "native"
         ? isElectronDesktopApp()
-          ? "Voz Azure (OnniVers PC)"
+          ? window.onniversDesktop?.whisper?.transcribe
+            ? "Voz Whisper (OnniVers PC)"
+            : "Voz OnniVers PC"
           : isOnniAndroidVoice()
             ? "Voz nativa + Azure (Android)"
             : "Voz nativa Android"

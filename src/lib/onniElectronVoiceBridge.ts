@@ -6,7 +6,7 @@ import {
   transcribeOnniElectronWhisper,
 } from "@/lib/onniElectronWhisperStt";
 
-/** Grabación por turno (switch «Hola Onni» en .exe con Azure STT). */
+/** Grabación por turno (Whisper local primero; Azure solo respaldo en .exe). */
 const SESSION_MAX_MS = 9000;
 /** Mínimo antes de cerrar el clip (evita WebM sin cabecera EBML). */
 const MIN_RECORD_MS = 1200;
@@ -139,14 +139,19 @@ async function hasValidAudioContainer(blob: Blob): Promise<boolean> {
 }
 
 async function transcribeRecording(blob: Blob): Promise<string> {
+  if (isOnniElectronWhisperAvailable()) {
+    try {
+      const text = await transcribeOnniElectronWhisper(blob);
+      if (text) return text;
+    } catch {
+      /* Whisper local falló; probar Azure si hay red */
+    }
+  }
   try {
     const text = await transcribeBlobWithAzure(blob);
     if (text) return text;
   } catch {
-    /* Azure falló o no respondió */
-  }
-  if (isOnniElectronWhisperAvailable()) {
-    return transcribeOnniElectronWhisper(blob);
+    /* Azure no disponible o error de red */
   }
   return "";
 }
