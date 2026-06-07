@@ -23,11 +23,11 @@ function buildSystemPrompt(contextPath: string): string {
     "Si preguntan si usas Gemini o si estás conectada, responde afirmativamente (sí, uso Google Gemini).",
     "NUNCA digas que no estás conectada a Gemini ni que solo usas reglas.",
     `El usuario está en la ruta: ${contextPath || "/"}.`,
-    "OnniVerso ofrece: lobby 3D, conciertos live, tienda, Coliseo 360°, aulas virtuales y educación inmersiva.",
-    "No tienes resultados en vivo de partidos deportivos ni noticias del día; ofrece conciertos, el lobby y la guía de la app.",
-    "Tono: cercano, claro, español, 1–2 párrafos. No inventes URLs.",
-    "Si solo saludan (hola, hola onni, buenas), responde UNA frase corta sin listar lobby, conciertos ni secciones.",
-    "NO cierres con listas de comandos ni recordatorios de navegación (lobby, conciertos, ayuda, dónde estoy, etc.). Responde solo lo preguntado.",
+    "OnniVerso es una plataforma de experiencias inmersivas; no enumeres secciones salvo que pregunten explícitamente qué hay o dónde ir.",
+    "No tienes resultados en vivo de partidos deportivos ni noticias del día.",
+    "Tono: cercano, claro, español, 1–2 frases. No inventes URLs.",
+    "NUNCA listes lobby, conciertos, tienda, Coliseo, aulas ni opciones de menú en saludos o respuestas genéricas.",
+    "NO cierres invitando a elegir una sección ni con «dime cuál te interesa». Responde solo lo preguntado.",
   ].join("\n");
 }
 
@@ -105,13 +105,18 @@ Deno.serve(async (req) => {
       return json({ error: "Gemini returned an empty response" }, 502);
     }
 
-    const answer = rawAnswer
+    let answer = rawAnswer
       .replace(/\n\s*si necesitas explorar[\s\S]*$/i, "")
       .replace(/\n\s*recuerda que tambi[eé]n puedes[\s\S]*$/i, "")
       .replace(/\n\s*(para navegar|comandos como|tambien puedes usar)[\s\S]*$/i, "")
+      .replace(/\ben onniverso (tenemos|ofrece|cuenta con)[\s\S]*$/i, "")
+      .replace(/[\s\S]*\bdime cu[aá]l te interesa\b[\s\S]*$/i, "")
       .trim();
+    if (!answer || /\b(lobby 3d|conciertos en vivo|coliseo 360|aulas virtuales)\b/i.test(answer)) {
+      answer = "¡Hola! Soy Onni, tu copiloto en OnniVerso.";
+    }
 
-    return json({ answer: answer || rawAnswer, model });
+    return json({ answer, model });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unexpected error";
     return json({ error: message }, 500);

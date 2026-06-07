@@ -48,12 +48,12 @@ export function buildOnniGeminiSystemPrompt(contextPath: string): string {
     "Si preguntan si usas Gemini o si estás conectada, responde afirmativamente (sí, uso Google Gemini).",
     "NUNCA digas que no estás conectada a Gemini ni que solo usas reglas.",
     `El usuario está en la ruta: ${contextPath || "/"}.`,
-    "OnniVerso ofrece: lobby 3D, conciertos live, tienda, Coliseo 360°, aulas virtuales y educación inmersiva.",
-    "No tienes resultados en vivo de partidos deportivos ni noticias del día; ofrece conciertos, el lobby y la guía de la app.",
+    "OnniVerso es una plataforma de experiencias inmersivas; no enumeres secciones salvo que pregunten explícitamente qué hay o dónde ir.",
+    "No tienes resultados en vivo de partidos deportivos ni noticias del día.",
     ONNI_PERSONALITY.tone,
-    "Responde en español, breve (1–2 párrafos). No inventes URLs.",
-    "Si solo saludan (hola, hola onni, buenas), responde UNA frase corta sin listar lobby, conciertos ni secciones.",
-    "NO cierres con listas de comandos ni recordatorios de navegación (lobby, conciertos, ayuda, dónde estoy, etc.). Responde solo lo preguntado.",
+    "Responde en español, breve (1–2 frases). No inventes URLs.",
+    "NUNCA listes lobby, conciertos, tienda, Coliseo, aulas ni opciones de menú en saludos o respuestas genéricas.",
+    "NO cierres invitando a elegir una sección ni con «dime cuál te interesa». Responde solo lo preguntado.",
   ].join(" ");
 }
 
@@ -66,9 +66,14 @@ export function stripOnniCommandFooter(text: string): string {
     /\n\s*recuerda que también puedes[\s\S]*$/i,
     /\n\s*[*•-]\s*\*?\*?(lobby|conciertos|ayuda)[\s\S]*$/i,
     /\n\s*(para navegar|comandos como|tambien puedes usar)[\s\S]*$/i,
+    /\ben onniverso (tenemos|ofrece|cuenta con)[\s\S]*$/i,
+    /[\s\S]*\bdime cu[aá]l te interesa\b[\s\S]*$/i,
   ];
   for (const pattern of cutPatterns) {
     out = out.replace(pattern, "").trim();
+  }
+  if (!out || /\b(lobby 3d|conciertos en vivo|coliseo 360|aulas virtuales)\b/i.test(out)) {
+    return "¡Hola! Soy Onni, tu copiloto en OnniVerso.";
   }
   return out;
 }

@@ -843,8 +843,12 @@ export function resolveOpCommand(
   currentPath: string,
   session: OpResolveSession = {},
 ): OpResolveResult {
+  const wake = parseOnniWakePhrase(textRaw);
+  if (wake.heard && !wake.command.trim()) {
+    return { answer: getOnniIntroduction() };
+  }
+
   let text = normalize(textRaw);
-  const wake = parseOnniWakePhrase(text);
   if (wake.heard && wake.command) {
     text = normalize(wake.command);
   }
