@@ -69,14 +69,4 @@ export const AULA_VIRTUAL_PREVIEW_CARDS: AulaVirtualPreviewCard[] = [
     image:
       "https://images.unsplash.com/photo-1559757175-5700dde675bc?auto=format&fit=crop&w=1200&q=80",
   },
-  {
-    id: "biblioteca",
-    title: "Biblioteca en la pared",
-    description:
-      "Portadas de libros de la tienda OnniVers exhibidas como tarjetas 3D en la pared izquierda, conectando el aula con la biblioteca digital.",
-    detail: "Tarjetas 3D · lectura",
-    badge: "En el aula",
-    image:
-      "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?auto=format&fit=crop&w=1200&q=80",
-  },
 ];
