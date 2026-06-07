@@ -3,18 +3,20 @@ import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import * as THREE from "three";
 import { cn } from "@/lib/utils";
 import { applyPixelRatioCap, getAdaptiveSphereSegments } from "@/lib/webglRendererPrefs";
+import { LOCKED_CENTRAL_SPHERE_RADIUS, LOCKED_MOON } from "@/config/lockedHomeLayout";
 
 const EARTH_TEXTURES_BASE = "/assets/textures/earth";
 const EARTH_DAY = `${EARTH_TEXTURES_BASE}/earth_day_4096.jpg`;
 const EARTH_CLOUDS = `${EARTH_TEXTURES_BASE}/earth_clouds_1024.png`;
 const MOON_TEXTURE_URL = "/assets/textures/moon/moon_1024.jpg";
 
-/** 72px −25 % ≈ 54px */
-const ICON_PX = 54;
+const ICON_PX = 82;
 
-const EARTH_RADIUS = 0.72;
+/** Misma proporción Tierra/Luna que el planeta central, escalado para caber en el icono. */
+const SCENE_SCALE = 0.52;
+const EARTH_RADIUS = LOCKED_CENTRAL_SPHERE_RADIUS * SCENE_SCALE;
 const MOON_RADIUS = EARTH_RADIUS * 0.27;
-const MOON_ORBIT_RADIUS = EARTH_RADIUS * 1.72;
+const MOON_ORBIT_RADIUS = EARTH_RADIUS * LOCKED_MOON.orbitRadiusFactor;
 const EARTH_ROTATION_SPEED = 0.1;
 const MOON_ORBIT_SPEED = 0.22;
 
@@ -38,11 +40,17 @@ function MiniEarth() {
     <group ref={earthRef}>
       <mesh renderOrder={0}>
         <sphereGeometry args={[EARTH_RADIUS, seg, seg]} />
-        <meshBasicMaterial map={dayMap} toneMapped />
+        <meshBasicMaterial map={dayMap} toneMapped={false} />
       </mesh>
       <mesh renderOrder={1} scale={1.002}>
         <sphereGeometry args={[EARTH_RADIUS, seg, seg]} />
-        <meshBasicMaterial map={cloudsMap} transparent opacity={0.9} depthWrite={false} toneMapped />
+        <meshBasicMaterial
+          map={cloudsMap}
+          transparent
+          opacity={0.9}
+          depthWrite={false}
+          toneMapped={false}
+        />
       </mesh>
     </group>
   );
@@ -65,10 +73,10 @@ function MiniOrbitingMoon() {
   });
 
   return (
-    <group ref={pivotRef}>
-      <mesh position={[MOON_ORBIT_RADIUS, 0, 0]} renderOrder={2}>
+    <group ref={pivotRef} rotation={[LOCKED_MOON.orbitTiltX, 0, 0]}>
+      <mesh position={[MOON_ORBIT_RADIUS, LOCKED_MOON.meshY, 0]} renderOrder={2}>
         <sphereGeometry args={[MOON_RADIUS, moonSeg, moonSeg]} />
-        <meshBasicMaterial map={moonTexture} toneMapped />
+        <meshBasicMaterial map={moonTexture} toneMapped={false} />
       </mesh>
     </group>
   );
@@ -76,7 +84,7 @@ function MiniOrbitingMoon() {
 
 function EarthMoonIconScene() {
   return (
-    <group scale={0.92}>
+    <group>
       <MiniEarth />
       <Suspense fallback={null}>
         <MiniOrbitingMoon />
@@ -93,35 +101,46 @@ type HomeEarthCornerIconProps = {
 /** Tierra + Luna en esquina inferior izquierda (icono); tap abre lobby inmersivo. */
 export default function HomeEarthCornerIcon({ onOpenLobby, className }: HomeEarthCornerIconProps) {
   return (
-    <button
-      type="button"
-      onClick={onOpenLobby}
+    <div
       className={cn(
-        "pointer-events-auto fixed bottom-10 left-4 z-[79] flex h-[54px] w-[54px] items-center justify-center overflow-visible border-0 bg-transparent p-0 outline-none",
-        "shadow-[0_0_18px_rgba(56,189,248,0.4)] transition hover:scale-105 focus-visible:ring-2 focus-visible:ring-cyan-400/70",
-        "max-sm:bottom-12 max-sm:h-12 max-sm:w-12 sm:bottom-8 sm:left-10",
+        "pointer-events-none fixed bottom-10 left-4 z-[78] max-sm:bottom-12 sm:bottom-8 sm:left-10",
         className,
       )}
-      aria-label="Abrir lobby inmersivo"
-      title="Lobby inmersivo"
     >
-      <Canvas
-        className="h-full w-full touch-none overflow-visible"
-        dpr={[1, 1.5]}
-        gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-        onCreated={({ gl }) => {
-          applyPixelRatioCap(gl);
-          gl.setClearColor(0x000000, 0);
-        }}
-        camera={{ position: [0, 0, 3.05], fov: 44, near: 0.1, far: 20 }}
+      <button
+        type="button"
+        onClick={onOpenLobby}
+        className={cn(
+          "pointer-events-auto relative block overflow-hidden border-0 bg-transparent p-0 outline-none",
+          "transition hover:scale-105 focus-visible:ring-2 focus-visible:ring-cyan-400/70",
+        )}
         style={{ width: ICON_PX, height: ICON_PX }}
+        aria-label="Abrir lobby inmersivo"
+        title="Lobby inmersivo"
       >
-        <ambientLight intensity={0.85} />
-        <directionalLight position={[2.5, 1.2, 2]} intensity={1.15} color="#eef3fb" />
-        <Suspense fallback={null}>
-          <EarthMoonIconScene />
-        </Suspense>
-      </Canvas>
-    </button>
+        <Canvas
+          className="block h-full w-full touch-none"
+          dpr={[1, 1.5]}
+          gl={{
+            antialias: true,
+            alpha: true,
+            powerPreference: "high-performance",
+            premultipliedAlpha: false,
+          }}
+          onCreated={({ gl }) => {
+            applyPixelRatioCap(gl);
+            gl.setClearColor(0x000000, 0);
+            gl.toneMapping = THREE.NoToneMapping;
+          }}
+          camera={{ position: [0, 0, 2.18], fov: 48, near: 0.05, far: 20 }}
+        >
+          <ambientLight intensity={1} />
+          <directionalLight position={[2.5, 1.2, 2]} intensity={0.35} color="#ffffff" />
+          <Suspense fallback={null}>
+            <EarthMoonIconScene />
+          </Suspense>
+        </Canvas>
+      </button>
+    </div>
   );
 }
