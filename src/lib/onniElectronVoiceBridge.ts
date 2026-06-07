@@ -142,11 +142,11 @@ async function transcribeRecording(blob: Blob): Promise<string> {
   try {
     const text = await transcribeBlobWithAzure(blob);
     if (text) return text;
-  } catch (azureError) {
-    if (isOnniElectronWhisperAvailable()) {
-      return transcribeOnniElectronWhisper(blob);
-    }
-    throw azureError;
+  } catch {
+    /* Azure falló o no respondió */
+  }
+  if (isOnniElectronWhisperAvailable()) {
+    return transcribeOnniElectronWhisper(blob);
   }
   return "";
 }

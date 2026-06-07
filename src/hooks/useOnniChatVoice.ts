@@ -547,6 +547,17 @@ export function useOnniChatVoice() {
         return;
       }
 
+      if (
+        isElectronDesktopApp() &&
+        wakeActiveRef.current &&
+        !captureActiveRef.current &&
+        code === "stt_failed"
+      ) {
+        notifyVoiceError(message);
+        scheduleNativeRestart();
+        return;
+      }
+
       captureActiveRef.current = false;
       wakeActiveRef.current = false;
       setVoiceCaptureActive(false);

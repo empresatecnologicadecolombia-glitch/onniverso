@@ -29,14 +29,20 @@ function readBool(key: string, fallback: boolean): boolean {
 function readListenEnabledDefault(): boolean {
   if (isOnniAndroidVoice()) return false;
   if (isDesktopWebBrowser()) {
-    return readBool(ONNI_STORAGE_KEYS.listenDesktop, true);
+    const desktop = localStorage.getItem(ONNI_STORAGE_KEYS.listenDesktop);
+    if (desktop !== null) return desktop === "1" || desktop === "true";
+    const legacy = localStorage.getItem(ONNI_STORAGE_KEYS.listen);
+    if (legacy !== null) return legacy === "1" || legacy === "true";
+    return false;
   }
   if (isElectronDesktopApp()) {
     const electron = localStorage.getItem(ONNI_STORAGE_KEYS.listenElectron);
     if (electron !== null) return electron === "1" || electron === "true";
-    return readBool(ONNI_STORAGE_KEYS.listen, true);
+    const legacy = localStorage.getItem(ONNI_STORAGE_KEYS.listen);
+    if (legacy !== null) return legacy === "1" || legacy === "true";
+    return false;
   }
-  return readBool(ONNI_STORAGE_KEYS.listen, true);
+  return readBool(ONNI_STORAGE_KEYS.listen, false);
 }
 
 function resolveListenStorageKey(): string | null {
