@@ -20,7 +20,7 @@ Incluye también `a00ed5a` (Espacio = mic con chat cerrado).
 1. **Carga:** Electron abre `https://onnivers.com` (`electron/main.cjs`, `START_URL`).
 2. **Mic .exe:** clip del micrófono = **mantener pulsado** graba, **soltar** transcribe y envía (`OpAiElectronAzureMic` + `useOnniAzureMic` + Azure STT).
 3. **Espacio:** con chat de Onni **cerrado** y ventana del .exe **visible**, **mantener Espacio** = mismo flujo que el clip del mic; **no** atajo global ni con app minimizada.
-4. **Scroll:** solo **rueda del mouse**; teclado **no** desplaza la página (flechas, Re/Av Pág, Inicio/Fin, Espacio como scroll). Campos de texto siguen normales.
+4. **Scroll:** solo **rueda del mouse** en .exe; teclado **no** desplaza la página. **Chrome no se modifica** (voz Web Speech / «Hola Onni» sin Azure).
 5. **TTS .exe:** respuesta por voz vía bridge speak-only (`onniElectronVoiceBridge.ts`); **no** reintroducir Whisper/WinSpeech/switch wake sin orden explícita.
 6. **Build:** scripts `desktop:*` y bloque `build` de `package.json` (electron-builder).
 
@@ -30,7 +30,7 @@ Incluye también `a00ed5a` (Espacio = mic con chat cerrado).
 |------|----------|
 | Proceso / ventana | `electron/main.cjs`, `electron/preload.cjs` |
 | Motores voz legacy | `electron/winSpeechEngine.cjs`, `electron/whisperEngine.cjs`, `electron/onni-win-speech/**` |
-| UI mic + Espacio | `src/components/OpAiElectronAzureMic.tsx`, `src/components/OpAiAssistant.tsx` (bloques `showElectronMic`, `electronAzureMic`, `electronSpaceHoldRef`, listeners Espacio) |
+| UI mic + Espacio | `src/components/OpAiElectronAzureMic.tsx`, `src/components/OpAiAssistant.tsx` (bloques `showElectronMic`, mic hold, Espacio) — **solo .exe** |
 | Scroll solo mouse | `src/lib/electronMouseOnlyScroll.ts`, `src/App.tsx` (`installElectronMouseOnlyScroll`) |
 | Azure STT mic | `src/hooks/useOnniAzureMic.ts`, `src/lib/onniAzureStt.ts` |
 | Orquestación voz chat | `src/hooks/useOnniChatVoice.ts`, `src/lib/onniElectronVoiceBridge.ts` |
@@ -50,3 +50,4 @@ Complementa `onni-voice-frozen.mdc` (mic/voz en todas las plataformas).
 
 - Alcance **mínimo**; si el diff puede tocar la tabla, **parar y avisar** qué archivo/línea se vería afectada.
 - No mezclar arreglos de web/APK/Android con cambios del .exe en el mismo diff salvo pedido explícito.
+- **Chrome / navegador:** voz con Web Speech y switch «Hola Onni» — **no** añadir Azure STT, Espacio-mic ni cambiar `canListen` sin autorización explícita aparte del .exe.

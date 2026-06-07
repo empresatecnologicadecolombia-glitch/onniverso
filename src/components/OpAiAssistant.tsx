@@ -25,14 +25,12 @@ import { useOnniChatVoice } from "@/hooks/useOnniChatVoice";
 import OpAiAndroidAzureMic from "@/components/OpAiAndroidAzureMic";
 import OpAiElectronAzureMic from "@/components/OpAiElectronAzureMic";
 import { useOnniAzureMic } from "@/hooks/useOnniAzureMic";
-import { useOnniVoice, useOnniVoicePrefs } from "@/hooks/useOnniVoice";
+import { useOnniVoice } from "@/hooks/useOnniVoice";
 import { useAuth } from "@/hooks/useAuth";
 import { isDesktopWebBrowser, isElectronDesktopApp, isOnniAndroidVoice } from "@/lib/deviceDetection";
 import { isAzureMicSupported } from "@/lib/onniAzureStt";
 import type { OnniSpeakOptions } from "@/lib/onniVoiceRuntime";
 import { supabase } from "@/integrations/supabase/client";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 
 type UiMessage = { role: "user" | "assistant"; text: string };
 
@@ -71,6 +69,7 @@ export default function OpAiAssistant() {
   const appRoleRef = useRef<string | null>(null);
   const pendingVoiceRef = useRef("");
   const electronSpaceHoldRef = useRef(false);
+  const chromeSpaceHoldRef = useRef(false);
   const { user } = useAuth();
   const [appRole, setAppRole] = useState<string | null>(null);
 
@@ -118,8 +117,9 @@ export default function OpAiAssistant() {
 
   const showAzureMic = isOnniAndroidVoice() && isAzureMicSupported();
   const showElectronMic = isElectronDesktopApp() && isAzureMicSupported();
+  /** Chrome/Edge escritorio: mic Web Speech mantener pulsado + Espacio (sin Azure). */
+  const showChromeWebPushToTalk = isDesktopWebBrowser() && canListen;
 
-  const { listenEnabled, setListenEnabled } = useOnniVoicePrefs();
   const runCommandRef = useRef<(raw: string) => Promise<string | undefined>>(async () => undefined);
   const openRef = useRef(open);
   openRef.current = open;
@@ -354,17 +354,16 @@ export default function OpAiAssistant() {
     electronMicEndHold,
   ]);
 
-  const wakeWordActive =
-    isDesktopWebBrowser() && canListen && listenEnabled && !voiceListening && !processing && !nativeWakeListening;
+  const wakeWordActive = false;
 
   const captureMicActive = voiceCaptureActive;
 
   const nativeWakeActive =
     !isOnniAndroidVoice() &&
     !isElectronDesktopApp() &&
+    !isDesktopWebBrowser() &&
     supportsNativeWakeSwitch &&
     canListen &&
-    listenEnabled &&
     !processing &&
     !voiceCaptureActive;
 
@@ -397,7 +396,7 @@ export default function OpAiAssistant() {
   const avatarState =
     wakeSpeaking
       ? "speaking"
-      : wakeListening || voiceListening || nativeWakeListening || androidMicState.isRecording || electronMicState.isRecording
+      : wakeListening || voiceListening || nativeWakeListening || androidMicState.isRecording || electronMicState.isRecording || captureMicActive
         ? "listening"
         : "idle";
 
@@ -459,7 +458,11 @@ export default function OpAiAssistant() {
       },
       onError: (errorText: string) => {
         if (!shouldShowNativeVoiceError(errorText)) return;
-        setMessages((prev) => [...prev, { role: "assistant", text: errorText }]);
+        if (openRef.current) {
+          setMessages((prev) => [...prev, { role: "assistant", text: errorText }]);
+        } else {
+          toast.error(errorText);
+        }
       },
       onFallbackToNative: () => {
         setMessages((prev) => [
@@ -491,6 +494,54 @@ export default function OpAiAssistant() {
     setText("");
     if (transcript) void runCommand(transcript);
   }, [runCommand, stopVoiceCapture]);
+
+  useEffect(() => {
+    if (!showChromeWebPushToTalk || open || chromeSpaceHoldRef.current) return;
+    if (voiceCaptureActive) stopVoiceCapture();
+  }, [open, showChromeWebPushToTalk, voiceCaptureActive, stopVoiceCapture]);
+
+  useEffect(() => {
+    if (!showChromeWebPushToTalk) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.code !== "Space" && event.key !== " ") return;
+      if (event.repeat) return;
+      if (isEditableKeyboardTarget(event.target)) return;
+      if (processing || captureMicActive) return;
+      event.preventDefault();
+      chromeSpaceHoldRef.current = true;
+      handleStartVoiceCapture();
+    };
+
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.code !== "Space" && event.key !== " ") return;
+      if (!chromeSpaceHoldRef.current) return;
+      chromeSpaceHoldRef.current = false;
+      event.preventDefault();
+      stopVoiceCaptureHandler();
+    };
+
+    const onBlur = () => {
+      if (!chromeSpaceHoldRef.current) return;
+      chromeSpaceHoldRef.current = false;
+      stopVoiceCaptureHandler();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, [
+    showChromeWebPushToTalk,
+    processing,
+    captureMicActive,
+    handleStartVoiceCapture,
+    stopVoiceCaptureHandler,
+  ]);
 
   const onSpeakLastAnswer = useCallback(() => {
     const textToSpeak = sessionRef.current.lastAnswer?.trim();
@@ -541,7 +592,9 @@ export default function OpAiAssistant() {
           }`}
           onClick={() => setOpen(true)}
           aria-label={
-            wakeListening || nativeWakeListening
+            captureMicActive
+              ? "Suelta Espacio o el micrófono para enviar a Onni"
+              : wakeListening || nativeWakeListening
               ? "Onni escuchando. Di Hola Onni y tu pedido"
               : "Abrir Onni, asistente de voz y texto"
           }
@@ -558,25 +611,6 @@ export default function OpAiAssistant() {
             <OnniAvatarDots size="md" state={avatarState} className="mt-0.5 shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-cyan-100">Onni</p>
-              {canListen && !isOnniAndroidVoice() && isDesktopWebBrowser() && (
-                <div className="mt-1.5 flex items-center gap-2">
-                  <Switch
-                    id="onni-wake-listen"
-                    checked={listenEnabled}
-                    onCheckedChange={setListenEnabled}
-                    aria-label="Escuchar la palabra Onni"
-                  />
-                  <Label htmlFor="onni-wake-listen" className="text-[10px] font-normal text-muted-foreground">
-                    {isElectronDesktopApp()
-                      ? "Escucha automática (OnniVers PC)"
-                      : "Di «Hola Onni» o «Onni…»"}{" "}
-                    {!isElectronDesktopApp() &&
-                      (supportsNativeWakeSwitch
-                        ? "(micrófono nativo)"
-                        : "(sin abrir el chat)")}
-                  </Label>
-                </div>
-              )}
             </div>
             <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>
               Cerrar
@@ -621,11 +655,16 @@ export default function OpAiAssistant() {
             {showElectronMic && electronMicState.isProcessing && (
               <p className="text-[10px] font-medium text-emerald-300/90">Transcribiendo con Azure…</p>
             )}
+            {showChromeWebPushToTalk && captureMicActive && (
+              <p className="text-[10px] font-medium text-emerald-300/90">
+                Grabando… mantén pulsado el micrófono o Espacio y di tu pedido.
+              </p>
+            )}
             {supportsNativeWakeSwitch &&
               nativeWakeListening &&
-              listenEnabled &&
               !captureMicActive &&
-              !isOnniAndroidVoice() && (
+              !isOnniAndroidVoice() &&
+              !isDesktopWebBrowser() && (
               <p className="text-[10px] font-medium text-emerald-300/90">
                 {isElectronDesktopApp()
                   ? electronFollowUpActive
