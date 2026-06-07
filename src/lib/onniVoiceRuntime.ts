@@ -120,7 +120,14 @@ export function speakWithWebVoice(text: string, onFailed?: () => void): boolean 
   utterance.pitch = 1;
   utterance.volume = 1;
   if (voice) utterance.voice = voice;
-  utterance.onerror = () => onFailed?.();
+  const signalDone = () => {
+    window.dispatchEvent(new CustomEvent("voice:speak-end"));
+  };
+  utterance.onend = signalDone;
+  utterance.onerror = () => {
+    onFailed?.();
+    signalDone();
+  };
   window.speechSynthesis.speak(utterance);
   return true;
 }

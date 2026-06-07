@@ -78,6 +78,8 @@ export function useOnniVoicePrefs() {
 }
 
 const WAKE_REPEAT_COOLDOWN_MS = 2_500;
+/** Tras TTS de Onni, no procesar wake (evita que el mic oiga a Onni y repita). */
+const SPEAK_END_BUFFER_MS = 700;
 
 export function useOnniVoice({ enabled, speakEnabled, onWake, onWakeWithoutCommand, onError }: UseOnniVoiceOptions) {
   const [isListening, setIsListening] = useState(false);
@@ -88,6 +90,7 @@ export function useOnniVoice({ enabled, speakEnabled, onWake, onWakeWithoutComma
   const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
   const lastHandledRef = useRef("");
   const lastHandledAtRef = useRef(0);
+  const speakPauseUntilRef = useRef(0);
   const enabledRef = useRef(enabled);
   const callbacksRef = useRef({ onWake, onWakeWithoutCommand, onError });
 
@@ -110,6 +113,14 @@ export function useOnniVoice({ enabled, speakEnabled, onWake, onWakeWithoutComma
       window.speechSynthesis.onvoiceschanged = null;
     };
   }, [loadVoices, supported]);
+
+  useEffect(() => {
+    const onSpeakEnd = () => {
+      speakPauseUntilRef.current = Date.now() + SPEAK_END_BUFFER_MS;
+    };
+    window.addEventListener("voice:speak-end", onSpeakEnd);
+    return () => window.removeEventListener("voice:speak-end", onSpeakEnd);
+  }, []);
 
   const speak = useCallback(
     (text: string) => {
@@ -141,6 +152,8 @@ export function useOnniVoice({ enabled, speakEnabled, onWake, onWakeWithoutComma
 
   const startListening = useCallback(() => {
     if (!enabledRef.current || !supported) return;
+    if (typeof window !== "undefined" && window.speechSynthesis?.speaking) return;
+    if (Date.now() < speakPauseUntilRef.current) return;
 
     const Ctor = getSpeechRecognitionCtor();
     if (!Ctor) {
@@ -170,6 +183,9 @@ export function useOnniVoice({ enabled, speakEnabled, onWake, onWakeWithoutComma
       const isFinal = event.results[lastIdx]?.isFinal ?? false;
       if (!isFinal) return;
 
+      if (typeof window !== "undefined" && window.speechSynthesis?.speaking) return;
+      if (Date.now() < speakPauseUntilRef.current) return;
+
       setLastHeard(trimmed);
       const { heard, command } = parseOnniWakePhrase(trimmed);
       if (!heard) return;
@@ -184,6 +200,7 @@ export function useOnniVoice({ enabled, speakEnabled, onWake, onWakeWithoutComma
       }
       lastHandledRef.current = signature;
       lastHandledAtRef.current = now;
+      speakPauseUntilRef.current = Date.now() + 120_000;
 
       if (!command) {
         callbacksRef.current.onWakeWithoutCommand?.();
@@ -206,9 +223,13 @@ export function useOnniVoice({ enabled, speakEnabled, onWake, onWakeWithoutComma
       setIsListening(false);
       recognitionRef.current = null;
       if (!enabledRef.current) return;
+      const delay =
+        typeof window !== "undefined" && window.speechSynthesis?.speaking
+          ? 600
+          : Math.max(450, speakPauseUntilRef.current - Date.now());
       restartTimerRef.current = setTimeout(() => {
         if (enabledRef.current) startListening();
-      }, 450);
+      }, delay);
     };
 
     recognitionRef.current = recognition;
