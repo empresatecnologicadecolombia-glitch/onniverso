@@ -61,6 +61,30 @@ const DEFAULT_TIMEZONE = "America/Lima";
 
 export const CONCIERTO_EMIT_DRAFT_SESSION_KEY = "onniverso.conciertos-live.emit-draft";
 
+/** Tarjetas de concierto ocultas en Nuestras salas (título, nombre o id de perfil). */
+const CONCIERTO_CARD_BLOCKLIST = new Set(["davis2"]);
+
+function conciertoBlockKey(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/\s+/g, "");
+}
+
+function isBlockedConciertoProfile(row: ConciertoLiveProfileRow): boolean {
+  const title = row.concierto_card_title?.trim() ?? "";
+  const name = displayNameFromProfile(row).trim();
+  const userId = row.id.trim();
+  for (const raw of [title, name, userId]) {
+    const key = conciertoBlockKey(raw);
+    if (CONCIERTO_CARD_BLOCKLIST.has(key) || key.includes("davis2")) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export type ConciertoEmitDraft = ConciertoLiveCardConfig & { userId: string };
 
 /**
@@ -251,6 +275,7 @@ export function isConciertoRoomCard(room: Pick<RoomCard, "id">): boolean {
 }
 
 export function profileRowToConciertoRoomCard(row: ConciertoLiveProfileRow): RoomCard | null {
+  if (isBlockedConciertoProfile(row)) return null;
   const accessOk = hasConciertoLiveAccess(row);
   if (!accessOk || !hasSavedConciertoCard(row) || row.concierto_card_published !== true) {
     return null;
