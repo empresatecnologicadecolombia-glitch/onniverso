@@ -4,6 +4,9 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -62,10 +65,8 @@ import java.util.Set;
 public class MainActivity extends BridgeActivity {
 
   /**
-   * Base remota usada SOLO por el flujo de streaming/audiencia (resolvePlaybackUrl,
-   * AUDIENCE_GO_*). El arranque y la navegación interna NO la usan: el WebView de
-   * Capacitor sirve la app desde {@code https://localhost/} (assets/public/) para que
-   * la app abra sin internet.
+   * Base remota: arranque con internet carga la web publicada (salas/vídeos al día).
+   * Sin red, Capacitor sirve la copia empaquetada en {@code https://localhost/}.
    */
   private static final String INITIAL_WEB_URL = "https://onnivers.com";
   /**
@@ -522,6 +523,23 @@ public class MainActivity extends BridgeActivity {
     webView.addJavascriptInterface(new MusicFolderJsApi(this), "AndroidMusic");
 
     attachCasaVideoButton();
+    if (isInternetAvailable()) {
+      webView.loadUrl(INITIAL_WEB_URL);
+    }
+  }
+
+  /** Preferir onnivers.com en APK para reflejar deploys web; sin red queda el bundle local. */
+  private boolean isInternetAvailable() {
+    ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+    if (cm == null) {
+      return false;
+    }
+    Network network = cm.getActiveNetwork();
+    if (network == null) {
+      return false;
+    }
+    NetworkCapabilities caps = cm.getNetworkCapabilities(network);
+    return caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
   }
 
   /**
@@ -1047,7 +1065,7 @@ public class MainActivity extends BridgeActivity {
     if (current == null || !current.contains("lobby-inmersivo")) {
       return false;
     }
-    webView.loadUrl("https://localhost/");
+    webView.loadUrl(isInternetAvailable() ? INITIAL_WEB_URL : "https://localhost/");
     return true;
   }
 
