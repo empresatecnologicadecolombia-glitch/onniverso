@@ -267,6 +267,7 @@ export function useOnniChatVoice() {
 
   const startNativeWakeListening = useCallback(
     async (callbacks: NativeWakeCallbacks): Promise<boolean> => {
+      if (isElectronDesktopApp()) return false;
       if (isOnniAndroidVoice()) return false;
       if (voiceModeRef.current !== "native") return false;
       if (captureActiveRef.current) return false;
@@ -443,7 +444,7 @@ export function useOnniChatVoice() {
 
   const toggleVoiceCapture = useCallback(
     async (callbacks: VoiceCaptureCallbacks) => {
-      if (isOnniAndroidVoice()) return false;
+      if (isOnniAndroidVoice() || isElectronDesktopApp()) return false;
 
       captureCallbacksRef.current = callbacks;
 
@@ -625,7 +626,7 @@ export function useOnniChatVoice() {
       ? "Voz del navegador"
       : voiceMode === "native"
         ? isElectronDesktopApp()
-          ? "Voz Azure (OnniVers PC)"
+          ? "Voz OnniVers PC (sin micrófono)"
           : isOnniAndroidVoice()
             ? "Voz nativa + Azure (Android)"
             : "Voz nativa Android"
@@ -647,7 +648,7 @@ export function useOnniChatVoice() {
     usesContinuousMic: false,
     usesOneShotNativeMic,
     supportsNativeWakeSwitch,
-    canListen: voiceMode !== "none" && !isOnniAndroidVoice(),
+    canListen: voiceMode !== "none" && !isOnniAndroidVoice() && !isElectronDesktopApp(),
     canSpeak: voiceMode !== "none",
     voiceLabel,
   };

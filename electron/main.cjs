@@ -1,8 +1,6 @@
-const { app, BrowserWindow, shell, session, systemPreferences, ipcMain, nativeImage } = require("electron");
+const { app, BrowserWindow, shell, session, systemPreferences, nativeImage } = require("electron");
 const fs = require("node:fs");
 const path = require("node:path");
-const { WinSpeechEngine } = require("./winSpeechEngine.cjs");
-const { WhisperEngine } = require("./whisperEngine.cjs");
 
 const START_URL = process.env.ONNIVERS_URL || "https://onnivers.com";
 
@@ -42,10 +40,6 @@ const ALLOWED_PERMISSIONS = new Set([
 
 /** @type {import("electron").BrowserWindow | null} */
 let mainWindow = null;
-/** @type {WinSpeechEngine | null} */
-let winSpeechEngine = null;
-/** @type {WhisperEngine | null} */
-let whisperEngine = null;
 
 function isMediaPermission(permission, details) {
   if (ALLOWED_PERMISSIONS.has(permission)) return true;
@@ -90,61 +84,6 @@ async function ensureOsMediaAccess() {
   }
 }
 
-function getWinSpeechEngine() {
-  if (process.platform !== "win32") return null;
-  if (!winSpeechEngine) {
-    winSpeechEngine = new WinSpeechEngine(mainWindow?.webContents ?? null);
-  } else if (mainWindow?.webContents) {
-    winSpeechEngine.setWebContents(mainWindow.webContents);
-  }
-  return winSpeechEngine;
-}
-
-function getWhisperEngine() {
-  if (process.platform !== "win32") return null;
-  if (!whisperEngine) {
-    whisperEngine = new WhisperEngine();
-  }
-  return whisperEngine;
-}
-
-function registerWhisperIpc() {
-  ipcMain.handle("onnivers:whisper:isAvailable", async () => {
-    const engine = getWhisperEngine();
-    if (!engine) return false;
-    return engine.isReady();
-  });
-
-  ipcMain.handle("onnivers:whisper:transcribe", async (_event, payload) => {
-    const engine = getWhisperEngine();
-    if (!engine) {
-      throw new Error("Whisper solo está disponible en OnniVers para Windows.");
-    }
-    return engine.transcribePayload(payload);
-  });
-}
-
-function registerVoiceIpc() {
-  ipcMain.handle("onnivers:voice:isAvailable", async () => {
-    const engine = getWinSpeechEngine();
-    if (!engine) return false;
-    return engine.probe();
-  });
-
-  ipcMain.handle("onnivers:voice:start", async () => {
-    const engine = getWinSpeechEngine();
-    if (!engine) return false;
-    return engine.start();
-  });
-
-  ipcMain.handle("onnivers:voice:stop", async () => {
-    const engine = getWinSpeechEngine();
-    if (!engine) return false;
-    engine.stop();
-    return true;
-  });
-}
-
 function createWindow() {
   const iconPath = getAppIconPath();
   const icon = loadAppIcon();
@@ -175,10 +114,6 @@ function createWindow() {
     mainWindow?.show();
   });
 
-  mainWindow.webContents.on("did-finish-load", () => {
-    getWinSpeechEngine()?.setWebContents(mainWindow.webContents);
-  });
-
   void mainWindow.loadURL(START_URL);
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -190,7 +125,6 @@ function createWindow() {
 
   mainWindow.on("closed", () => {
     mainWindow = null;
-    getWinSpeechEngine()?.setWebContents(null);
   });
 }
 
@@ -199,8 +133,6 @@ app.commandLine.appendSwitch("enable-usermedia-screen-capturing");
 
 app.whenReady().then(async () => {
   configureMediaPermissions(session.defaultSession);
-  registerVoiceIpc();
-  registerWhisperIpc();
   await ensureOsMediaAccess();
   createWindow();
 
@@ -212,8 +144,6 @@ app.whenReady().then(async () => {
 });
 
 app.on("window-all-closed", () => {
-  winSpeechEngine?.dispose();
-  winSpeechEngine = null;
   if (process.platform !== "darwin") {
     app.quit();
   }

@@ -283,6 +283,7 @@ export default function OpAiAssistant() {
 
   const nativeWakeActive =
     !isOnniAndroidVoice() &&
+    !isElectronDesktopApp() &&
     supportsNativeWakeSwitch &&
     canListen &&
     listenEnabled &&
@@ -469,7 +470,7 @@ export default function OpAiAssistant() {
             <OnniAvatar size="md" state={avatarState} className="mt-0.5" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-cyan-100">Onni</p>
-              {canListen && !isOnniAndroidVoice() && (isDesktopWebBrowser() || supportsNativeWakeSwitch) && (
+              {canListen && !isOnniAndroidVoice() && isDesktopWebBrowser() && (
                 <div className="mt-1.5 flex items-center gap-2">
                   <Switch
                     id="onni-wake-listen"
