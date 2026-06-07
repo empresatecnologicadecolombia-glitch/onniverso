@@ -1,12 +1,8 @@
 import { isElectronDesktopApp } from "@/lib/deviceDetection";
 import { pickOnniSpanishVoice } from "@/lib/onniVoice";
 import { transcribeBlobWithAzure } from "@/lib/onniAzureStt";
-import {
-  isOnniElectronWhisperAvailable,
-  transcribeOnniElectronWhisper,
-} from "@/lib/onniElectronWhisperStt";
 
-/** Grabación por turno (Whisper local primero; Azure solo respaldo en .exe). */
+/** Grabación por turno (.exe: Azure STT). */
 const SESSION_MAX_MS = 9000;
 /** Mínimo antes de cerrar el clip (evita WebM sin cabecera EBML). */
 const MIN_RECORD_MS = 1200;
@@ -27,13 +23,19 @@ function dispatchVoiceEvent(name: string, detail?: unknown) {
 }
 
 function speakDesktop(text: string) {
-  if (!text.trim() || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  if (!text.trim() || typeof window === "undefined" || !("speechSynthesis" in window)) {
+    dispatchVoiceEvent("voice:spoke");
+    return;
+  }
   const clean = text.replace(/\n+/g, ". ").trim();
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(clean);
   const voice = pickOnniSpanishVoice(window.speechSynthesis.getVoices());
   utterance.lang = voice?.lang ?? "es-CO";
   if (voice) utterance.voice = voice;
+  const signalDone = () => dispatchVoiceEvent("voice:spoke");
+  utterance.onend = signalDone;
+  utterance.onerror = signalDone;
   window.speechSynthesis.speak(utterance);
 }
 
@@ -139,21 +141,7 @@ async function hasValidAudioContainer(blob: Blob): Promise<boolean> {
 }
 
 async function transcribeRecording(blob: Blob): Promise<string> {
-  if (isOnniElectronWhisperAvailable()) {
-    try {
-      const text = await transcribeOnniElectronWhisper(blob);
-      if (text) return text;
-    } catch {
-      /* Whisper local falló; probar Azure si hay red */
-    }
-  }
-  try {
-    const text = await transcribeBlobWithAzure(blob);
-    if (text) return text;
-  } catch {
-    /* Azure no disponible o error de red */
-  }
-  return "";
+  return transcribeBlobWithAzure(blob);
 }
 
 async function finalizeRecording() {

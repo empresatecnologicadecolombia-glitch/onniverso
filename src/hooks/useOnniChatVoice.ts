@@ -35,7 +35,9 @@ export type NativeWakeCallbacks = {
 
 const NATIVE_RESTART_MS = 900;
 const NATIVE_MIC_HANDOFF_MS = 480;
-const NATIVE_SPEAK_PAUSE_MS = 2200;
+/** Bloquea el mic mientras Onni habla; se libera con evento voice:spoke al terminar TTS. */
+const TTS_MIC_BLOCK_MS = 120_000;
+const TTS_END_BUFFER_MS = 500;
 /** Tras «Hola Onni», aceptar el siguiente pedido sin repetir la palabra clave. */
 const ELECTRON_FOLLOW_UP_MS = 30_000;
 
@@ -168,7 +170,7 @@ export function useOnniChatVoice() {
   const speakAnswer = useCallback(
     (text: string, options?: OnniSpeakOptions) => {
       if (voiceModeRef.current === "native" && text.trim() && !isOnniAndroidVoice()) {
-        speakPauseUntilRef.current = Date.now() + NATIVE_SPEAK_PAUSE_MS;
+        speakPauseUntilRef.current = Date.now() + TTS_MIC_BLOCK_MS;
         pauseNativeRecognizer();
       }
       speakOnniAnswer(
@@ -348,10 +350,9 @@ export function useOnniChatVoice() {
 
       if (!heard && inFollowUp && trimmed.length > 2) {
         followUpUntilRef.current = Date.now() + ELECTRON_FOLLOW_UP_MS;
-        speakPauseUntilRef.current = Date.now() + NATIVE_SPEAK_PAUSE_MS;
+        speakPauseUntilRef.current = Date.now() + TTS_MIC_BLOCK_MS;
         lastWakeHandledRef.current = `${trimmed}|${trimmed}`;
         wakeCallbacksRef.current?.onWake(trimmed);
-        scheduleNativeRestart();
         return;
       }
 
@@ -361,7 +362,7 @@ export function useOnniChatVoice() {
       if (signature === lastWakeHandledRef.current) return;
       lastWakeHandledRef.current = signature;
 
-      speakPauseUntilRef.current = Date.now() + NATIVE_SPEAK_PAUSE_MS;
+      speakPauseUntilRef.current = Date.now() + TTS_MIC_BLOCK_MS;
 
       if (isElectronDesktopApp()) {
         followUpUntilRef.current = Date.now() + ELECTRON_FOLLOW_UP_MS;
@@ -372,8 +373,6 @@ export function useOnniChatVoice() {
       } else {
         wakeCallbacksRef.current?.onWake(command);
       }
-
-      scheduleNativeRestart();
     },
     [deliverCaptureTranscript, scheduleNativeRestart],
   );
@@ -534,6 +533,14 @@ export function useOnniChatVoice() {
       scheduleNativeRestart();
     };
 
+    const onVoiceSpoke = () => {
+      if (voiceModeRef.current !== "native" || isOnniAndroidVoice()) return;
+      speakPauseUntilRef.current = Date.now() + TTS_END_BUFFER_MS;
+      if (wakeActiveRef.current && !captureActiveRef.current && isNativeSessionActive()) {
+        scheduleNativeRestart();
+      }
+    };
+
     const onVoiceError = (event: Event) => {
       if (voiceModeRef.current !== "native") return;
 
@@ -574,11 +581,13 @@ export function useOnniChatVoice() {
     window.addEventListener("voice:start", onVoiceStart);
     window.addEventListener("voice:result", onVoiceResult);
     window.addEventListener("voice:end", onVoiceEnd);
+    window.addEventListener("voice:spoke", onVoiceSpoke);
     window.addEventListener("voice:error", onVoiceError);
     return () => {
       window.removeEventListener("voice:start", onVoiceStart);
       window.removeEventListener("voice:result", onVoiceResult);
       window.removeEventListener("voice:end", onVoiceEnd);
+      window.removeEventListener("voice:spoke", onVoiceSpoke);
       window.removeEventListener("voice:error", onVoiceError);
     };
   }, [
@@ -616,9 +625,7 @@ export function useOnniChatVoice() {
       ? "Voz del navegador"
       : voiceMode === "native"
         ? isElectronDesktopApp()
-          ? window.onniversDesktop?.whisper?.transcribe
-            ? "Voz Whisper (OnniVers PC)"
-            : "Voz OnniVers PC"
+          ? "Voz Azure (OnniVers PC)"
           : isOnniAndroidVoice()
             ? "Voz nativa + Azure (Android)"
             : "Voz nativa Android"
