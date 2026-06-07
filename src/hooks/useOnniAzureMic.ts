@@ -60,6 +60,28 @@ export function useOnniAzureMic(callbacks: AzureMicCallbacks) {
     }
   }, []);
 
+  const beginHold = useCallback(async () => {
+    if (status === "processing") return;
+    if (status === "recording" || isAzureMicRecording()) return;
+
+    if (!isAzureMicSupported()) {
+      callbacksRef.current.onError("Micrófono no disponible en este dispositivo.");
+      return;
+    }
+
+    const started = await startAzureMicRecording();
+    if (!started.ok) {
+      callbacksRef.current.onError(started.error);
+      return;
+    }
+    setStatus("recording");
+  }, [status]);
+
+  const endHold = useCallback(async () => {
+    if (status !== "recording" && !isAzureMicRecording()) return;
+    await finishManualRecording();
+  }, [status, finishManualRecording]);
+
   const toggle = useCallback(async () => {
     if (status === "processing") return;
 
@@ -85,6 +107,8 @@ export function useOnniAzureMic(callbacks: AzureMicCallbacks) {
     isRecording: status === "recording",
     isProcessing: status === "processing",
     toggle,
+    beginHold,
+    endHold,
     cancel,
     isSupported: isAzureMicSupported(),
   };

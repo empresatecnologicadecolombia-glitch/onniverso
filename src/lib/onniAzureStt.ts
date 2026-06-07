@@ -1,5 +1,6 @@
 import { onniMicDeniedMessage, requestOnniMicrophoneAccess } from "@/lib/requestOnniMicrophone";
 import { stopAzureVoice } from "@/lib/onniAzureTts";
+import { isElectronDesktopApp } from "@/lib/deviceDetection";
 
 const TARGET_SAMPLE_RATE = 16_000;
 const MAX_RECORD_MS = 25_000;
@@ -159,7 +160,7 @@ export async function startAzureMicRecording(
       };
     });
 
-    recorder.start(250);
+    recorder.start(isElectronDesktopApp() ? undefined : 250);
     activeSession = { recorder, stream, chunks, stopPromise };
 
     window.setTimeout(() => {

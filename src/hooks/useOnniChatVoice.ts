@@ -626,7 +626,7 @@ export function useOnniChatVoice() {
       ? "Voz del navegador"
       : voiceMode === "native"
         ? isElectronDesktopApp()
-          ? "Voz OnniVers PC (sin micrófono)"
+          ? "Voz Azure (OnniVers PC)"
           : isOnniAndroidVoice()
             ? "Voz nativa + Azure (Android)"
             : "Voz nativa Android"

@@ -23,6 +23,7 @@ import { openHomeSocialRedes } from "@/lib/homeSocialRedesOpen";
 import { shouldShowNativeVoiceError } from "@/lib/onniNativeVoiceErrors";
 import { useOnniChatVoice } from "@/hooks/useOnniChatVoice";
 import OpAiAndroidAzureMic from "@/components/OpAiAndroidAzureMic";
+import OpAiElectronAzureMic from "@/components/OpAiElectronAzureMic";
 import { useOnniVoice, useOnniVoicePrefs } from "@/hooks/useOnniVoice";
 import { useAuth } from "@/hooks/useAuth";
 import { isDesktopWebBrowser, isElectronDesktopApp, isOnniAndroidVoice } from "@/lib/deviceDetection";
@@ -52,6 +53,7 @@ export default function OpAiAssistant() {
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const [androidMicState, setAndroidMicState] = useState({ isRecording: false, isProcessing: false });
+  const [electronMicState, setElectronMicState] = useState({ isRecording: false, isProcessing: false });
   const [text, setText] = useState("");
   const [processing, setProcessing] = useState(false);
   const [messages, setMessages] = useState<UiMessage[]>([
@@ -106,6 +108,7 @@ export default function OpAiAssistant() {
   } = useOnniChatVoice();
 
   const showAzureMic = isOnniAndroidVoice() && isAzureMicSupported();
+  const showElectronMic = isElectronDesktopApp() && isAzureMicSupported();
 
   const { listenEnabled, setListenEnabled } = useOnniVoicePrefs();
   const runCommandRef = useRef<(raw: string) => Promise<string | undefined>>(async () => undefined);
@@ -319,7 +322,7 @@ export default function OpAiAssistant() {
   const avatarState =
     wakeSpeaking
       ? "speaking"
-      : wakeListening || voiceListening || nativeWakeListening || androidMicState.isRecording
+      : wakeListening || voiceListening || nativeWakeListening || androidMicState.isRecording || electronMicState.isRecording
         ? "listening"
         : "idle";
 
@@ -525,6 +528,14 @@ export default function OpAiAssistant() {
             {showAzureMic && androidMicState.isProcessing && (
               <p className="text-[10px] font-medium text-emerald-300/90">Transcribiendo con Azure…</p>
             )}
+            {showElectronMic && electronMicState.isRecording && (
+              <p className="text-[10px] font-medium text-emerald-300/90">
+                Grabando… mantén pulsado el micrófono y di tu pedido.
+              </p>
+            )}
+            {showElectronMic && electronMicState.isProcessing && (
+              <p className="text-[10px] font-medium text-emerald-300/90">Transcribiendo con Azure…</p>
+            )}
             {supportsNativeWakeSwitch &&
               nativeWakeListening &&
               listenEnabled &&
@@ -545,7 +556,7 @@ export default function OpAiAssistant() {
               onChange={(e) => setText(e.target.value)}
               placeholder="conciertos, lobby, ayuda o pregunta libre"
             />
-            {(canSpeak || canListen || showAzureMic) && (
+            {(canSpeak || canListen || showAzureMic || showElectronMic) && (
               <>
                 {canSpeak && (
                   <Button
@@ -564,6 +575,14 @@ export default function OpAiAssistant() {
                     processing={processing}
                     panelOpen={open}
                     onStateChange={setAndroidMicState}
+                  />
+                )}
+                {showElectronMic && (
+                  <OpAiElectronAzureMic
+                    callbacks={azureMicCallbacks}
+                    processing={processing}
+                    panelOpen={open}
+                    onStateChange={setElectronMicState}
                   />
                 )}
                 {canListen && (
