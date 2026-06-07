@@ -40,6 +40,17 @@ import {
 } from "@/components/salas/salaRoomCardStyles";
 import BackToProfileHomeButton from "@/components/BackToProfileHomeButton";
 
+/** Tarjeta de prueba Conciertos Live: no mostrar en el grid de Nuestras Salas (el perfil no se modifica). */
+function isExcludedTestConciertoCardInSalasGrid(room: RoomCard): boolean {
+  if (!isConciertoRoomCard(room)) return false;
+  const titleKey = room.name
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .replace(/\s+/g, "");
+  return titleKey === "davis2";
+}
+
 const SectionHeader = ({
   badge,
   icon: Icon,
@@ -126,7 +137,10 @@ const NuestrasSalasPage = () => {
       priceUsd: 0,
       mp4Url: SALA_MP4_URL_BY_ID[streamer.id],
     }));
-    return [...userConciertoRooms, ...shuffleArray(streamerRooms)];
+    const publishedConciertoRooms = userConciertoRooms.filter(
+      (room) => !isExcludedTestConciertoCardInSalasGrid(room),
+    );
+    return [...publishedConciertoRooms, ...shuffleArray(streamerRooms)];
   }, [userConciertoRooms]);
 
   const beginRoomSession = async (
