@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { isNativeAndroid } from "@/lib/nativePlayback";
+import { installElectronMouseOnlyScroll } from "@/lib/electronMouseOnlyScroll";
 import { PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { isPayPalConfigured, paypalScriptOptions } from "@/config/payments";
 import GuestRoute from "@/components/auth/GuestRoute";
@@ -71,6 +72,8 @@ const App = () => {
       console.log("[Onniverso] WEB PLAYER BLOCKED ON ANDROID — App shell");
     }
   }, []);
+
+  useEffect(() => installElectronMouseOnlyScroll(), []);
 
   return (
   <QueryClientProvider client={queryClient}>
