@@ -21,6 +21,7 @@ import type { OpCommand } from "@/lib/opCommandBus";
 import { isElectronDesktopApp } from "@/lib/deviceDetection";
 import { isOnniDesktopOfficeAvailable } from "@/lib/onniDesktop/bridge";
 import { looksLikeDesktopOfficeRequest, matchOnniDesktopIntent } from "@/lib/onniDesktop/intents";
+import { readDesktopOfficeMode } from "@/lib/onniDesktop/officeMode";
 import type { OnniDesktopJob } from "@/lib/onniDesktop/types";
 
 export type OpResolveResult = {
@@ -35,6 +36,8 @@ export type OpResolveSession = {
   lastAnswer?: string;
   /** Rol actual (`docente`, `admin`, etc.) para comandos restringidos. */
   appRole?: string | null;
+  /** Modo oficina docente activo (solo .exe). */
+  desktopOfficeMode?: boolean;
 };
 
 const DOCENTE_PANEL_PATH = "/docente-clases";
@@ -520,7 +523,7 @@ function matchLocalReproductor(text: string): OpResolveResult | null {
   const route = OP_ROUTES.find((r) => r.id === "reproductor");
   if (!route) return null;
 
-  if (isElectronDesktopApp() && looksLikeDesktopOfficeRequest(text)) {
+  if (isElectronDesktopApp() && readDesktopOfficeMode() && looksLikeDesktopOfficeRequest(text)) {
     return null;
   }
 
@@ -867,7 +870,7 @@ export function resolveOpCommand(
     };
   }
 
-  if (isElectronDesktopApp()) {
+  if (isElectronDesktopApp() && session.desktopOfficeMode) {
     const desktopJob = matchOnniDesktopIntent(text);
     if (desktopJob) {
       if (!isOnniDesktopOfficeAvailable()) {
@@ -965,7 +968,10 @@ export function resolveOpCommand(
   return fallback(text);
 }
 
-export function getOpAssistantHint(currentPath: string): string {
+export function getOpAssistantHint(currentPath: string, desktopOfficeMode = false): string {
+  if (desktopOfficeMode) {
+    return 'Modo oficina activo: "prepárame una clase sobre…", "crea carpeta con PDF", "abre la carpeta".';
+  }
   if (currentPath.startsWith("/lobby-inmersivo")) {
     return 'Di: "pantalla 3", "cambia el video a Daddy Yankee", "giroscopio".';
   }
