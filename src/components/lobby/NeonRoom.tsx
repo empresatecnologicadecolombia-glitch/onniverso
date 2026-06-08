@@ -175,7 +175,7 @@ const SIDE_WALL_SCREEN4_HEIGHT = LOBBY_PANEL_HALF_HEIGHT;
 /** Panel central en la pared del fondo (solo pantalla 2 / salas). */
 const WALL1_SALAS_WIDTH = LOBBY_PANEL_HALF_WIDTH;
 const WALL1_PANEL_HEIGHT = LOBBY_PANEL_HALF_HEIGHT;
-const LOBBY_WEB_EMBED_URL = "https://onnivers.com/nuestras-salas";
+const LOBBY_WEB_EMBED_HOME_URL = "https://onnivers.com/";
 const SIDE_WALL_SCREEN3_WIDTH = ROOM_SIZE - 0.9;
 const SIDE_WALL_SCREEN3_HEIGHT = WALL_HEIGHT - 0.9;
 
@@ -306,6 +306,7 @@ function HoloScreen({
   rotation,
   kind,
   embedUrl,
+  iframeRemountKey,
   label,
   focused,
   interactionMode,
@@ -318,6 +319,8 @@ function HoloScreen({
   rotation: [number, number, number];
   kind: HoloScreenKind;
   embedUrl?: string;
+  /** En móvil: fuerza iframe nuevo al entrar al lobby (siempre inicio, sin historial). */
+  iframeRemountKey?: string | number;
   label: number;
   focused: boolean;
   interactionMode: boolean;
@@ -363,11 +366,11 @@ function HoloScreen({
             <LobbyScreenThreeSalasPlayer width={embedWidth} height={embedHeight} />
           ) : (
             <iframe
-              key={embedUrl}
-              src={embedUrl ?? LOBBY_WEB_EMBED_URL}
+              key={iframeRemountKey != null ? `${embedUrl ?? LOBBY_WEB_EMBED_HOME_URL}-${iframeRemountKey}` : embedUrl}
+              src={embedUrl ?? LOBBY_WEB_EMBED_HOME_URL}
               width={embedWidth}
               height={embedHeight}
-              title="onnivers.com — Nuestras salas"
+              title="onnivers.com — Inicio"
               allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
               style={{
@@ -435,11 +438,15 @@ function SideWallScreen3({
   const y = WALL_HEIGHT / 2;
   const off = 0.03;
   const interactionMode = focusedScreen !== null;
+  const isMobileCoarse = isMobileCoarseDevice();
+  const [iframeRemountKey] = useState(() => (isMobileCoarse ? Date.now() : undefined));
+
   return (
     <HoloScreen
       kind="webpage"
       label={3}
-      embedUrl={LOBBY_WEB_EMBED_URL}
+      embedUrl={LOBBY_WEB_EMBED_HOME_URL}
+      iframeRemountKey={iframeRemountKey}
       position={[0, y, -ROOM_SIZE / 2 + off]}
       rotation={[0, 0, 0]}
       width={SIDE_WALL_SCREEN3_WIDTH}

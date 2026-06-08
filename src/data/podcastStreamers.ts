@@ -63,6 +63,24 @@ export const podcastStreamers: StreamerProfile[] = [
     featuredGames: ["Travel Quest VR", "Fan Zone", "Meet & Greet"],
   },
   {
+    id: "ia-y-robots",
+    name: "IA y ROBOTS",
+    avatar: "/ia-y-robots.png",
+    immersiveSalaName: "Economía e IA",
+    panoramaImage:
+      "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=4096&q=85",
+    status: "live",
+    streamType: "platform",
+    salaVideoUrl: SALA_MP4_URL_BY_ID["ia-y-robots"],
+    fallbackVideoId: "M7lc1UVf-VE",
+    loungeTitle: "IA y ROBOTS",
+    loungeDescription:
+      "La IA y los robots van a provocar el mayor boom económico de la historia.",
+    ticketGrada: 0,
+    ticketVip: 0,
+    featuredGames: ["Robotics Lab VR", "Fan Zone", "Meet & Greet"],
+  },
+  {
     id: "gopro-gpy",
     name: "GoPro GP",
     avatar: "/gopro-gpy-avatar.png",
@@ -79,24 +97,6 @@ export const podcastStreamers: StreamerProfile[] = [
     ticketGrada: 0,
     ticketVip: 0,
     featuredGames: ["Action Tour VR", "Fan Zone", "Creator Chat"],
-  },
-  {
-    id: "axon-king",
-    name: "Silvestre Dangond",
-    avatar: "/silvestre-dangon-avatar.png",
-    immersiveSalaName: "Escenario Neural",
-    panoramaImage:
-      "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=4096&q=85",
-    status: "live",
-    streamType: "youtube",
-    youtubeVideoId: "dQw4w9WgXcQ",
-    salaVideoUrl: SALA_MP4_URL_BY_ID["axon-king"],
-    loungeTitle: "Neural Stage",
-    loungeDescription:
-      "Conversaciones tech, gaming competitivo y comunidad en tiempo real.",
-    ticketGrada: 3.99,
-    ticketVip: 12.99,
-    featuredGames: ["Card Clash", "Chess Royale", "Battle Room Squad"],
   },
 ];
 

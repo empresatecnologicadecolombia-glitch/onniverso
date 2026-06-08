@@ -388,6 +388,7 @@ function streamerAliases(name: string, id: string, immersiveSalaName: string): s
   if (sala.length >= 4) base.push(sala);
   if (name === "Karol G") base.push("karol", "karol g", "bichota");
   if (id === "nova-byte") base.push("nova byte", "sala cuantica", "cuantica");
+  if (id === "ia-y-robots") base.push("ia y robots", "robots", "boom economico");
   if (name.includes("Michael")) base.push("michael", "mj");
   return [...new Set(base.map((s) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "")))];
 }

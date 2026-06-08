@@ -42,8 +42,13 @@ const SALA_CONTENT_INDEX: SalaContentItem[] = [
     tags: ["#Educacion", "#IA"],
     mp4Url: SALA_MP4_URL_BY_ID["luisito-comunica-er"],
   },
+  {
+    id: "ia-y-robots",
+    title: "IA y ROBOTS",
+    tags: ["#Educacion", "#IA", "#Robots"],
+    mp4Url: SALA_MP4_URL_BY_ID["ia-y-robots"],
+  },
   { id: "gopro-gpy", title: "GoPro GP", tags: ["#Aventura"], mp4Url: SALA_MP4_URL_BY_ID["gopro-gpy"] },
-  { id: "axon-king", title: "Silvestre Dangond", tags: ["#Musica"], mp4Url: SALA_MP4_URL_BY_ID["axon-king"] },
 ];
 
 const SearchHub = ({ currentUserId }: SearchHubProps) => {
