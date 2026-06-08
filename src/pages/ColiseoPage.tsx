@@ -226,7 +226,11 @@ const ColiseoPage = () => {
               }
         }
       />
-      <ColiseoImmersiveScene mixedRealityActive={mixedRealityActive} />
+      <ColiseoImmersiveScene
+        mixedRealityActive={mixedRealityActive}
+        classSlug={classSlug}
+        isTeacher={voiceRole === "host"}
+      />
       <AgoraClassVoiceBridge classSlug={classSlug} role={voiceRole} />
     </div>
   );

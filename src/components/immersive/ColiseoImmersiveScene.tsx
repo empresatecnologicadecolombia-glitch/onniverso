@@ -5,6 +5,10 @@ import { useLocation } from "react-router-dom";
 import * as THREE from "three";
 import ColiseoFloatingWebViewScreen from "@/components/immersive/ColiseoFloatingWebViewScreen";
 import ColiseoFloatingPdfScreen from "@/components/immersive/ColiseoFloatingPdfScreen";
+import ColiseoCameraGuideDriver from "@/components/immersive/ColiseoCameraGuideDriver";
+import ColiseoDocenteGuideHotspots from "@/components/immersive/ColiseoDocenteGuideHotspots";
+import { useColiseoCameraGuideSync } from "@/hooks/useColiseoCameraGuideSync";
+import type { ColiseoGuidePoint } from "@/lib/coliseoDocenteGuide";
 import { ColiseoWallEarthMoon } from "@/components/immersive/ColiseoWallEarthMoon";
 import { ColiseoWallGlb } from "@/components/immersive/coliseoWallGlb";
 import {
@@ -120,11 +124,15 @@ function ColiseoSceneContent({
   mixedRealityActive,
   classGlbUrl,
   panoramaUrl,
+  showGuideHotspots,
+  onGuidePointSelect,
 }: {
   onScreenPointerDown?: () => void;
   mixedRealityActive: boolean;
   classGlbUrl: string | null;
   panoramaUrl: string;
+  showGuideHotspots: boolean;
+  onGuidePointSelect: (point: ColiseoGuidePoint) => void;
 }) {
   const prepareHeartModel = useHeartWallMaterials();
   const lobbyEarthOnWall = Boolean(
@@ -152,6 +160,7 @@ function ColiseoSceneContent({
       <ambientLight intensity={ambientIntensity} />
       <ColiseoFloatingWebViewScreen onScreenPointerDown={onScreenPointerDown} />
       <ColiseoFloatingPdfScreen onScreenPointerDown={onScreenPointerDown} />
+      {showGuideHotspots ? <ColiseoDocenteGuideHotspots onSelectPoint={onGuidePointSelect} /> : null}
       <group position={GLB_SLOT_POSITION} rotation={GLB_SLOT_ROTATION}>
         {import.meta.env.DEV ? (
           <>
@@ -219,8 +228,18 @@ function ColiseoSceneContent({
   );
 }
 
-export default function ColiseoImmersiveScene({ mixedRealityActive = false }: { mixedRealityActive?: boolean }) {
+export default function ColiseoImmersiveScene({
+  mixedRealityActive = false,
+  classSlug = "",
+  isTeacher = false,
+}: {
+  mixedRealityActive?: boolean;
+  classSlug?: string;
+  isTeacher?: boolean;
+}) {
   const location = useLocation();
+  const { guidePulse, broadcastGuidePoint } = useColiseoCameraGuideSync(classSlug, isTeacher);
+  const showGuideHotspots = Boolean(classSlug.trim()) && isTeacher;
   const useNativeWebView = useMemo(() => isColiseoNativeWebViewAvailable(), []);
   const [pointerLocked, setPointerLocked] = useState(false);
   const [screenInteracting, setScreenInteracting] = useState(false);
@@ -251,6 +270,18 @@ export default function ColiseoImmersiveScene({ mixedRealityActive = false }: { 
   }, []);
 
   const pointerLockEnabled = usesPointerLock && !useNativeWebView && !screenInteracting;
+
+  useEffect(() => {
+    if (!guidePulse) return;
+    if (document.pointerLockElement) document.exitPointerLock();
+  }, [guidePulse]);
+
+  const handleGuidePointSelect = useCallback(
+    (point: ColiseoGuidePoint) => {
+      void broadcastGuidePoint(point);
+    },
+    [broadcastGuidePoint],
+  );
 
   useEffect(() => {
     const onWindowPointerDown = (event: PointerEvent) => {
@@ -287,8 +318,11 @@ export default function ColiseoImmersiveScene({ mixedRealityActive = false }: { 
             mixedRealityActive={mixedRealityActive}
             classGlbUrl={classGlbUrl}
             panoramaUrl={panoramaUrl}
+            showGuideHotspots={showGuideHotspots}
+            onGuidePointSelect={handleGuidePointSelect}
           />
         </Suspense>
+        <ColiseoCameraGuideDriver guidePulse={guidePulse} />
         {pointerLockEnabled ? (
           <PointerLockControls
             onLock={() => {
