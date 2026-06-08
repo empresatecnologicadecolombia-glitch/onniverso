@@ -1,6 +1,7 @@
 const { app, BrowserWindow, shell, session, systemPreferences, nativeImage } = require("electron");
 const fs = require("node:fs");
 const path = require("node:path");
+const { registerDocenteOfficeIPC } = require("./docenteOffice.cjs");
 
 const START_URL = process.env.ONNIVERS_URL || "https://onnivers.com";
 
@@ -133,6 +134,9 @@ app.commandLine.appendSwitch("enable-usermedia-screen-capturing");
 
 app.whenReady().then(async () => {
   configureMediaPermissions(session.defaultSession);
+  registerDocenteOfficeIPC({
+    getMainWindow: () => mainWindow,
+  });
   await ensureOsMediaAccess();
   createWindow();
 

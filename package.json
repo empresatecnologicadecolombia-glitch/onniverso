@@ -26,7 +26,8 @@
     "desktop:dev": "npm run desktop:icon && electron .",
     "desktop:pack": "npm run desktop:speech-build && npm run desktop:whisper-build && electron-builder --win --dir && node scripts/apply-desktop-icon.mjs",
     "desktop:dist": "node scripts/apply-desktop-icon.mjs && electron-builder --win nsis portable --prepackaged release/win-unpacked",
-    "desktop:build": "npm run desktop:icon && npm run desktop:pack && npm run desktop:dist"
+    "desktop:build": "npm run desktop:icon && npm run desktop:pack && npm run desktop:dist",
+    "desktop:python-deps": "pip install -r electron/python/requirements.txt"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.1",
@@ -171,6 +172,15 @@
       "artifactName": "OnniVers-${version}.exe"
     },
     "extraResources": [
+      {
+        "from": "electron/python",
+        "to": "python",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "electron/docente-preview.html",
+        "to": "docente-preview.html"
+      },
       {
         "from": "electron/icons/icon.ico",
         "to": "icon.ico"

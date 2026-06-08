@@ -65,5 +65,9 @@ interface Window {
       startListening?: () => Promise<boolean>;
       stopListening?: () => Promise<boolean>;
     };
+    docenteOffice?: {
+      getBasePath?: () => Promise<string>;
+      execute?: (payload: unknown) => Promise<unknown>;
+    };
   };
 }

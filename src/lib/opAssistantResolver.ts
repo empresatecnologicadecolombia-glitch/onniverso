@@ -18,11 +18,16 @@ import {
   setFavoriteStreamerId,
 } from "@/data/onniBrain";
 import type { OpCommand } from "@/lib/opCommandBus";
+import { isElectronDesktopApp } from "@/lib/deviceDetection";
+import { isOnniDesktopOfficeAvailable } from "@/lib/onniDesktop/bridge";
+import { matchOnniDesktopIntent } from "@/lib/onniDesktop/intents";
+import type { OnniDesktopJob } from "@/lib/onniDesktop/types";
 
 export type OpResolveResult = {
   command?: OpCommand;
   navigateTo?: string;
   navigateBack?: boolean;
+  desktopJob?: OnniDesktopJob;
   answer: string;
 };
 
@@ -908,6 +913,22 @@ export function resolveOpCommand(
 
   const teatro = matchTeatro(text);
   if (teatro) return teatro;
+
+  if (isElectronDesktopApp() && isOnniDesktopOfficeAvailable()) {
+    const desktopJob = matchOnniDesktopIntent(text);
+    if (desktopJob) {
+      const summary =
+        desktopJob.tipo === "flujo"
+          ? `Voy a ejecutar ${desktopJob.flujo.replace(/_/g, " ")}${desktopJob.params?.tema ? ` sobre ${String(desktopJob.params.tema)}` : ""}.`
+          : desktopJob.tipo === "secuencia"
+            ? `Voy a ejecutar una secuencia de ${desktopJob.pasos.length} pasos en tu PC.`
+            : `Voy a ${desktopJob.accion.replace(/_/g, " ")} en tu carpeta local.`;
+      return {
+        desktopJob,
+        answer: sayOnni(`${summary} Todo queda en Documentos/OnniVers/Clases. Tú subes la clase a OnniVers cuando quieras.`),
+      };
+    }
+  }
 
   const docentePanel = matchDocentePanel(text, session.appRole);
   if (docentePanel) return docentePanel;

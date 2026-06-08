@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>OnniVers — Revisar clase</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: #0f172a;
+        color: #e2e8f0;
+        padding: 20px;
+      }
+      h1 { color: #22d3ee; font-size: 1.25rem; margin: 0 0 8px; }
+      p { color: #94a3b8; font-size: 0.9rem; }
+      .path {
+        word-break: break-all;
+        background: #1e293b;
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid #334155;
+        margin: 12px 0 20px;
+        font-size: 0.85rem;
+      }
+      ul { padding-left: 1.2rem; }
+      li { margin: 6px 0; }
+      .hint { margin-top: 24px; font-size: 0.8rem; color: #64748b; }
+    </style>
+  </head>
+  <body>
+    <h1>Revisar material de clase</h1>
+    <p>Onni dejó los archivos en esta carpeta. Revísalos en el Explorador y súbelos a OnniVers cuando quieras.</p>
+    <div class="path" id="folder"></div>
+    <p><strong>Qué buscar:</strong></p>
+    <ul>
+      <li><code>02_videos/</code> — videos optimizados (≤ 30 MB)</li>
+      <li><code>03_documentos/</code> — PDF, Word, Excel, PowerPoint</li>
+      <li><code>04_imagenes/</code> — imágenes descargadas</li>
+      <li><code>_onni/manifest.json</code> — índice de la clase</li>
+    </ul>
+    <p class="hint">Cierra esta ventana cuando termines. La carpeta se abre desde Onni con «abrir carpeta».</p>
+    <script>
+      const params = new URLSearchParams(location.search);
+      document.getElementById("folder").textContent = params.get("folder") || "(sin ruta)";
+    </script>
+  </body>
+</html>
