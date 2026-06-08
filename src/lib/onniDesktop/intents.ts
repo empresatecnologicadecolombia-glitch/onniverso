@@ -1,26 +1,55 @@
 import type { OnniDesktopJob } from "@/lib/onniDesktop/types";
 
+function normalizeForMatch(text: string): string {
+  return text
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "");
+}
+
 function extractTema(text: string): string {
   const patterns = [
-    /(?:clase|tema|sobre|de)\s+(?:la\s+|el\s+|los\s+|las\s+)?(.+)$/i,
-    /prep[aá]r(?:a|ame|ar)\s+(?:la\s+)?(?:clase\s+)?(?:de\s+)?(.+)$/i,
+    /prep[aá]r(?:a|ame|ar)\s+(?:una\s+|la\s+|el\s+)?(?:clase\s+)?(?:de\s+|sobre\s+)(.+)$/i,
+    /(?:clase|tema|material)\s+(?:de\s+|sobre\s+)(?:la\s+|el\s+|los\s+|las\s+)?(.+)$/i,
+    /(?:sobre|de)\s+(?:la\s+|el\s+|los\s+|las\s+)?(.+)$/i,
+    /prep[aá]r(?:a|ame|ar)\s+(?:una\s+|la\s+)?(?:clase\s+)?(.+)$/i,
     /(?:busca|buscar)\s+(?:un\s+)?(?:pdf\s+)?(?:de\s+|sobre\s+)?(.+)$/i,
   ];
   for (const pattern of patterns) {
     const match = text.match(pattern);
-    if (match?.[1]?.trim()) return match[1].trim().replace(/[?.!]+$/, "");
+    if (match?.[1]?.trim()) {
+      const tema = match[1].trim().replace(/[?.!]+$/, "");
+      if (tema.length > 2 && !/^(clase|material|una|un)$/i.test(tema)) return tema;
+    }
   }
   return "";
 }
 
+function wantsPrepareClass(t: string): boolean {
+  return (
+    (/\bprep[aá]r(?:a|ame|ar)\b/.test(t) && /\b(clase|clases|material)\b/.test(t)) ||
+    (/\bprep[aá]r(?:a|ame|ar)\b/.test(t) && /\b(sobre|de)\b/.test(t)) ||
+    /\bpreparar\s+(?:una\s+|la\s+)?clase\b/.test(t)
+  );
+}
+
+function wantsCreateClassFolder(t: string): boolean {
+  return (
+    /\bcre[aá](?:r|me)?\b.*\bcarpeta\b/.test(t) ||
+    /\bcrear\s+(?:una\s+|la\s+)?carpeta\b/.test(t) ||
+    /\bnueva\s+carpeta\s+(?:de\s+)?clase\b/.test(t) ||
+    (/\bcarpeta\b/.test(t) &&
+      /\b(cre[aá]|prep[aá]r|genera|haz|hacer)\b/.test(t) &&
+      /\b(pdf|resumen|video|videos|ppt|powerpoint|documento)\b/.test(t))
+  );
+}
+
 export function matchOnniDesktopIntent(text: string): OnniDesktopJob | null {
-  const t = text.trim().toLowerCase();
+  const t = normalizeForMatch(text);
   const tema = extractTema(text);
 
-  if (
-    /\b(prepar[aá]|prep[aá]rame|preparar)\s+(?:la\s+)?(?:clase|material|todo)\b/.test(t) ||
-    /\bpreparar\s+clase\b/.test(t)
-  ) {
+  if (wantsPrepareClass(t) || wantsCreateClassFolder(t)) {
     return {
       v: 1,
       tipo: "flujo",
@@ -30,7 +59,7 @@ export function matchOnniDesktopIntent(text: string): OnniDesktopJob | null {
     };
   }
 
-  if (/\b(genera|crea|haz)\s+(?:un\s+)?examen\b/.test(t) || /\bflujo\s+examen\b/.test(t)) {
+  if (/\b(genera|crea|crear|haz|hacer)\s+(?:un\s+)?examen\b/.test(t) || /\bflujo\s+examen\b/.test(t)) {
     return {
       v: 1,
       tipo: "flujo",
@@ -44,15 +73,6 @@ export function matchOnniDesktopIntent(text: string): OnniDesktopJob | null {
     return { v: 1, tipo: "accion", accion: "organizar_archivos", params: {} };
   }
 
-  if (/\b(crea|crear)\s+carpeta\b/.test(t) || /\bnueva\s+carpeta\s+de\s+clase\b/.test(t)) {
-    return {
-      v: 1,
-      tipo: "accion",
-      accion: "crear_carpeta_clase",
-      params: { tema: tema || "clase" },
-    };
-  }
-
   if (/\b(abre|abrir)\s+(?:la\s+)?carpeta\b/.test(t)) {
     return { v: 1, tipo: "accion", accion: "abrir_carpeta", params: {} };
   }
@@ -61,7 +81,7 @@ export function matchOnniDesktopIntent(text: string): OnniDesktopJob | null {
     return { v: 1, tipo: "accion", accion: "abrir_ventana_preview", params: {} };
   }
 
-  if (/\b(crea|crear)\s+(?:un\s+)?pdf\b/.test(t)) {
+  if (/\b(crea|crear|creame)\s+(?:un\s+)?pdf\b/.test(t)) {
     return {
       v: 1,
       tipo: "accion",
@@ -70,7 +90,10 @@ export function matchOnniDesktopIntent(text: string): OnniDesktopJob | null {
     };
   }
 
-  if (/\b(crea|crear)\s+(?:un\s+)?power\s*point\b/.test(t) || /\b(crea|crear)\s+ppt\b/.test(t)) {
+  if (
+    /\b(crea|crear|creame)\s+(?:un\s+)?power\s*point\b/.test(t) ||
+    /\b(crea|crear|creame)\s+ppt\b/.test(t)
+  ) {
     return {
       v: 1,
       tipo: "accion",
@@ -84,10 +107,11 @@ export function matchOnniDesktopIntent(text: string): OnniDesktopJob | null {
       v: 1,
       tipo: "secuencia",
       pasos: [
-        { accion: "buscar_pdf_en_internet", params: { tema: tema || "tema" } },
+        { accion: "crear_carpeta_clase", params: { tema: tema || "clase" } },
         { accion: "buscar_informacion", params: { tema: tema || "tema" } },
         { accion: "generar_resumen", params: { texto: "{{paso1.resumen}}" } },
         { accion: "crear_pdf", params: { titulo: `Resumen ${tema || "clase"}`, contenido: "{{paso2.resumen}}" } },
+        { accion: "crear_ppt", params: { titulo: tema || "Clase", tema: tema || "Clase" } },
       ],
       confirmar: true,
     };
@@ -112,6 +136,10 @@ export function matchOnniDesktopIntent(text: string): OnniDesktopJob | null {
   }
 
   return null;
+}
+
+export function looksLikeDesktopOfficeRequest(text: string): boolean {
+  return matchOnniDesktopIntent(text) !== null;
 }
 
 export function desktopJobSummary(job: OnniDesktopJob): string {

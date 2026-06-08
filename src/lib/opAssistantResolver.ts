@@ -20,7 +20,7 @@ import {
 import type { OpCommand } from "@/lib/opCommandBus";
 import { isElectronDesktopApp } from "@/lib/deviceDetection";
 import { isOnniDesktopOfficeAvailable } from "@/lib/onniDesktop/bridge";
-import { matchOnniDesktopIntent } from "@/lib/onniDesktop/intents";
+import { looksLikeDesktopOfficeRequest, matchOnniDesktopIntent } from "@/lib/onniDesktop/intents";
 import type { OnniDesktopJob } from "@/lib/onniDesktop/types";
 
 export type OpResolveResult = {
@@ -520,6 +520,10 @@ function matchLocalReproductor(text: string): OpResolveResult | null {
   const route = OP_ROUTES.find((r) => r.id === "reproductor");
   if (!route) return null;
 
+  if (isElectronDesktopApp() && looksLikeDesktopOfficeRequest(text)) {
+    return null;
+  }
+
   const explicitLocal =
     /\b(mp4|mp3)\b/.test(text) ||
     /\b(video local|videos locales|archivos mp4|archivo mp4)\b/.test(text) ||
@@ -863,6 +867,29 @@ export function resolveOpCommand(
     };
   }
 
+  if (isElectronDesktopApp()) {
+    const desktopJob = matchOnniDesktopIntent(text);
+    if (desktopJob) {
+      if (!isOnniDesktopOfficeAvailable()) {
+        return {
+          answer: sayOnni(
+            "Detecté un pedido de oficina docente, pero este .exe no tiene el módulo nuevo. Cierra OnniVers y ábrelo con: npm run desktop:dev (desde la carpeta del proyecto actualizada).",
+          ),
+        };
+      }
+      const summary =
+        desktopJob.tipo === "flujo"
+          ? `Voy a preparar la clase${desktopJob.params?.tema ? ` sobre ${String(desktopJob.params.tema)}` : ""} en tu PC.`
+          : desktopJob.tipo === "secuencia"
+            ? `Voy a ejecutar ${desktopJob.pasos.length} pasos en tu carpeta local.`
+            : `Voy a ${desktopJob.accion.replace(/_/g, " ")} en tu PC.`;
+      return {
+        desktopJob,
+        answer: sayOnni(`${summary} Todo queda en Documentos/OnniVers/Clases.`),
+      };
+    }
+  }
+
   const social = matchSocial(text);
   if (social) return social;
 
@@ -913,22 +940,6 @@ export function resolveOpCommand(
 
   const teatro = matchTeatro(text);
   if (teatro) return teatro;
-
-  if (isElectronDesktopApp() && isOnniDesktopOfficeAvailable()) {
-    const desktopJob = matchOnniDesktopIntent(text);
-    if (desktopJob) {
-      const summary =
-        desktopJob.tipo === "flujo"
-          ? `Voy a ejecutar ${desktopJob.flujo.replace(/_/g, " ")}${desktopJob.params?.tema ? ` sobre ${String(desktopJob.params.tema)}` : ""}.`
-          : desktopJob.tipo === "secuencia"
-            ? `Voy a ejecutar una secuencia de ${desktopJob.pasos.length} pasos en tu PC.`
-            : `Voy a ${desktopJob.accion.replace(/_/g, " ")} en tu carpeta local.`;
-      return {
-        desktopJob,
-        answer: sayOnni(`${summary} Todo queda en Documentos/OnniVers/Clases. Tú subes la clase a OnniVers cuando quieras.`),
-      };
-    }
-  }
 
   const docentePanel = matchDocentePanel(text, session.appRole);
   if (docentePanel) return docentePanel;
