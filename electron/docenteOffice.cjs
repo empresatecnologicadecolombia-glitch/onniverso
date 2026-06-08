@@ -11,7 +11,7 @@ function getPythonCandidates() {
   const envPath = process.env.ONNI_PYTHON_PATH?.trim();
   if (envPath) return [envPath];
   return process.platform === "win32"
-    ? ["python", "py", "py -3", "python3"]
+    ? ["py -3", "py", "python3", "python"]
     : ["python3", "python"];
 }
 
