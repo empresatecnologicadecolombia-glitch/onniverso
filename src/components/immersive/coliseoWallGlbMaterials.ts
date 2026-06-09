@@ -124,6 +124,9 @@ export function prepareAnatomiaHumanaColiseoMaterials(root: THREE.Object3D): voi
   applyBrighterColiseoMaterials(root, 1.28);
 }
 
+/** Volcán: un poco más bajo dentro del marco del Coliseo. */
+export const VOLCAN_COLISEO_POSITION_OFFSET: [number, number, number] = [0, -0.34, 0];
+
 /** Volcán: roca oscura y lava — más brillo y emisión cálida en la escena 360. */
 export function prepareVolcanColiseoMaterials(root: THREE.Object3D): void {
   applyBrighterColiseoMaterials(root, 1.42);

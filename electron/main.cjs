@@ -6,21 +6,22 @@ const { registerDocenteOfficeIPC } = require("./docenteOffice.cjs");
 const START_URL = process.env.ONNIVERS_URL || "https://onnivers.com";
 
 if (process.platform === "win32") {
-  app.setAppUserModelId("com.onnivers.desktop");
+  app.setAppUserModelId("com.empresatecnologica.onnivers");
 }
 
 function getAppIconPath() {
   const packagedIcon = path.join(process.resourcesPath, "icon.ico");
   if (app.isPackaged && fs.existsSync(packagedIcon)) {
-    return packagedIcon;
+    return path.resolve(packagedIcon);
   }
-  return path.join(__dirname, "icons", "icon.ico");
+  return path.resolve(path.join(__dirname, "icons", "icon.ico"));
 }
 
 function loadAppIcon() {
   const iconPath = getAppIconPath();
   if (!fs.existsSync(iconPath)) return null;
-  return nativeImage.createFromPath(iconPath);
+  const image = nativeImage.createFromPath(iconPath);
+  return image.isEmpty() ? null : image;
 }
 
 const ALLOWED_PERMISSIONS = new Set([
@@ -36,6 +37,8 @@ const ALLOWED_PERMISSIONS = new Set([
   "speaker-selection",
   "window-management",
   "clipboard-read",
+  "clipboard-write",
+  "clipboard-sanitized-write",
   "geolocation",
 ]);
 
@@ -88,6 +91,8 @@ async function ensureOsMediaAccess() {
 function createWindow() {
   const iconPath = getAppIconPath();
   const icon = loadAppIcon();
+  const windowIcon =
+    process.platform === "win32" && fs.existsSync(iconPath) ? iconPath : icon ?? iconPath;
 
   mainWindow = new BrowserWindow({
     width: 1366,
@@ -97,7 +102,7 @@ function createWindow() {
     title: "OnniVers",
     show: false,
     autoHideMenuBar: true,
-    icon: icon ?? iconPath,
+    icon: windowIcon,
     backgroundColor: "#000000",
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
@@ -109,7 +114,9 @@ function createWindow() {
   });
 
   mainWindow.once("ready-to-show", () => {
-    if (icon && process.platform === "win32") {
+    if (process.platform === "win32" && fs.existsSync(iconPath)) {
+      mainWindow?.setIcon(iconPath);
+    } else if (icon) {
       mainWindow?.setIcon(icon);
     }
     mainWindow?.show();

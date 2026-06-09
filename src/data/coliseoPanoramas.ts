@@ -1,6 +1,6 @@
 import { COLOSSEO_PANORAMA } from "@/data/coliseoScene";
 
-export type ColiseoPanoramaId = "coliseo" | "astronomia" | "biologia" | "concierto";
+export type ColiseoPanoramaId = "coliseo" | "astronomia" | "biologia" | "estadio";
 
 export type ColiseoPanoramaPreset = {
   id: ColiseoPanoramaId;
@@ -24,9 +24,9 @@ export const COLISEO_PANORAMA_PRESETS: ColiseoPanoramaPreset[] = [
       "https://images.unsplash.com/photo-1530026405186-ed1f139313f8?auto=format&fit=crop&w=4096&q=85",
   },
   {
-    id: "concierto",
-    label: "Concierto",
-    panoramaUrl: "/assets/textures/salon/lobby_panorama_4096.jpg",
+    id: "estadio",
+    label: "Estadio",
+    panoramaUrl: "/estadio.jpg",
   },
 ];
 

@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import DocenteContentLibraryPanel from "@/components/docente/DocenteContentLibraryPanel";
+import { copyToClipboard } from "@/lib/copyToClipboard";
 import { onOpCommand } from "@/lib/opCommandBus";
 
 const ONNI_DOCENTE_RETRY_MS = 450;
@@ -406,12 +407,9 @@ export default function DocenteClasesPage() {
 
   const copyClassLink = async (slug: string) => {
     const url = `${window.location.origin}/clase/${slug}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      toast.success("Link de clase copiado.");
-    } catch {
-      toast.error("No se pudo copiar el link.");
-    }
+    const copied = await copyToClipboard(url);
+    if (copied) toast.success("Link de clase copiado.");
+    else toast.error("No se pudo copiar el link.");
   };
 
   const class360Url = (aulaSlug: string, draft: AulaDraft): string => {

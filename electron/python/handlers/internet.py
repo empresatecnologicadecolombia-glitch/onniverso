@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 import urllib.parse
 import urllib.request
@@ -15,36 +16,119 @@ def _fetch_url(url: str, timeout: int = 20) -> bytes:
         return resp.read()
 
 
+def _wiki_summary_for_title(title: str) -> tuple[str, str]:
+    slug = urllib.parse.quote(title.replace(" ", "_"), safe="/")
+    url = f"https://es.wikipedia.org/api/rest_v1/page/summary/{slug}"
+    data = json.loads(_fetch_url(url).decode("utf-8"))
+    resumen = str(data.get("extract") or data.get("description") or "").strip()
+    page_url = str(data.get("content_urls", {}).get("desktop", {}).get("page") or "").strip()
+    return resumen, page_url
+
+
+_WIKI_STOP_WORDS = frozenset(
+    {"las", "los", "la", "el", "un", "una", "de", "del", "en", "y", "que", "sobre", "the", "a", "un", "una"}
+)
+
+
+def _significant_words(tema: str) -> set[str]:
+    return {w for w in re.findall(r"\w{3,}", tema.lower()) if w not in _WIKI_STOP_WORDS}
+
+
+def _wiki_search_titles(tema: str, limit: int = 5) -> list[str]:
+    sig = " ".join(sorted(_significant_words(tema)))
+    queries = [tema]
+    if sig and sig.lower() != tema.lower():
+        queries.append(sig)
+
+    titles: list[str] = []
+    seen: set[str] = set()
+    tema_words = _significant_words(tema)
+
+    for query in queries:
+        encoded = urllib.parse.quote(query)
+        url = (
+            "https://es.wikipedia.org/w/api.php"
+            f"?action=opensearch&search={encoded}&limit={limit}&namespace=0&format=json"
+        )
+        data = json.loads(_fetch_url(url).decode("utf-8"))
+        if isinstance(data, list) and len(data) > 1 and isinstance(data[1], list):
+            for title in data[1]:
+                t = str(title).strip()
+                if t and t not in seen:
+                    seen.add(t)
+                    titles.append(t)
+
+    if tema_words:
+        titles.sort(
+            key=lambda title: len(tema_words & set(re.findall(r"\w{3,}", title.lower()))),
+            reverse=True,
+        )
+    return titles
+
+
+def _duckduckgo_abstract(tema: str) -> tuple[str, str]:
+    query = urllib.parse.quote(tema)
+    url = f"https://api.duckduckgo.com/?q={query}&format=json&no_html=1&skip_disambig=1"
+    data = json.loads(_fetch_url(url).decode("utf-8"))
+    resumen = str(data.get("AbstractText") or "").strip()
+    source_url = str(data.get("AbstractURL") or "").strip()
+    return resumen, source_url
+
+
 def buscar_informacion(params: dict[str, Any]) -> dict[str, Any]:
     tema = str(params.get("tema") or params.get("consulta") or "").strip()
     if not tema:
         return {"ok": False, "accion": "buscar_informacion", "mensaje": "Falta tema"}
-    query = urllib.parse.quote(tema)
-    url = f"https://es.wikipedia.org/api/rest_v1/page/summary/{query}"
-    try:
-        data = _fetch_url(url)
-        import json
 
-        parsed = json.loads(data.decode("utf-8"))
-        resumen = parsed.get("extract") or parsed.get("description") or ""
-        page_url = parsed.get("content_urls", {}).get("desktop", {}).get("page") or ""
-        return {
-            "ok": True,
-            "accion": "buscar_informacion",
-            "tema": tema,
-            "resumen": resumen,
-            "url": page_url,
-            "mensaje": "Información encontrada (Wikipedia)",
-        }
-    except Exception as exc:  # noqa: BLE001
-        return {
-            "ok": True,
-            "accion": "buscar_informacion",
-            "tema": tema,
-            "resumen": "",
-            "url": f"https://www.google.com/search?q={query}",
-            "mensaje": f"Sin resumen automático: {exc}",
-        }
+    query = urllib.parse.quote(tema)
+    google_url = f"https://www.google.com/search?q={query}"
+    resumen = ""
+    page_url = ""
+    fuente = ""
+
+    try:
+        resumen, page_url = _wiki_summary_for_title(tema)
+        if resumen:
+            fuente = "Wikipedia"
+    except Exception:
+        pass
+
+    if not resumen:
+        for title in _wiki_search_titles(tema):
+            try:
+                resumen, page_url = _wiki_summary_for_title(title)
+                if resumen:
+                    fuente = f"Wikipedia ({title})"
+                    break
+            except Exception:
+                continue
+
+    if not resumen:
+        try:
+            resumen, page_url = _duckduckgo_abstract(tema)
+            if resumen:
+                fuente = "DuckDuckGo"
+        except Exception:
+            pass
+
+    if not resumen:
+        resumen = (
+            f"Material de apoyo sobre «{tema}».\n\n"
+            "No se encontró un resumen automático en línea. "
+            "Puedes ampliar este documento con tus apuntes o fuentes del enlace de búsqueda."
+        )
+        page_url = google_url
+        fuente = "búsqueda web"
+
+    return {
+        "ok": True,
+        "accion": "buscar_informacion",
+        "tema": tema,
+        "resumen": resumen,
+        "url": page_url or google_url,
+        "fuente": fuente,
+        "mensaje": f"Información encontrada ({fuente})" if fuente else "Información preparada",
+    }
 
 
 def buscar_pdf_en_internet(params: dict[str, Any]) -> dict[str, Any]:

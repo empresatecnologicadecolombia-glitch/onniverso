@@ -24,8 +24,8 @@
     "desktop:speech-build": "node scripts/build-win-speech.mjs",
     "desktop:whisper-build": "node scripts/setup-whisper.mjs",
     "desktop:dev": "npm run desktop:icon && electron .",
-    "desktop:pack": "npm run desktop:speech-build && npm run desktop:whisper-build && electron-builder --win --dir && node scripts/apply-desktop-icon.mjs",
-    "desktop:dist": "node scripts/apply-desktop-icon.mjs && electron-builder --win nsis portable --prepackaged release/win-unpacked",
+    "desktop:pack": "npm run desktop:speech-build && npm run desktop:whisper-build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win --dir && node scripts/apply-desktop-icon.mjs",
+    "desktop:dist": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false node scripts/apply-desktop-icon.mjs && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win nsis --prepackaged release/win-unpacked",
     "desktop:build": "npm run desktop:icon && npm run desktop:pack && npm run desktop:dist",
     "desktop:python-deps": "pip install -r electron/python/requirements.txt"
   },
@@ -108,6 +108,7 @@
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react-swc": "^4.3.0",
     "autoprefixer": "^10.4.21",
+    "cross-env": "^10.1.0",
     "electron": "^41.3.0",
     "electron-builder": "^26.0.12",
     "eslint": "^9.32.0",
@@ -128,7 +129,7 @@
     "vitest": "^3.2.4"
   },
   "build": {
-    "appId": "com.onnivers.desktop",
+    "appId": "com.empresatecnologica.onnivers",
     "productName": "OnniVers",
     "copyright": "Copyright © Empresa Tecnológica de Colombia",
     "directories": {
@@ -146,16 +147,11 @@
           "arch": [
             "x64"
           ]
-        },
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
         }
       ],
       "icon": "electron/icons/icon.ico",
-      "signAndEditExecutable": false
+      "signAndEditExecutable": false,
+      "forceCodeSigning": false
     },
     "nsis": {
       "oneClick": false,
@@ -175,7 +171,9 @@
       {
         "from": "electron/python",
         "to": "python",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "electron/docente-preview.html",
@@ -184,6 +182,10 @@
       {
         "from": "electron/icons/icon.ico",
         "to": "icon.ico"
+      },
+      {
+        "from": "electron/icons/icon.png",
+        "to": "icon.png"
       },
       {
         "from": "electron/onni-win-speech/publish/onni-win-speech.exe",

@@ -8,6 +8,7 @@ import {
   DOCENTE_PANEL_VIDEOS,
   type DocenteContentTabId,
 } from "@/data/docenteContentCatalog";
+import { copyToClipboard } from "@/lib/copyToClipboard";
 import { toast } from "sonner";
 
 export default function DocenteContentLibraryPanel() {
@@ -16,16 +17,16 @@ export default function DocenteContentLibraryPanel() {
   const copyResourceLink = async (url: string, fieldHint: "video" | "glb") => {
     const link = url.trim();
     if (!link) return;
-    try {
-      await navigator.clipboard.writeText(link);
-      const hint =
-        fieldHint === "glb"
-          ? "Pégalo en el campo GLB de la clase que quieras."
-          : "Pégalo en el campo de video de la clase que quieras.";
-      toast.success(`Enlace copiado. ${hint}`);
-    } catch {
+    const copied = await copyToClipboard(link);
+    if (!copied) {
       toast.error("No se pudo copiar. Copia el enlace manualmente desde el navegador.");
+      return;
     }
+    const hint =
+      fieldHint === "glb"
+        ? "Pégalo en el campo GLB de la clase que quieras."
+        : "Pégalo en el campo de video de la clase que quieras.";
+    toast.success(`Enlace copiado. ${hint}`);
   };
 
   return (

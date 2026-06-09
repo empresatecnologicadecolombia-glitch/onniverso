@@ -16,4 +16,18 @@ describe("matchOnniDesktopIntent", () => {
     expect(job?.tipo).toBe("flujo");
     expect(String(job && "params" in job ? job.params?.tema : "")).toMatch(/c[eé]lul/i);
   });
+
+  it("detecta busca tema y crea pdf", () => {
+    const job = matchOnniDesktopIntent("Busca las células y créame un PDF");
+    expect(job?.tipo).toBe("flujo");
+    expect(job && "flujo" in job && job.flujo).toBe("ejecutar_flujo_buscar_y_pdf");
+    expect(String(job && "params" in job ? job.params?.tema : "")).toMatch(/c[eé]lul/i);
+  });
+
+  it("crear pdf sobre tema usa flujo buscar y pdf", () => {
+    const job = matchOnniDesktopIntent("Créame un PDF sobre fotosíntesis");
+    expect(job?.tipo).toBe("flujo");
+    expect(job && "flujo" in job && job.flujo).toBe("ejecutar_flujo_buscar_y_pdf");
+    expect(String(job && "params" in job ? job.params?.tema : "")).toMatch(/fotos[ií]ntesis/i);
+  });
 });

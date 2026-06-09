@@ -15,6 +15,7 @@ import {
   prepareAnatomiaHumanaColiseoMaterials,
   prepareEarthMoonLobbyColiseoMaterials,
   prepareVolcanColiseoMaterials,
+  VOLCAN_COLISEO_POSITION_OFFSET,
 } from "@/components/immersive/coliseoWallGlbMaterials";
 import type { BuildColiseoWallModelOptions } from "@/components/immersive/coliseoWallGlbNormalize";
 import {
@@ -34,6 +35,15 @@ function getColiseoWallBuildOptions(url: string): BuildColiseoWallModelOptions |
 function getColiseoWallSpinSpeed(url: string): number {
   if (isGeoquimicoGlbUrl(url)) return GEOQUIMICO_COLISEO_SPIN_SPEED;
   return COLISEO_WALL_SPIN_SPEED;
+}
+
+function getColiseoWallGlbPosition(url: string): [number, number, number] {
+  if (!isVolcanGlbUrl(url)) return COLISEO_CATALOG_GLB_OFFSET;
+  return [
+    COLISEO_CATALOG_GLB_OFFSET[0] + VOLCAN_COLISEO_POSITION_OFFSET[0],
+    COLISEO_CATALOG_GLB_OFFSET[1] + VOLCAN_COLISEO_POSITION_OFFSET[1],
+    COLISEO_CATALOG_GLB_OFFSET[2] + VOLCAN_COLISEO_POSITION_OFFSET[2],
+  ];
 }
 
 class GlbErrorBoundary extends Component<{ children: ReactNode; fallback?: ReactNode }, { hasError: boolean }> {
@@ -103,6 +113,7 @@ export function ColiseoWallGlb({
 }) {
   const spinRef = useRef<THREE.Group>(null);
   const spinSpeed = getColiseoWallSpinSpeed(url);
+  const glbPosition = getColiseoWallGlbPosition(url);
 
   useFrame((_, delta) => {
     if (!spin || !spinRef.current) return;
@@ -110,7 +121,7 @@ export function ColiseoWallGlb({
   });
 
   return (
-    <group ref={spinRef} position={COLISEO_CATALOG_GLB_OFFSET}>
+    <group ref={spinRef} position={glbPosition}>
       <GlbErrorBoundary key={url} fallback={null}>
         <Suspense fallback={null}>
           <ColiseoWallGlbModel key={url} url={url} prepareModel={prepareModel} />

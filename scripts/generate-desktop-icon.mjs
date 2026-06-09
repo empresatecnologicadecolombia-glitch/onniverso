@@ -3,7 +3,7 @@ import path from "node:path";
 import pngToIco from "png-to-ico";
 import sharp from "sharp";
 
-const src = path.resolve("public/imagenes/favicon.png");
+const src = path.resolve("public/imagenes/favicon-transparent.png");
 const outDir = path.resolve("electron/icons");
 const outIco = path.join(outDir, "icon.ico");
 const outPng = path.join(outDir, "icon.png");

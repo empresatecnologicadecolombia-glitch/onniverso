@@ -69,5 +69,8 @@ interface Window {
       getBasePath?: () => Promise<string>;
       execute?: (payload: unknown) => Promise<unknown>;
     };
+    clipboard?: {
+      writeText?: (text: string) => Promise<void>;
+    };
   };
 }

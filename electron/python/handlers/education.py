@@ -13,17 +13,23 @@ def generar_guia_estudio(params: dict[str, Any]) -> dict[str, Any]:
 
 
 def generar_resumen(params: dict[str, Any]) -> dict[str, Any]:
-    texto = str(params.get("texto") or params.get("resumen") or "")
+    tema = str(params.get("tema") or "").strip()
+    texto = str(params.get("texto") or params.get("resumen") or "").strip()
     if not texto and params.get("archivo"):
         leido = documents.leer_pdf({"archivo": params["archivo"]})
         if leido.get("ok"):
-            texto = leido.get("texto") or ""
+            texto = str(leido.get("texto") or "").strip()
+    if not texto and tema:
+        texto = f"Resumen sobre {tema} (ampliar con material de clase)."
     if not texto:
         return {"ok": False, "accion": "generar_resumen", "mensaje": "Sin texto para resumir"}
     lineas = [l.strip() for l in texto.splitlines() if l.strip()]
     resumen = "\n".join(lineas[:12])
     if len(lineas) > 12:
         resumen += f"\n\n... ({len(lineas)} líneas en total)"
+    fuente = str(params.get("url") or params.get("fuente") or "").strip()
+    if fuente:
+        resumen += f"\n\nFuente: {fuente}"
     return {
         "ok": True,
         "accion": "generar_resumen",

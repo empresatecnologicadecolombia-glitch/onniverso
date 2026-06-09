@@ -6,6 +6,7 @@ const ELECTRON_AFTER: Record<string, string> = {
   crear_carpeta_clase: "abrir_carpeta",
   organizar_archivos: "abrir_carpeta",
   ejecutar_flujo_preparar_clase: "abrir_ventana_preview",
+  ejecutar_flujo_buscar_y_pdf: "abrir_ventana_preview",
 };
 
 export async function runOnniDesktopJob(job: OnniDesktopJob): Promise<OnniDesktopResult> {

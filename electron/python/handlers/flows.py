@@ -15,7 +15,10 @@ def build_flow(flujo: str, params: dict[str, Any]) -> list[dict[str, Any]] | Non
         pasos: list[dict[str, Any]] = [
             {"accion": "crear_carpeta_clase", "params": {"tema": tema, "grado": grado}},
             {"accion": "buscar_informacion", "params": {"tema": tema}},
-            {"accion": "generar_resumen", "params": {"texto": "{{paso1.resumen}}"}},
+            {
+                "accion": "generar_resumen",
+                "params": {"texto": "{{paso1.resumen}}", "tema": tema, "url": "{{paso1.url}}"},
+            },
             {"accion": "generar_guia_estudio", "params": {"tema": tema, "resumen": "{{paso2.resumen}}"}},
             {"accion": "crear_ppt", "params": {"tema": tema, "titulo": tema}},
         ]
@@ -44,6 +47,23 @@ def build_flow(flujo: str, params: dict[str, Any]) -> list[dict[str, Any]] | Non
             {"accion": "buscar_pdf_en_internet", "params": {"tema": tema}},
             {"accion": "crear_ppt", "params": {"tema": tema}},
             {"accion": "crear_pdf", "params": {"titulo": tema, "contenido": "Material de apoyo"}},
+        ]
+
+    if flujo == "ejecutar_flujo_buscar_y_pdf":
+        return [
+            {"accion": "crear_carpeta_clase", "params": {"tema": tema, "grado": grado}},
+            {"accion": "buscar_informacion", "params": {"tema": tema}},
+            {
+                "accion": "generar_resumen",
+                "params": {"texto": "{{paso1.resumen}}", "tema": tema, "url": "{{paso1.url}}"},
+            },
+            {
+                "accion": "crear_pdf",
+                "params": {
+                    "titulo": f"Resumen {tema}",
+                    "contenido": "{{paso2.resumen}}",
+                },
+            },
         ]
 
     return None
