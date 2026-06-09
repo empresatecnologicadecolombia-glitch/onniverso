@@ -71,6 +71,8 @@ const EARTH_MOON_LOBBY_GLB =
   "https://res.cloudinary.com/dmbpk37l5/image/upload/v1780542025/earth_moon_lobby_daifrb.glb";
 const PIRAMIDE_EGIPTO_GLB =
   "https://res.cloudinary.com/dmbpk37l5/image/upload/v1780971812/piramide_3d_modelo_lmafow.glb";
+const CEREBRO_HUMANO_GLB =
+  "https://res.cloudinary.com/dmbpk37l5/image/upload/v1780973228/cerebro_3d_modelo_qtpeez.glb";
 const ANATOMIA_HUMANA_LOCAL = "assets/models/modello 3d anatomia umana.glb";
 const TIERRA_TEXTURE = publicAssetUrl("assets/textures/earth/earth_day_4096.jpg");
 
@@ -91,6 +93,16 @@ export const DOCENTE_CATALOG_ELEMENTS_3D: DocenteCatalogElement3dItem[] = [
       "Holograma del corazón en la pared del Coliseo. Anatomía cardiovascular para estudiantes en VR o web.",
     resourceUrl: CORAZON_GLB,
     imageUrl: encodeURI(publicAssetUrl("corazon humano.png")),
+    badge: "Elemento 3D",
+  },
+  {
+    id: "cerebro-humano",
+    title: "Cerebro humano",
+    description:
+      "Modelo 3D del cerebro humano para la pared del Coliseo. Ideal para biología, neurociencia y anatomía en clase inmersiva.",
+    resourceUrl: CEREBRO_HUMANO_GLB,
+    imageUrl:
+      "https://images.unsplash.com/photo-1559757175-5700bbe67559?auto=format&fit=crop&w=1200&q=80",
     badge: "Elemento 3D",
   },
   {
