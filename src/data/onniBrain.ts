@@ -15,7 +15,7 @@ export const ONNI_PERSONALITY = {
     "Explica en pasos cuando algo es técnico (Mux, MP4 local, lobby).",
     "Si no sabe ejecutar algo, lo dice sin inventar.",
     "Puede usar: listo, dale, mira, tranquilo — sin pasarse.",
-    "Recuerda que OnniVerso es VR, salas, conciertos y experiencias inmersivas.",
+    "Recuerda que OnniVerso es VR, salas, videos educativos y experiencias inmersivas.",
     "Si el usuario pide una red social, abre exactamente el mismo destino del icono del inicio.",
   ],
 } as const;
@@ -50,16 +50,16 @@ export const ONNI_FAQ: FaqEntry[] = [
       /\b(mux|playback id|sin transmision)\b/,
     ],
     answer:
-      "Si la sala en vivo se ve negra, casi siempre es porque nadie está transmitiendo por Mux en este momento. No es el reproductor MP4 de tu carpeta. Prueba Conciertos Live o vuelve más tarde; el emisor debe iniciar desde la sala emisor.",
+      "Si la sala en vivo se ve negra, casi siempre es porque nadie está transmitiendo por Mux en este momento. No es el reproductor MP4 de tu carpeta. Prueba Videos educativos o vuelve más tarde; el emisor debe iniciar desde la sala emisor.",
   },
   {
     id: "mp4-vs-live",
     patterns: [
       /\b(diferencia|diferencias)\b.*\b(mp4|local|vivo|live)\b/,
-      /\b(mp4|local)\b.*\b(concierto|vivo|live)\b/,
+      /\b(mp4|local)\b.*\b(vivo|live|educativo)\b/,
     ],
     answer:
-      "MP4/local = archivos tuyos en el dispositivo (reproductor de galería). Vivo/Live = salas con stream (Mux/Agora). Si quieres tu película o carpeta: di «reproductor mp4». Si quieres artistas en vivo: «conciertos».",
+      "MP4/local = archivos tuyos en el dispositivo (reproductor de galería). Vivo/Live = salas con stream (Mux/Agora). Si quieres tu película o carpeta: di «reproductor mp4». Si quieres videos educativos: «videos educativos» o «abre un video».",
   },
   {
     id: "que-es-onniverso",
@@ -68,7 +68,7 @@ export const ONNI_FAQ: FaqEntry[] = [
       /\b(que es)\b.*\b(onniverso|onnivers|onni vers|onnivver|onivvers)\b/,
     ],
     answer:
-      "OnniVerso es la plataforma inmersiva de Empresa Tecnológica de Colombia: Mi Mundo, lobbies 3D, Conciertos Live, aula virtual, podcasts, teatro, tienda y comunidad. Tú entras, eliges experiencia y navegas en 360 o salas en vivo.",
+      "OnniVerso es la plataforma inmersiva de Empresa Tecnológica de Colombia: Mi Mundo, lobbies 3D, videos educativos, aula virtual, podcasts, teatro, tienda y comunidad. Tú entras, eliges experiencia y navegas en 360 o salas en vivo.",
   },
   {
     id: "app-android",
@@ -84,7 +84,7 @@ export const ONNI_FAQ: FaqEntry[] = [
     id: "gemini-ia",
     patterns: [/\b(gemini|chatgpt|openai|ia externa|conectad[ao]?\s+a?\s*gemini)\b/],
     answer:
-      "Sí: para preguntas libres uso Google Gemini. Los comandos de la app (lobby, conciertos, menú, ayuda) siguen con reglas rápidas de OnniVerso.",
+      "Sí: para preguntas libres uso Google Gemini. Los comandos de la app (lobby, videos educativos, menú, ayuda) siguen con reglas rápidas de OnniVerso.",
   },
   {
     id: "favorito",
@@ -106,16 +106,16 @@ const PATH_GUIDES: PathGuide[] = [
     test: (p) => p === "/" || p.startsWith("/inicio"),
     title: "Inicio / Mi Mundo",
     tips: ["Aquí está tu perfil VR y acceso rápido a experiencias.", "Abre el menú (☰) para ver todas las secciones."],
-    commands: ["inicio", "lobby", "clase virtual", "llevame a clases", "conciertos", "reproductor mp4", "tienda"],
+    commands: ["inicio", "lobby", "clase virtual", "llevame a clases", "videos educativos", "reproductor mp4", "tienda"],
   },
   {
     test: (p) => p.startsWith("/nuestras-salas"),
-    title: "Conciertos Live",
+    title: "Videos educativos",
     tips: [
-      "Tarjetas de creadores y salas. Toca una para entrar si hay stream.",
-      "Si no hay vivo, la sala puede verse vacía o con mensaje de Mux.",
+      "Tarjetas de videos educativos del menú superior. Toca una para reproducir.",
+      "Algunas salas pueden estar en vivo con stream Mux.",
     ],
-    commands: ["video de Karol", "lobby", "menú"],
+    commands: ["video de Karol", "lobby", "videos educativos", "menú"],
   },
   {
     test: (p) => p.startsWith("/sala/espectador"),
@@ -124,7 +124,7 @@ const PATH_GUIDES: PathGuide[] = [
       "Estás viendo una sala con reproductor Mux.",
       "Pantalla negra = el emisor aún no conectó la transmisión.",
     ],
-    commands: ["salir a conciertos", "reproductor mp4", "lobby", "¿dónde estoy?"],
+    commands: ["salir a videos educativos", "reproductor mp4", "lobby", "¿dónde estoy?"],
   },
   {
     test: (p) => p.startsWith("/lobby-inmersivo"),
@@ -137,9 +137,9 @@ const PATH_GUIDES: PathGuide[] = [
     title: "Reproductor local MP3/MP4",
     tips: [
       "Elige una carpeta de tu dispositivo.",
-      "Esto NO es Conciertos Live: son tus archivos locales.",
+      "Esto NO es Videos educativos: son tus archivos locales.",
     ],
-    commands: ["conciertos", "lobby", "menú"],
+    commands: ["videos educativos", "lobby", "menú"],
   },
   {
     test: (p) => p.startsWith("/aula-virtual"),
@@ -151,7 +151,7 @@ const PATH_GUIDES: PathGuide[] = [
     test: (p) => p.startsWith("/comunidad"),
     title: "Comunidad / Chat",
     tips: ["Mensajes y amigos de la comunidad OnniVerso."],
-    commands: ["inicio", "conciertos", "menú"],
+    commands: ["inicio", "videos educativos", "menú"],
   },
   {
     test: (p) => p.startsWith("/tienda"),
@@ -229,7 +229,7 @@ export function listArtistsSample(limit = 10): string {
 
 export function getLiveHint(): string {
   return sayOnni(
-    "Para ver quién está en vivo, ve a Conciertos Live y busca tarjetas con indicador EN VIVO. Si una sala está negra, el stream aún no empezó. ¿Te llevo a conciertos?",
+    "Para ver quién está en vivo, ve a Videos educativos y busca tarjetas con indicador EN VIVO. Si una sala está negra, el stream aún no empezó. ¿Te llevo a videos educativos?",
   );
 }
 

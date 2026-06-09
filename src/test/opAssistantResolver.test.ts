@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { resolveOpCommand } from "@/lib/opAssistantResolver";
 
 describe("resolveOpCommand", () => {
-  it("abre un video va a conciertos, no a espectador", () => {
+  it("abre un video va a videos educativos, no a espectador", () => {
     const r = resolveOpCommand("abre un video", "/");
     expect(r.navigateTo).toBe("/nuestras-salas");
   });
@@ -132,9 +132,10 @@ describe("resolveOpCommand", () => {
     expect(resolveOpCommand("aula caminable", "/").navigateTo).toBe("/aula-virtual");
   });
 
-  it("video de karol va a sala nova-byte", () => {
-    const r = resolveOpCommand("entra al video de karol", "/");
-    expect(r.navigateTo).toContain("al-universo-nova-byte");
+  it("video de ia y robots va a su sala espectador", () => {
+    const r = resolveOpCommand("entra al video de ia y robots", "/");
+    expect(r.navigateTo).toMatch(/\/sala\/espectador\//);
+    expect(r.navigateTo).toContain("ia-y-robots");
   });
 
   it("detecta falsos positivos en frases comunes", () => {
@@ -160,7 +161,7 @@ describe("resolveOpCommand", () => {
     }
   });
 
-  it("desde espectador, abre un video va a conciertos (no reentrar karol)", () => {
+  it("desde espectador, abre un video va a videos educativos (no reentrar karol)", () => {
     const r = resolveOpCommand("abre un video", "/sala/espectador/al-universo-nova-byte");
     expect(r.navigateTo).toBe("/nuestras-salas");
   });
@@ -170,8 +171,8 @@ describe("resolveOpCommand", () => {
     expect(r.navigateTo).toBe("/reproductor-galeria");
   });
 
-  it("salir de la sala va a conciertos", () => {
-    const r = resolveOpCommand("salir a conciertos", "/sala/espectador/al-universo-nova-byte");
+  it("salir de la sala va a videos educativos", () => {
+    const r = resolveOpCommand("salir a videos educativos", "/sala/espectador/al-universo-nova-byte");
     expect(r.navigateTo).toBe("/nuestras-salas");
   });
 
@@ -197,6 +198,12 @@ describe("resolveOpCommand", () => {
     const r = resolveOpCommand("ayuda", "/");
     expect(r.answer).toMatch(/inicio|mi mundo/i);
     expect(r.answer.toLowerCase()).not.toMatch(/lobby.*conciertos|comandos como/);
+  });
+
+  it("lleva me a videos educativos navega a nuestras-salas", () => {
+    const r = resolveOpCommand("lleva me a videos educativos", "/");
+    expect(r.navigateTo).toBe("/nuestras-salas");
+    expect(r.answer.toLowerCase()).toContain("videos educativos");
   });
 
   it("repite la ultima respuesta", () => {

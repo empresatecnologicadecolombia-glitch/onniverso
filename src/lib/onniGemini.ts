@@ -52,7 +52,7 @@ export function buildOnniGeminiSystemPrompt(contextPath: string): string {
     "No tienes resultados en vivo de partidos deportivos ni noticias del día.",
     ONNI_PERSONALITY.tone,
     "Responde en español, breve (1–2 frases). No inventes URLs.",
-    "NUNCA listes lobby, conciertos, tienda, Coliseo, aulas ni opciones de menú en saludos o respuestas genéricas.",
+    "NUNCA listes lobby, videos educativos, tienda, Coliseo, aulas ni opciones de menú en saludos o respuestas genéricas.",
     "NO cierres invitando a elegir una sección ni con «dime cuál te interesa». Responde solo lo preguntado.",
   ].join(" ");
 }
@@ -64,7 +64,7 @@ export function stripOnniCommandFooter(text: string): string {
     /\n\s*si necesitas explorar[\s\S]*$/i,
     /\n\s*recuerda que tambien puedes[\s\S]*$/i,
     /\n\s*recuerda que también puedes[\s\S]*$/i,
-    /\n\s*[*•-]\s*\*?\*?(lobby|conciertos|ayuda)[\s\S]*$/i,
+    /\n\s*[*•-]\s*\*?\*?(lobby|videos educativos|ayuda)[\s\S]*$/i,
     /\n\s*(para navegar|comandos como|tambien puedes usar)[\s\S]*$/i,
     /\ben onniverso (tenemos|ofrece|cuenta con)[\s\S]*$/i,
     /[\s\S]*\bdime cu[aá]l te interesa\b[\s\S]*$/i,
@@ -72,7 +72,7 @@ export function stripOnniCommandFooter(text: string): string {
   for (const pattern of cutPatterns) {
     out = out.replace(pattern, "").trim();
   }
-  if (!out || /\b(lobby 3d|conciertos en vivo|coliseo 360|aulas virtuales)\b/i.test(out)) {
+  if (!out || /\b(lobby 3d|videos educativos en vivo|coliseo 360|aulas virtuales)\b/i.test(out)) {
     return "¡Hola! Soy Onni, tu copiloto en OnniVerso.";
   }
   return out;

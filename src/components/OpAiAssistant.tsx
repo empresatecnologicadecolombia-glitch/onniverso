@@ -138,7 +138,7 @@ export default function OpAiAssistant() {
   );
   const inputPlaceholder = desktopOfficeMode
     ? getDesktopOfficePlaceholder()
-    : "conciertos, lobby, ayuda o pregunta libre";
+    : "videos educativos, lobby, ayuda o pregunta libre";
   const isColiseoClassScene = location.pathname.startsWith("/coliseo");
   const isAulaVirtualScene = location.pathname === "/aula-virtual";
   const shiftOnniRight = isColiseoClassScene || isAulaVirtualScene;

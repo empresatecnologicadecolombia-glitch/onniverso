@@ -508,11 +508,11 @@ function matchExitEspectador(text: string, currentPath: string): OpResolveResult
   if (!currentPath.startsWith("/sala/espectador/")) return null;
   if (!/\b(salir|sal|volver|atras|ir a|llevame|lleva)\b/.test(text)) return null;
   if (/\b(sala|espectador|vivo|live)\b/.test(text) || isGenericVideoIntent(text)) {
-    const conciertos = OP_ROUTES.find((r) => r.id === "conciertos");
-    if (conciertos) {
+    const videosEducativos = OP_ROUTES.find((r) => r.id === "videos-educativos");
+    if (videosEducativos) {
       return {
-        navigateTo: conciertos.path,
-        answer: sayOnni("Salimos de esta sala y vamos a Conciertos Live."),
+        navigateTo: videosEducativos.path,
+        answer: sayOnni("Salimos de esta sala y vamos a Videos educativos."),
       };
     }
   }
@@ -538,7 +538,7 @@ function matchLocalReproductor(text: string): OpResolveResult | null {
   const hit = findLongestAliasMatch(text, [route]);
   if (!hit && !explicitLocal) return null;
 
-  if (/\b(concierto|conciertos|live|en vivo|espectador|sala de|artista)\b/.test(text) && !/\b(local|mp4|mp3|reproductor|carpeta)\b/.test(text)) {
+  if (/\b(videos educativos|en vivo|espectador|sala de|artista)\b/.test(text) && !/\b(local|mp4|mp3|reproductor|carpeta)\b/.test(text)) {
     return null;
   }
 
@@ -552,7 +552,7 @@ function matchLocalReproductor(text: string): OpResolveResult | null {
   return null;
 }
 
-function matchGenericVideoToConciertos(text: string): OpResolveResult | null {
+function matchGenericVideoToEducationalVideos(text: string): OpResolveResult | null {
   if (/\b(mp4|mp3|local|locales|reproductor|carpeta|archivos)\b/.test(text)) return null;
 
   const wantsVideo = /\b(video|videos)\b/.test(text);
@@ -565,12 +565,12 @@ function matchGenericVideoToConciertos(text: string): OpResolveResult | null {
   if (!hasNavIntent) return null;
   if (findLongestAliasMatch(text, OP_STREAMERS)) return null;
 
-  const conciertos = OP_ROUTES.find((r) => r.id === "conciertos");
-  if (!conciertos) return null;
+  const videosEducativos = OP_ROUTES.find((r) => r.id === "videos-educativos");
+  if (!videosEducativos) return null;
 
   return {
-    navigateTo: conciertos.path,
-    answer: sayOnni("Te llevo a Conciertos Live para elegir sala o video en vivo."),
+    navigateTo: videosEducativos.path,
+    answer: sayOnni("Te llevo a Videos educativos para elegir un video."),
   };
 }
 
@@ -581,7 +581,7 @@ function matchStreamer(text: string): OpResolveResult | null {
   const wantsPodcast = /\b(podcast|lounge|esferico|esfera)\b/.test(text);
   const wantsTeatro = /\b(teatro|standup|stand up|comedia)\b/.test(text);
   const wantsVideo =
-    /\b(video|videos|vivo|live|stream|sala|concierto|espectador|mirar|escuchar)\b/.test(text) ||
+    /\b(video|videos|vivo|live|stream|sala|espectador|mirar|escuchar)\b/.test(text) ||
     /\b(entra|entrar|abre|abrir|ver)\b/.test(text);
   const namesArtistOnly =
     !wantsVideo && !wantsPodcast && !wantsTeatro && hasNamedStreamerIntent(text, hit.alias);
@@ -815,14 +815,14 @@ function avoidEspectadorLoop(result: OpResolveResult, text: string, currentPath:
   const local = matchLocalReproductor(text);
   if (local) return local;
 
-  const conciertos = matchGenericVideoToConciertos(text);
-  if (conciertos) return conciertos;
+  const videosEducativos = matchGenericVideoToEducationalVideos(text);
+  if (videosEducativos) return videosEducativos;
 
-  const route = OP_ROUTES.find((r) => r.id === "conciertos");
+  const route = OP_ROUTES.find((r) => r.id === "videos-educativos");
   return {
     navigateTo: route?.path ?? "/nuestras-salas",
     answer: sayOnni(
-      "Eso suena a video en general — te mando a Conciertos Live. Para MP4 de tu carpeta di «reproductor mp4».",
+      "Eso suena a video en general — te mando a Videos educativos. Para MP4 de tu carpeta di «reproductor mp4».",
     ),
   };
 }
@@ -932,7 +932,7 @@ export function resolveOpCommand(
   const localPlayer = matchLocalReproductor(text);
   if (localPlayer) return avoidEspectadorLoop(localPlayer, text, currentPath);
 
-  const genericVideo = matchGenericVideoToConciertos(text);
+  const genericVideo = matchGenericVideoToEducationalVideos(text);
   if (genericVideo) return avoidEspectadorLoop(genericVideo, text, currentPath);
 
   const quick = matchQuickActions(text);
@@ -976,7 +976,7 @@ export function getOpAssistantHint(currentPath: string, desktopOfficeMode = fals
     return 'Di: "pantalla 3", "cambia el video a Daddy Yankee", "giroscopio".';
   }
   if (currentPath.startsWith("/sala/espectador")) {
-    return 'Di: "salir a conciertos", "reproductor mp4", "¿qué es esto?".';
+    return 'Di: "salir a videos educativos", "reproductor mp4", "¿qué es esto?".';
   }
   if (currentPath === DOCENTE_PANEL_PATH) {
     return 'Di: "iniciar clase", "entrar a clase", "finalizar clase".';

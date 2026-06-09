@@ -13,7 +13,7 @@ export type OpRouteEntry = {
   requiresAuth?: boolean;
 };
 
-/** Artista / sala en Conciertos Live o Podcast. */
+/** Artista / sala en Videos educativos o Podcast. */
 export type OpStreamerEntry = {
   id: string;
   name: string;
@@ -86,18 +86,17 @@ export const OP_ROUTES: OpRouteEntry[] = [
     aliases: ["onniverso", "landing", "presentacion", "pagina principal publica"],
   },
   {
-    id: "conciertos",
+    id: "videos-educativos",
     path: "/nuestras-salas",
-    label: "Conciertos Live",
-    description: "Cuadrícula de salas de creadores en vivo.",
+    label: "Videos educativos",
+    description: "Sección del menú superior con tarjetas de videos educativos para reproducir.",
     aliases: [
-      "conciertos",
-      "concierto",
-      "conciertos live",
+      "videos educativos",
+      "video educativo",
+      "videos educativo",
       "nuestras salas",
+      "nuestras-salas",
       "salas",
-      "live",
-      "creadores",
       "video",
       "videos",
       "ver video",
@@ -106,23 +105,8 @@ export const OP_ROUTES: OpRouteEntry[] = [
       "abrir videos",
       "abre video",
       "abre videos",
+      "educativos",
     ],
-    requiresAuth: true,
-  },
-  {
-    id: "conciertos-config",
-    path: "/conciertos-live/config",
-    label: "Configurar concierto",
-    description: "Configuración de sala premium / stream.",
-    aliases: ["configurar concierto", "config concierto", "premium conciertos"],
-    requiresAuth: true,
-  },
-  {
-    id: "conciertos-emitir",
-    path: "/conciertos-live/emitir",
-    label: "Emitir concierto",
-    description: "Panel para emitir en Conciertos Live.",
-    aliases: ["emitir concierto", "emitir live", "transmitir concierto"],
     requiresAuth: true,
   },
   {
@@ -222,7 +206,7 @@ export const OP_ROUTES: OpRouteEntry[] = [
     path: "/reproductor-galeria",
     label: "Reproductor de galería (MP3/MP4 local)",
     description:
-      "Reproductor local: eliges una carpeta en tu dispositivo y reproduces MP3 o MP4 (play, pausa, siguiente). No es Conciertos Live ni salas en vivo.",
+      "Reproductor local: eliges una carpeta en tu dispositivo y reproduces MP3 o MP4 (play, pausa, siguiente). No es Videos educativos ni salas en vivo.",
     aliases: [
       "reproductor",
       "reproductor local",
@@ -414,9 +398,9 @@ export const OP_LOBBY_HINTS = [
 /** Resumen corto para “¿qué puedes hacer?”. */
 export function getOpAssistantHelpText(): string {
   const sections = [
-    "Navegación: inicio, conciertos, aula, lobby, tienda, comunidad, galería 3D, podcast, teatro…",
+    "Navegación: inicio, videos educativos, aula, lobby, tienda, comunidad, galería 3D, podcast, teatro…",
     "Redes desde inicio: “abre YouTube/Facebook/Instagram/TikTok/Google” (igual que el icono).",
-    "Videos en vivo: “abre un video” → Conciertos Live; “video de Karol” → sala del artista.",
+    "Videos: “abre un video” → Videos educativos; “video de Karol” → sala del artista.",
     "MP4/MP3 local: “reproductor local”, “abre mp4”, “video local” → Reproductor de galería.",
     "Menú: “abre el menú”, “cierra el menú”.",
     "En lobby inmersivo: “pantalla 1”, “giroscopio”, “recentrar”.",

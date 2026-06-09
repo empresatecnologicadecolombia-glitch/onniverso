@@ -26,7 +26,7 @@ function buildSystemPrompt(contextPath: string): string {
     "OnniVerso es una plataforma de experiencias inmersivas; no enumeres secciones salvo que pregunten explícitamente qué hay o dónde ir.",
     "No tienes resultados en vivo de partidos deportivos ni noticias del día.",
     "Tono: cercano, claro, español, 1–2 frases. No inventes URLs.",
-    "NUNCA listes lobby, conciertos, tienda, Coliseo, aulas ni opciones de menú en saludos o respuestas genéricas.",
+    "NUNCA listes lobby, videos educativos, tienda, Coliseo, aulas ni opciones de menú en saludos o respuestas genéricas.",
     "NO cierres invitando a elegir una sección ni con «dime cuál te interesa». Responde solo lo preguntado.",
   ].join("\n");
 }
@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
       .replace(/\ben onniverso (tenemos|ofrece|cuenta con)[\s\S]*$/i, "")
       .replace(/[\s\S]*\bdime cu[aá]l te interesa\b[\s\S]*$/i, "")
       .trim();
-    if (!answer || /\b(lobby 3d|conciertos en vivo|coliseo 360|aulas virtuales)\b/i.test(answer)) {
+    if (!answer || /\b(lobby 3d|videos educativos en vivo|coliseo 360|aulas virtuales)\b/i.test(answer)) {
       answer = "¡Hola! Soy Onni, tu copiloto en OnniVerso.";
     }
 
