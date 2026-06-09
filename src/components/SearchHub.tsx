@@ -55,6 +55,12 @@ const SALA_CONTENT_INDEX: SalaContentItem[] = [
     tags: ["#IA", "#ChatGPT", "#Programación"],
     mp4Url: SALA_MP4_URL_BY_ID["programar-chatgpt"],
   },
+  {
+    id: "ingeniero-software",
+    title: "Lo que debes aprender para ser ingeniero de software",
+    tags: ["#Software", "#Programación", "#Educación"],
+    mp4Url: SALA_MP4_URL_BY_ID["ingeniero-software"],
+  },
 ];
 
 const SearchHub = ({ currentUserId }: SearchHubProps) => {

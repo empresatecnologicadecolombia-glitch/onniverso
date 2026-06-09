@@ -117,6 +117,24 @@ export const podcastStreamers: StreamerProfile[] = [
     ticketVip: 0,
     featuredGames: ["Code Lab VR", "Fan Zone", "Creator Chat"],
   },
+  {
+    id: "ingeniero-software",
+    name: "Lo que debes aprender para ser ingeniero de software",
+    avatar: cloudinaryVideoPosterUrl(SALA_MP4_URL_BY_ID["ingeniero-software"]),
+    immersiveSalaName: "Programación e IA",
+    panoramaImage:
+      "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=4096&q=85",
+    status: "live",
+    streamType: "platform",
+    salaVideoUrl: SALA_MP4_URL_BY_ID["ingeniero-software"],
+    fallbackVideoId: "M7lc1UVf-VE",
+    loungeTitle: "Lo que debes aprender para ser ingeniero de software",
+    loungeDescription:
+      "Esto es lo que debes estudiar para volverte un ingeniero de software.",
+    ticketGrada: 0,
+    ticketVip: 0,
+    featuredGames: ["Dev Path VR", "Fan Zone", "Creator Chat"],
+  },
 ];
 
 export function resolvePodcastVideoId(s: StreamerProfile): string {
