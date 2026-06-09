@@ -61,6 +61,12 @@ const SALA_CONTENT_INDEX: SalaContentItem[] = [
     tags: ["#Software", "#Programación", "#Educación"],
     mp4Url: SALA_MP4_URL_BY_ID["ingeniero-software"],
   },
+  {
+    id: "usar-gemini-ia",
+    title: "Como usar GEMINI IA",
+    tags: ["#IA", "#Gemini", "#Google"],
+    mp4Url: SALA_MP4_URL_BY_ID["usar-gemini-ia"],
+  },
 ];
 
 const SearchHub = ({ currentUserId }: SearchHubProps) => {

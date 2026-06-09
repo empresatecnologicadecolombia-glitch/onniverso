@@ -135,6 +135,24 @@ export const podcastStreamers: StreamerProfile[] = [
     ticketVip: 0,
     featuredGames: ["Dev Path VR", "Fan Zone", "Creator Chat"],
   },
+  {
+    id: "usar-gemini-ia",
+    name: "Como usar GEMINI IA",
+    avatar: cloudinaryVideoPosterUrl(SALA_MP4_URL_BY_ID["usar-gemini-ia"]),
+    immersiveSalaName: "Programación e IA",
+    panoramaImage:
+      "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=4096&q=85",
+    status: "live",
+    streamType: "platform",
+    salaVideoUrl: SALA_MP4_URL_BY_ID["usar-gemini-ia"],
+    fallbackVideoId: "M7lc1UVf-VE",
+    loungeTitle: "Como usar GEMINI IA",
+    loungeDescription:
+      "Cómo usar Gemini AI de Google: tutorial completo.",
+    ticketGrada: 0,
+    ticketVip: 0,
+    featuredGames: ["AI Lab VR", "Fan Zone", "Creator Chat"],
+  },
 ];
 
 export function resolvePodcastVideoId(s: StreamerProfile): string {

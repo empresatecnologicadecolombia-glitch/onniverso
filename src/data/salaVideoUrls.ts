@@ -20,6 +20,9 @@ const PROGRAMAR_CHATGPT_MP4 =
 const INGENIERO_SOFTWARE_MP4 =
   "https://res.cloudinary.com/dmbpk37l5/video/upload/v1780848924/Esto_es_lo_que_debes_estudiar_para_volverte_un_Ingeniero_de_Software_oth404.mp4";
 
+const USAR_GEMINI_IA_MP4 =
+  "https://res.cloudinary.com/dmbpk37l5/video/upload/v1780848858/C%C3%B3mo_Usar_Gemini_AI_de_Google___Tutorial_completo_2024_bu90a0.mp4";
+
 export const SALA_MP4_URL_BY_ID: Record<string, string> = {
   "nova-byte": ECONOMIA_IA_MP4,
   "luisito-comunica-er": IA_TRANSFORMARA_ECONOMIA_MP4,
@@ -27,6 +30,7 @@ export const SALA_MP4_URL_BY_ID: Record<string, string> = {
   "gopro-gpy": PROGRAMAR_IA_MP4,
   "programar-chatgpt": PROGRAMAR_CHATGPT_MP4,
   "ingeniero-software": INGENIERO_SOFTWARE_MP4,
+  "usar-gemini-ia": USAR_GEMINI_IA_MP4,
 };
 
 export function onniverseDeepLink(mp4Url: string): string {
