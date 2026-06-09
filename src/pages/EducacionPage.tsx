@@ -1,10 +1,8 @@
 import { useEffect } from "react";
-import { GraduationCap, School } from "lucide-react";
+import { GraduationCap } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import SectionHeader from "@/components/salas/SectionHeader";
-import Galeria3DModelsGrid from "@/components/galeria3d/Galeria3DModelsGrid";
 import EducationSection from "@/components/EducationSection";
 import BackToProfileHomeButton from "@/components/BackToProfileHomeButton";
 import { Button } from "@/components/ui/button";
@@ -24,7 +22,7 @@ const EducacionPage = () => {
 
   return (
     <div
-      className="relative min-h-screen w-full max-w-full overflow-x-clip overflow-y-auto bg-background"
+      className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto bg-background"
       data-camera-page-root
     >
       {aulaCardDialog}
@@ -42,25 +40,19 @@ const EducacionPage = () => {
         />
       </div>
 
-      <main className="relative z-20 px-6 pt-20 pb-20">
-        <div className="container mx-auto max-w-6xl">
-          <div className="mb-6">
-            <BackToProfileHomeButton />
-          </div>
-
+      <main className="relative z-20 box-border w-full max-w-full px-4 pt-16 pb-20 sm:px-6">
+        <div className="mx-auto box-border w-full max-w-6xl">
           <section id="educacion-contenido" className="scroll-mt-24">
-            <SectionHeader
-              badge="Educación"
-              icon={School}
-              title="CONTENIDO"
-              highlight="EDUCATIVO"
-              subtitle="Lobby 3D caminable, cursos y modelos interactivos: abecedario, dinosaurios, Tierra, anatomía y más."
-              accent="border-amber-400/40 bg-amber-500/10 text-amber-100"
-            />
+            <div className="mb-10 overflow-hidden rounded-2xl border border-primary/20 bg-card/30 backdrop-blur-sm">
+              <div className="border-b border-primary/10 px-4 py-3 sm:px-6">
+                <BackToProfileHomeButton className="mx-auto w-full max-w-xs sm:mx-0 sm:max-w-none sm:w-auto" />
+              </div>
+              <EducationSection />
+            </div>
 
             <article
               id={EDUCACION_LOBBY_CARD_HASH}
-              className="mb-10 scroll-mt-28 overflow-hidden rounded-2xl border border-amber-400/35 bg-gradient-to-br from-amber-500/10 via-card/50 to-cyan-500/10 p-5 backdrop-blur-xl sm:p-6"
+              className="mt-10 scroll-mt-28 overflow-hidden rounded-2xl border border-amber-400/35 bg-gradient-to-br from-amber-500/10 via-card/50 to-cyan-500/10 p-5 backdrop-blur-xl sm:p-6"
             >
               <div className="flex flex-col gap-5 lg:flex-row lg:items-center">
                 <div className="relative h-44 shrink-0 overflow-hidden rounded-xl border border-white/10 sm:h-48 lg:w-72">
@@ -101,12 +93,6 @@ const EducacionPage = () => {
                 </div>
               </div>
             </article>
-
-            <div className="mb-10 overflow-hidden rounded-2xl border border-primary/20 bg-card/30 backdrop-blur-sm">
-              <EducationSection />
-            </div>
-
-            <Galeria3DModelsGrid />
           </section>
         </div>
       </main>

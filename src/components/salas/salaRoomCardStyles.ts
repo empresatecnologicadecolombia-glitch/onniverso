@@ -4,6 +4,12 @@ export const salaRoomGridClass = "grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-col
 
 export const salaRoomGrid3ColClass = "grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3";
 
+/** Grid Educación: 5 categorías en desktop; mismas reglas anti-desborde que Videos educativos. */
+export const educacionCategoryGridClass =
+  "grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 xl:grid-cols-5 box-border w-full min-w-0 [&>*]:min-w-0";
+
+export const educacionGridCellClass = "w-full min-w-0 text-left";
+
 export const salaRoomCardPadding = "p-4 sm:p-5";
 
 export const salaRoomImageHeight = "h-[8.8rem] sm:h-44";

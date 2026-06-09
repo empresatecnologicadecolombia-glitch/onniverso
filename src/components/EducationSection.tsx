@@ -1,8 +1,17 @@
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Card, CardContent } from "@/components/ui/card";
 import { Activity, ArrowLeft, Brain, BriefcaseBusiness, Languages, Sparkles, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  educacionCategoryGridClass,
+  educacionGridCellClass,
+  salaRoomCardPadding,
+  salaRoomDesc,
+  salaRoomGridClass,
+  salaRoomImageHeight,
+  salaRoomImageWrapMb,
+  salaRoomTitle,
+} from "@/components/salas/salaRoomCardStyles";
 import { EDU_COURSES_USD_MAX, EDU_COURSES_USD_MIN, formatUsd, stableUsdInRange } from "@/lib/pricing";
 
 type CategoryId = "tecnologia" | "idiomas" | "negocios" | "bienestar" | "clases-privadas";
@@ -145,11 +154,11 @@ const EducationSection = () => {
   const compactCoursesView = selectedTrack?.id === "bienestar" || selectedTrack?.id === "clases-privadas";
 
   return (
-    <section id="educacion" className="relative py-24 px-6 overflow-hidden">
+    <section id="educacion" className="relative overflow-hidden px-4 pb-12 pt-4 sm:px-6 sm:pb-14 sm:pt-5">
       <div className="absolute inset-0 bg-gradient-to-b from-background via-primary/5 to-background" />
       <div className="absolute -top-20 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
 
-      <div className="container mx-auto max-w-6xl relative z-10">
+      <div className="relative z-10 box-border w-full min-w-0">
         <AnimatePresence mode="wait">
           {selectedTrack ? (
             <motion.div
@@ -173,39 +182,42 @@ const EducationSection = () => {
               </div>
 
               <div
-                className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 ${
-                  compactCoursesView ? "xl:grid-cols-5 2xl:grid-cols-6" : "xl:grid-cols-5"
-                } gap-4`}
+                className={`${salaRoomGridClass} ${
+                  compactCoursesView ? "lg:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6" : "lg:grid-cols-3 xl:grid-cols-5"
+                }`}
               >
                 {selectedTrack.courses.map((course, index) => (
                   <motion.div
                     key={course.title}
+                    className={educacionGridCellClass}
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.04 }}
                   >
-                    <Card className="h-full border border-primary/35 bg-card/55 backdrop-blur-md overflow-hidden transition-all duration-300 hover:border-primary/60 hover:shadow-[0_0_30px_-10px_hsl(var(--primary)/0.9)]">
-                      <div className={`relative ${compactCoursesView ? "h-24" : "h-28"} overflow-hidden`}>
+                    <article className="box-border h-full w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-primary/35 bg-card/55 backdrop-blur-md transition-all duration-300 hover:border-primary/60 hover:shadow-[0_0_30px_-10px_hsl(var(--primary)/0.9)]">
+                      <div className={`relative overflow-hidden rounded-xl border border-primary/20 ${salaRoomImageWrapMb}`}>
                         <img
                           src={course.image}
                           alt={course.title}
-                          className="h-full w-full object-cover"
+                          className={`${salaRoomImageHeight} w-full object-cover`}
                           loading="lazy"
                           width={400}
                           height={240}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-card via-card/25 to-transparent" />
                       </div>
-                      <CardContent className="p-4">
-                        <h4 className="font-display text-sm font-semibold text-foreground">{course.title}</h4>
-                        <p className="mt-1 text-xs text-muted-foreground min-h-10">{course.description}</p>
-                        <p className="mt-2 text-[11px] text-primary font-display">Duración: {course.duration}</p>
+                      <div className={salaRoomCardPadding}>
+                        <h4 className={`${salaRoomTitle} line-clamp-2`}>{course.title}</h4>
+                        <p className={`mt-1 ${salaRoomDesc} line-clamp-3`}>{course.description}</p>
+                        <p className="mt-2 text-[10px] text-primary font-display sm:text-[11px]">
+                          Duración: {course.duration}
+                        </p>
                         {course.detail && (
-                          <p className="mt-1 text-[11px] text-muted-foreground">{course.detail}</p>
+                          <p className="mt-1 text-[10px] text-muted-foreground sm:text-[11px]">{course.detail}</p>
                         )}
                         <div className="mt-2 flex items-center justify-between gap-2">
                           <span
-                            className={`rounded-full px-2 py-1 text-[10px] font-display font-bold tracking-wide ${
+                            className={`rounded-full px-2 py-0.5 text-[8px] font-display font-bold tracking-wide sm:text-[10px] ${
                               course.price === "GRATIS" || course.price === "Prueba Gratuita"
                                 ? "border border-emerald-300/45 bg-emerald-400/15 text-emerald-300"
                                 : "border border-primary/40 bg-primary/10 text-primary"
@@ -213,12 +225,12 @@ const EducationSection = () => {
                           >
                             {displayCoursePrice(course)}
                           </span>
-                          <Button size="sm" variant="heroOutline" className="h-7 px-2.5 text-[11px]">
+                          <Button size="sm" variant="heroOutline" className="h-7 px-2 text-[10px] sm:text-[11px]">
                             {course.actionLabel}
                           </Button>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </article>
                   </motion.div>
                 ))}
               </div>
@@ -235,13 +247,13 @@ const EducationSection = () => {
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                className="text-center mb-14"
+                className="text-center mb-8"
               >
                 <span className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-2 text-xs font-display font-semibold tracking-wider text-primary">
                   <Sparkles className="h-3.5 w-3.5" />
                   FORMACIÓN TÉCNICA EN EL UNIVERSO
                 </span>
-                <h2 className="mt-6 text-4xl md:text-5xl font-display font-bold text-foreground">
+                <h2 className="mt-4 text-4xl md:text-5xl font-display font-bold text-foreground">
                   Educación <span className="text-primary">Inmersiva</span>
                 </h2>
                 <p className="mt-4 text-muted-foreground text-lg max-w-2xl mx-auto">
@@ -250,7 +262,7 @@ const EducationSection = () => {
                 </p>
               </motion.div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-6">
+              <div className={educacionCategoryGridClass}>
                 {learningTracks.map((track, index) => (
                   <motion.button
                     key={track.title}
@@ -260,14 +272,14 @@ const EducationSection = () => {
                     viewport={{ once: true }}
                     transition={{ delay: index * 0.12 }}
                     onClick={() => setActiveCategory(track.id)}
-                    className="text-left"
+                    className={educacionGridCellClass}
                   >
-                    <Card className="h-full border border-primary/30 bg-card/50 backdrop-blur-md overflow-hidden group transition-all duration-300 hover:border-primary/60 hover:shadow-[0_0_35px_-12px_hsl(var(--primary)/0.8)]">
-                      <div className="relative h-40 overflow-hidden">
+                    <article className="group box-border h-full w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-primary/30 bg-card/50 backdrop-blur-md transition-all duration-300 hover:border-primary/60 hover:shadow-[0_0_35px_-12px_hsl(var(--primary)/0.8)]">
+                      <div className={`relative overflow-hidden rounded-xl border border-primary/20 ${salaRoomImageWrapMb}`}>
                         <img
                           src={track.image}
                           alt={`${track.title} — ruta de formación inmersiva OnniVers`}
-                          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                          className={`${salaRoomImageHeight} w-full object-cover transition-transform duration-700 sm:group-hover:scale-105`}
                           loading="lazy"
                           width={600}
                           height={320}
@@ -275,22 +287,22 @@ const EducationSection = () => {
                         <div className="absolute inset-0 bg-gradient-to-t from-card via-card/20 to-transparent" />
                       </div>
 
-                      <CardContent className="p-6">
-                        <div className="flex items-center gap-3 mb-3">
-                          <track.icon className="h-5 w-5 text-primary" />
-                          <h3 className="font-display text-xl font-semibold text-foreground">{track.title}</h3>
+                      <div className={salaRoomCardPadding}>
+                        <div className="mb-2 flex items-center gap-2">
+                          <track.icon className="h-4 w-4 shrink-0 text-primary sm:h-5 sm:w-5" />
+                          <h3 className={`${salaRoomTitle} line-clamp-2`}>{track.title}</h3>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-5">{track.subtitle}</p>
+                        <p className={`${salaRoomDesc} mb-3 line-clamp-3 sm:mb-4`}>{track.subtitle}</p>
                         <div className="flex flex-wrap gap-2">
-                          <span className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-display tracking-wide text-primary">
+                          <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[8px] font-display tracking-wide text-primary sm:px-3 sm:py-1 sm:text-xs">
                             10 cursos
                           </span>
-                          <span className="rounded-full border border-border/40 bg-background/50 px-3 py-1 text-xs font-display tracking-wide text-muted-foreground">
+                          <span className="rounded-full border border-border/40 bg-background/50 px-2 py-0.5 text-[8px] font-display tracking-wide text-muted-foreground sm:px-3 sm:py-1 sm:text-xs">
                             Haz clic para explorar
                           </span>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </article>
                   </motion.button>
                 ))}
               </div>
