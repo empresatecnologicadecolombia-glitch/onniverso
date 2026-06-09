@@ -171,6 +171,24 @@ export const podcastStreamers: StreamerProfile[] = [
     ticketVip: 0,
     featuredGames: ["Code Lab VR", "Fan Zone", "Creator Chat"],
   },
+  {
+    id: "crear-agente-ia",
+    name: "Como crear agente IA",
+    avatar: cloudinaryVideoPosterUrl(SALA_MP4_URL_BY_ID["crear-agente-ia"], 8),
+    immersiveSalaName: "Programación e IA",
+    panoramaImage:
+      "https://images.unsplash.com/photo-1676299085922-048a8e8c8b8d?auto=format&fit=crop&w=4096&q=85",
+    status: "live",
+    streamType: "platform",
+    salaVideoUrl: SALA_MP4_URL_BY_ID["crear-agente-ia"],
+    fallbackVideoId: "M7lc1UVf-VE",
+    loungeTitle: "Como crear agente IA",
+    loungeDescription:
+      "Cómo crear un agente de IA autónomo sin código, paso a paso.",
+    ticketGrada: 0,
+    ticketVip: 0,
+    featuredGames: ["AI Agent VR", "Fan Zone", "Creator Chat"],
+  },
 ];
 
 export function resolvePodcastVideoId(s: StreamerProfile): string {

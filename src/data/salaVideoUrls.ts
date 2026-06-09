@@ -26,6 +26,9 @@ const USAR_GEMINI_IA_MP4 =
 const PROGRAMAR_CURSOR_MP4 =
   "https://res.cloudinary.com/dmbpk37l5/video/upload/v1780848554/As%C3%AD_Creo_una_Web_con_Cursor_Editor_con_IA_Caso_Real_emhv6v.mp4";
 
+const CREAR_AGENTE_IA_MP4 =
+  "https://res.cloudinary.com/dmbpk37l5/video/upload/v1780848842/Como_Crear_un_Agente_de_IA_Aut%C3%B3nomo_Sin_C%C3%B3digo_-_PASO_A_PASO_f3eopn.mp4";
+
 export const SALA_MP4_URL_BY_ID: Record<string, string> = {
   "nova-byte": ECONOMIA_IA_MP4,
   "luisito-comunica-er": IA_TRANSFORMARA_ECONOMIA_MP4,
@@ -35,6 +38,7 @@ export const SALA_MP4_URL_BY_ID: Record<string, string> = {
   "ingeniero-software": INGENIERO_SOFTWARE_MP4,
   "usar-gemini-ia": USAR_GEMINI_IA_MP4,
   "programar-cursor": PROGRAMAR_CURSOR_MP4,
+  "crear-agente-ia": CREAR_AGENTE_IA_MP4,
 };
 
 export function onniverseDeepLink(mp4Url: string): string {

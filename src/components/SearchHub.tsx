@@ -73,6 +73,12 @@ const SALA_CONTENT_INDEX: SalaContentItem[] = [
     tags: ["#IA", "#Cursor", "#Programación"],
     mp4Url: SALA_MP4_URL_BY_ID["programar-cursor"],
   },
+  {
+    id: "crear-agente-ia",
+    title: "Como crear agente IA",
+    tags: ["#IA", "#Agentes", "#NoCode"],
+    mp4Url: SALA_MP4_URL_BY_ID["crear-agente-ia"],
+  },
 ];
 
 const SearchHub = ({ currentUserId }: SearchHubProps) => {
