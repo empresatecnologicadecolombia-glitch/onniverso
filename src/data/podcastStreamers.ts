@@ -156,7 +156,7 @@ export const podcastStreamers: StreamerProfile[] = [
   {
     id: "programar-cursor",
     name: "Como programar con CURSOR",
-    avatar: cloudinaryVideoPosterUrl(SALA_MP4_URL_BY_ID["programar-cursor"]),
+    avatar: cloudinaryVideoPosterUrl(SALA_MP4_URL_BY_ID["programar-cursor"], 12),
     immersiveSalaName: "Programación e IA",
     panoramaImage:
       "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=4096&q=85",

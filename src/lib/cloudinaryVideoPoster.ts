@@ -2,8 +2,8 @@ import { publicAssetUrl } from "@/lib/publicAssetUrl";
 
 const FALLBACK_POSTER = publicAssetUrl("educacion-inmersiva.jpeg");
 
-/** Primer fotograma de un MP4 en Cloudinary como imagen de tarjeta. */
-export function cloudinaryVideoPosterUrl(videoUrl: string): string {
+/** Fotograma de un MP4 en Cloudinary como imagen de tarjeta (`startOffset` en segundos). */
+export function cloudinaryVideoPosterUrl(videoUrl: string, startOffset = 0): string {
   const raw = videoUrl.trim();
   if (!raw) return FALLBACK_POSTER;
   try {
@@ -12,7 +12,8 @@ export function cloudinaryVideoPosterUrl(videoUrl: string): string {
       return FALLBACK_POSTER;
     }
     if (raw.includes("/upload/so_")) return raw.replace(/\.mp4(\?.*)?$/i, ".jpg$1");
-    const withFrame = raw.replace("/upload/", "/upload/so_0/");
+    const safeOffset = Math.max(0, Math.round(startOffset));
+    const withFrame = raw.replace("/upload/", `/upload/so_${safeOffset}/`);
     return withFrame.replace(/\.mp4(\?.*)?$/i, ".jpg$1");
   } catch {
     return FALLBACK_POSTER;
