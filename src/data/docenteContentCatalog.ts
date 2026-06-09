@@ -79,15 +79,6 @@ const ANATOMIA_HUMANA_LOCAL = "assets/models/modello 3d anatomia umana.glb";
 
 export const DOCENTE_CATALOG_ELEMENTS_3D: DocenteCatalogElement3dItem[] = [
   {
-    id: "reptisect",
-    title: "Reptisect 3D",
-    description:
-      "Modelo de reptil para la pared del aula: ideal para biología, paleontología y ciencias naturales en la clase inmersiva.",
-    resourceUrl: REPTISECT_GLB,
-    imageUrl: dinosauriosPreviewImg,
-    badge: "Elemento 3D",
-  },
-  {
     id: "corazon-glb",
     title: "Corazón humano 3D",
     description:
@@ -149,6 +140,15 @@ export const DOCENTE_CATALOG_ELEMENTS_3D: DocenteCatalogElement3dItem[] = [
       "Modelo 3D de volcán activo con flujo de lava. Ideal para geología, ciencias de la Tierra y fenómenos naturales en la clase inmersiva.",
     resourceUrl: VOLCAN_GLB,
     imageUrl: publicAssetUrl("volcan.png"),
+    badge: "Elemento 3D",
+  },
+  {
+    id: "reptisect",
+    title: "Reptisect 3D",
+    description:
+      "Modelo de reptil para la pared del aula: ideal para biología, paleontología y ciencias naturales en la clase inmersiva.",
+    resourceUrl: REPTISECT_GLB,
+    imageUrl: dinosauriosPreviewImg,
     badge: "Elemento 3D",
   },
 ];
