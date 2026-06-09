@@ -67,6 +67,12 @@ const SALA_CONTENT_INDEX: SalaContentItem[] = [
     tags: ["#IA", "#Gemini", "#Google"],
     mp4Url: SALA_MP4_URL_BY_ID["usar-gemini-ia"],
   },
+  {
+    id: "programar-cursor",
+    title: "Como programar con CURSOR",
+    tags: ["#IA", "#Cursor", "#Programación"],
+    mp4Url: SALA_MP4_URL_BY_ID["programar-cursor"],
+  },
 ];
 
 const SearchHub = ({ currentUserId }: SearchHubProps) => {
