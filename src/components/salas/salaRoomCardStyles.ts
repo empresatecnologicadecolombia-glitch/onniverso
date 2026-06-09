@@ -1,4 +1,4 @@
-/** Tarjetas tipo sala: ~20 % más compactas en móvil (tamaños reales, sin scale/zoom). */
+/** Tarjetas tipo sala: dimensiones compartidas. Layout de página Videos educativos → videosEducativosLayout.ts */
 
 export const salaRoomGridClass = "grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4";
 

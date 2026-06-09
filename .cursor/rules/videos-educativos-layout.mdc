@@ -1,0 +1,39 @@
+---
+description: Layout congelado — Videos educativos (/nuestras-salas), no panel docente
+globs: src/pages/NuestrasSalasPage.tsx,src/components/salas/VideosEducativos*.tsx,src/components/salas/videosEducativosLayout.ts,src/data/podcastStreamers.ts
+alwaysApply: false
+---
+
+# Videos educativos — layout congelado
+
+Sección del **menú superior** (`/nuestras-salas`, navbar «VIDEOS EDUCATIVOS»). **No** confundir con el catálogo de videos del **panel docente** (`docenteContentCatalog.ts`).
+
+## Fuente única (no duplicar markup)
+
+| Qué | Archivo |
+|-----|---------|
+| Clases de página, main, grid | `src/components/salas/videosEducativosLayout.ts` |
+| Shell (navbar, main, grid) | `src/components/salas/VideosEducativosPageShell.tsx` |
+| Tarjeta visual | `src/components/salas/VideosEducativosVideoCard.tsx` |
+| Tipografía / alturas imagen | `src/components/salas/salaRoomCardStyles.ts` |
+| Datos de nuevos videos | `src/data/podcastStreamers.ts` + `salaVideoUrls.ts` |
+
+## Añadir un video nuevo
+
+1. Entrada en `podcastStreamers.ts` (id, name, avatar, immersiveSalaName, loungeTitle, salaVideoUrl).
+2. URL MP4 en `salaVideoUrls.ts` si aplica.
+3. **No** copiar JSX de tarjeta en `NuestrasSalasPage.tsx`; el grid ya renderiza `VideosEducativosVideoCard`.
+
+## Prohibido sin petición explícita del usuario
+
+- Quitar `overflow-x-hidden`, `min-w-0`, `overflow-hidden` en tarjetas o grid.
+- Cambiar `px-4` móvil del main por `px-6`, `100dvw`, `w-screen` o padding cero.
+- Poner `hover:scale` o `-translate-y` en móvil (solo `sm:`).
+- Reintroducir encabezado «VIVE SALAS» / «Conciertos Live» en esta página.
+- Editar clases de layout inline en `NuestrasSalasPage.tsx` en lugar de `videosEducativosLayout.ts`.
+
+## Layout validado (jun 2026)
+
+- Main: `px-4 pt-20 pb-20 sm:px-6`, contenedor `mx-auto max-w-6xl`.
+- Grid: 1 → 2 → 4 columnas; celdas `min-w-0`.
+- Imagen: `h-[8.8rem] sm:h-44`; badge EN LÍNEA solo si hay stream activo.

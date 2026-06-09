@@ -1,4 +1,9 @@
 import { SALA_MP4_URL_BY_ID } from "@/data/salaVideoUrls";
+
+/**
+ * Catálogo de videos de la sección Videos educativos (/nuestras-salas).
+ * Solo datos: la tarjeta visual vive en VideosEducativosVideoCard.tsx.
+ */
 import { cloudinaryVideoPosterUrl } from "@/lib/cloudinaryVideoPoster";
 
 export type StreamStatus = "live" | "offline";

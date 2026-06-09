@@ -1,10 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Mic2, Box } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
-import { Capacitor } from "@capacitor/core";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { podcastStreamers } from "@/data/podcastStreamers";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -20,25 +16,12 @@ import { getRoomActiveStream, type ActiveStreamRow, type RoomCard } from "@/lib/
 import { shuffleArray } from "@/lib/shuffleArray";
 import { handleStreamCardPlay } from "@/lib/streamCardNavigation";
 import { buildAgoraChannel } from "@/lib/agoraRooms";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { SALA_MP4_URL_BY_ID } from "@/data/salaVideoUrls";
 import { useSalaChoiceModal } from "@/hooks/useSalaChoiceModal";
 import { useLiveStreamChoiceModal } from "@/hooks/useLiveStreamChoiceModal";
-import {
-  salaRoomCardPadding,
-  salaRoomCtaIcon,
-  salaRoomDesc,
-  salaRoomGridClass,
-  salaRoomImageHeight,
-  salaRoomImageWrapMb,
-  salaRoomOverlayBar,
-  salaRoomOverlayIcon,
-  salaRoomPrimaryBtn,
-  salaRoomStatusBadge,
-  salaRoomTitle,
-} from "@/components/salas/salaRoomCardStyles";
-import BackToProfileHomeButton from "@/components/BackToProfileHomeButton";
+import VideosEducativosPageShell from "@/components/salas/VideosEducativosPageShell";
+import VideosEducativosVideoCard from "@/components/salas/VideosEducativosVideoCard";
 
 /** Tarjeta de prueba Conciertos Live: no mostrar en el grid de Nuestras Salas (el perfil no se modifica). */
 function isExcludedTestConciertoCardInSalasGrid(room: RoomCard): boolean {
@@ -201,96 +184,26 @@ const NuestrasSalasPage = () => {
   };
 
   return (
-    <div className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto bg-background" data-camera-page-root>
-      <Navbar />
-
-      <div className="pointer-events-none fixed inset-0" data-camera-decorative-bg>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_5%,hsl(var(--primary)/0.18),transparent_35%),radial-gradient(circle_at_85%_95%,hsl(290_80%_60%/0.16),transparent_40%)]" />
-        <div
-          className="absolute inset-0 opacity-[0.05]"
-          style={{
-            backgroundImage:
-              "linear-gradient(hsl(var(--primary)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary)) 1px, transparent 1px)",
-            backgroundSize: "64px 64px",
-          }}
-        />
-      </div>
-
-      <main className="relative z-20 box-border w-full max-w-full px-4 pt-20 pb-20 sm:px-6">
-        <div className="mx-auto box-border w-full max-w-6xl">
-          <div className="mb-6">
-            <BackToProfileHomeButton className="mx-auto w-full max-w-xs sm:mx-0 sm:max-w-none sm:w-auto" />
-          </div>
-          {/* === SALAS === */}
-          <section id="podcast" className="scroll-mt-24 box-border w-full min-w-0">
-            <div className={`${salaRoomGridClass} box-border w-full min-w-0 [&>*]:min-w-0`}>
-              {creatorRooms.map((room, index) => {
-                const linkedStream = getRoomActiveStream(room, activeStreams);
-                const online = Boolean(linkedStream?.is_live);
-                return (
-                  <motion.div
-                    key={room.id}
-                    className="w-full min-w-0"
-                    initial={{ opacity: 0, y: 24 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: "-60px" }}
-                    transition={{ delay: index * 0.06 }}
-                  >
-                    <article
-                      className={`group box-border w-full min-w-0 max-w-full overflow-hidden rounded-2xl border bg-card/40 text-left backdrop-blur-xl transition-all duration-500 sm:hover:-translate-y-1 ${salaRoomCardPadding} ${
-                        online
-                          ? "border-amber-300/80 shadow-[0_0_55px_-10px_rgba(250,204,21,0.95)] hover:border-yellow-200/90"
-                          : "border-border/50 hover:border-primary/50 hover:shadow-[0_0_45px_-10px_hsl(var(--primary)/0.5)]"
-                      }`}
-                    >
-                    <div className={`relative overflow-hidden rounded-xl border border-primary/20 ${salaRoomImageWrapMb}`}>
-                      <img
-                        src={room.image}
-                        alt={room.name}
-                        className={`${salaRoomImageHeight} w-full object-cover transition-transform duration-500 sm:group-hover:scale-105`}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent" />
-                      <div
-                        className={`absolute bottom-2 left-2 right-2 flex items-center justify-between rounded-lg border border-white/10 bg-black/45 text-cyan-200 backdrop-blur-md ${salaRoomOverlayBar}`}
-                      >
-                        <span className="flex items-center gap-1">
-                          <Box className={`${salaRoomOverlayIcon} text-primary`} />
-                          Sala
-                        </span>
-                        <span className="text-slate-300">{room.subtitle}</span>
-                      </div>
-                    </div>
-                    <div className="mb-2 flex items-center justify-between gap-2 sm:gap-3">
-                      <h3 className={`${salaRoomTitle} truncate`}>
-                        {room.name}
-                      </h3>
-                      {online ? (
-                        <span className={`${salaRoomStatusBadge} shrink-0 bg-amber-300 text-black`}>
-                          EN LÍNEA
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className={`mb-3 sm:mb-4 ${salaRoomDesc}`}>{room.description}</p>
-                    <Button
-                      type="button"
-                      variant="heroOutline"
-                      className={salaRoomPrimaryBtn}
-                      onClick={() => handleRoomAccess(room, online)}
-                    >
-                      <Mic2 className={salaRoomCtaIcon} />
-                      Reproducir Video
-                    </Button>
-                    </article>
-                  </motion.div>
-                );
-              })}
-            </div>
-
-          </section>
-        </div>
-      </main>
-
-      <Footer />
+    <>
+      <VideosEducativosPageShell>
+        {creatorRooms.map((room, index) => {
+          const linkedStream = getRoomActiveStream(room, activeStreams);
+          const online = Boolean(linkedStream?.is_live);
+          return (
+            <VideosEducativosVideoCard
+              key={room.id}
+              id={room.id}
+              name={room.name}
+              image={room.image}
+              subtitle={room.subtitle}
+              description={room.description}
+              online={online}
+              animationIndex={index}
+              onPlay={() => handleRoomAccess(room, online)}
+            />
+          );
+        })}
+      </VideosEducativosPageShell>
 
       {salaChoiceDialog}
       {liveStreamChoiceDialog}
@@ -315,8 +228,7 @@ const NuestrasSalasPage = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
-    </div>
+    </>
   );
 };
 
