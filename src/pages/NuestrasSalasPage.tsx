@@ -263,19 +263,11 @@ const NuestrasSalasPage = () => {
                       <h3 className={`${salaRoomTitle} truncate`}>
                         {room.name}
                       </h3>
-                      <span
-                        className={`${salaRoomStatusBadge} shrink-0 ${
-                          online
-                            ? "bg-amber-300 text-black"
-                            : room.status === "En Vivo"
-                            ? "bg-destructive/90 text-destructive-foreground"
-                            : room.status === "VIP"
-                            ? "bg-amber-500/90 text-black"
-                            : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {online ? "EN LÍNEA" : "OFFLINE"}
-                      </span>
+                      {online ? (
+                        <span className={`${salaRoomStatusBadge} shrink-0 bg-amber-300 text-black`}>
+                          EN LÍNEA
+                        </span>
+                      ) : null}
                     </div>
                     <p className={`mb-3 sm:mb-4 ${salaRoomDesc}`}>{room.description}</p>
                     <Button
