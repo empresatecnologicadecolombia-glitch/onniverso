@@ -90,8 +90,7 @@ export const DOCENTE_CATALOG_ELEMENTS_3D: DocenteCatalogElement3dItem[] = [
     description:
       "Holograma del corazón en la pared del Coliseo. Anatomía cardiovascular para estudiantes en VR o web.",
     resourceUrl: CORAZON_GLB,
-    imageUrl:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/3D_model_of_a_human_heart.stl/1280px-3D_model_of_a_human_heart.stl.png",
+    imageUrl: encodeURI(publicAssetUrl("corazon humano.png")),
     badge: "Elemento 3D",
   },
   {
