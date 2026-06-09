@@ -10,10 +10,6 @@ import {
   prefetchClassVideoPlaylist,
   revokeCachedObjectUrl,
 } from "@/lib/classVideoPrefetch";
-import {
-  coliseoClassVideoSyncChannelName,
-  type ClassVideoSyncCommand,
-} from "@/lib/coliseoClassVideoSync";
 
 /**
  * Slot de la pantalla flotante: WebView nativo en Android; vacío visible en PC para revisar posición.
@@ -23,7 +19,12 @@ export default function ColiseoAndroidWebViewSlot({
 }: {
   onScreenPointerDown?: () => void;
 }) {
-  type SyncCommand = ClassVideoSyncCommand;
+  type SyncCommand = {
+    action?: "play" | "pause" | "next" | "prev";
+    senderId?: string;
+    index?: number;
+    shouldPlay?: boolean;
+  };
 
   const nativeSlotRef = useRef<HTMLDivElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -99,7 +100,9 @@ export default function ColiseoAndroidWebViewSlot({
         setIsTeacher(false);
       }
 
-      const channelName = coliseoClassVideoSyncChannelName(syncContext.classSlug);
+      // Usamos solo classSlug para que docente y alumnos queden en el mismo canal
+      // aunque lleguen con/ sin query `session` en la URL.
+      const channelName = `class-video-sync-${syncContext.classSlug || "main"}`;
       syncChannel = supabase.channel(channelName);
       channelRef.current = syncChannel;
 
@@ -109,7 +112,6 @@ export default function ColiseoAndroidWebViewSlot({
           if (!command || command.senderId === user.id) return;
           const action = command.action;
           if (!action) return;
-          if (action === "camera_on" || action === "camera_off") return;
 
           applyingRemoteRef.current = true;
           if (action === "next" || action === "prev") {
@@ -226,7 +228,7 @@ export default function ColiseoAndroidWebViewSlot({
               ref={videoRef}
               src={playbackSrc || activeVideoUrl}
               className="h-full w-full bg-black"
-              controls={isTeacher}
+              controls
               preload="auto"
               playsInline
               onPlay={() => {

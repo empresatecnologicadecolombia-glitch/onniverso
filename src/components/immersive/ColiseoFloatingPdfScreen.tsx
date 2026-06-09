@@ -30,10 +30,8 @@ function buildPdfEmbedUrl(url: string): string {
 /** Pantalla PDF flotante en el lado izquierdo del Coliseo 360. */
 export default function ColiseoFloatingPdfScreen({
   onScreenPointerDown,
-  allowInteraction = true,
 }: {
   onScreenPointerDown?: () => void;
-  allowInteraction?: boolean;
 }) {
   const pdfUrl = useMemo(() => {
     if (typeof window === "undefined") return PDF_FALLBACK_URL;
@@ -51,12 +49,11 @@ export default function ColiseoFloatingPdfScreen({
         distanceFactor={8.9}
         center
         zIndexRange={[50, 51]}
-        style={{ width: pdfScreenWidth, pointerEvents: allowInteraction ? "auto" : "none" }}
+        style={{ width: pdfScreenWidth, pointerEvents: "auto" }}
       >
         <div
           data-coliseo-screen="true"
           onPointerDown={(event) => {
-            if (!allowInteraction) return;
             event.stopPropagation();
             onScreenPointerDown?.();
           }}

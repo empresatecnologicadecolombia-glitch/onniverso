@@ -10,10 +10,8 @@ import {
 /** Pantalla flotante vacía en la escena 3D; Android pinta el WebView encima del slot. */
 export default function ColiseoFloatingWebViewScreen({
   onScreenPointerDown,
-  allowInteraction = true,
 }: {
   onScreenPointerDown?: () => void;
-  allowInteraction?: boolean;
 }) {
   return (
     <group position={COLOSSEO_FLOATING_SCREEN_POSITION}>
@@ -24,7 +22,7 @@ export default function ColiseoFloatingWebViewScreen({
         zIndexRange={[50, 51]}
         style={{
           width: `min(${COLOSSEO_FLOATING_SCREEN_SLOT_PX.widthVw}vw, ${COLOSSEO_FLOATING_SCREEN_SLOT_PX.maxWidth}px)`,
-          pointerEvents: allowInteraction ? "auto" : "none",
+          pointerEvents: "auto",
         }}
       >
         <div
