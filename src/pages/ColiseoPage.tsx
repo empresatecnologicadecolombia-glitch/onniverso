@@ -45,32 +45,54 @@ const ColiseoPage = () => {
 
   useEffect(() => {
     let cancelled = false;
+    // Reintentos: en celular (APK) el primer getUser/consulta puede fallar por
+    // refresh de token o red móvil lenta; sin retry el puente de voz nunca montaba.
+    const RETRY_DELAYS_MS = [0, 900, 1800, 3200];
+
+    const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+    const tryResolveOnce = async (): Promise<"host" | "audience" | null | "retry"> => {
+      let user: { id: string } | null = null;
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        user = authData.user;
+      } catch {
+        return "retry";
+      }
+      if (!user) return "retry";
+
+      try {
+        const { data: aulaRow, error } = await supabase
+          .from("aulas_virtuales" as any)
+          .select("docente_id")
+          .eq("slug", classSlug)
+          .maybeSingle();
+        if (error) return "retry";
+        const docenteId = (aulaRow as { docente_id?: string } | null)?.docente_id ?? "";
+        if (!docenteId) return null;
+        return docenteId === user.id ? "host" : "audience";
+      } catch {
+        return "retry";
+      }
+    };
+
     const resolveVoiceRole = async () => {
       if (!classSlug) {
         setVoiceRole(null);
         return;
       }
 
-      const { data: authData } = await supabase.auth.getUser();
-      const user = authData.user;
-      if (!user) {
-        if (!cancelled) setVoiceRole(null);
-        return;
+      for (const delay of RETRY_DELAYS_MS) {
+        if (delay > 0) await sleep(delay);
+        if (cancelled) return;
+        const result = await tryResolveOnce();
+        if (cancelled) return;
+        if (result !== "retry") {
+          setVoiceRole(result);
+          return;
+        }
       }
-
-      const { data: aulaRow } = await supabase
-        .from("aulas_virtuales" as any)
-        .select("docente_id")
-        .eq("slug", classSlug)
-        .maybeSingle();
-
-      if (cancelled) return;
-      const docenteId = (aulaRow as { docente_id?: string } | null)?.docente_id ?? "";
-      if (!docenteId) {
-        setVoiceRole(null);
-        return;
-      }
-      setVoiceRole(docenteId === user.id ? "host" : "audience");
+      if (!cancelled) setVoiceRole(null);
     };
 
     void resolveVoiceRole();
