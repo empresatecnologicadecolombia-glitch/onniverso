@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Activity, ArrowLeft, Brain, BriefcaseBusiness, Languages, Sparkles, User } from "lucide-react";
+import { Activity, Brain, BriefcaseBusiness, Languages, Sparkles, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   educacionCategoryGridClass,
@@ -15,6 +15,13 @@ import {
 import { EDU_COURSES_USD_MAX, EDU_COURSES_USD_MIN, formatUsd, stableUsdInRange } from "@/lib/pricing";
 
 type CategoryId = "tecnologia" | "idiomas" | "negocios" | "bienestar" | "clases-privadas";
+
+export type EducationCategoryId = CategoryId;
+
+type EducationSectionProps = {
+  activeCategory: CategoryId | null;
+  onActiveCategoryChange: (id: CategoryId | null) => void;
+};
 
 type Course = {
   title: string;
@@ -145,8 +152,7 @@ const learningTracks: {
   },
 ];
 
-const EducationSection = () => {
-  const [activeCategory, setActiveCategory] = useState<CategoryId | null>(null);
+const EducationSection = ({ activeCategory, onActiveCategoryChange }: EducationSectionProps) => {
   const selectedTrack = useMemo(
     () => learningTracks.find((track) => track.id === activeCategory) ?? null,
     [activeCategory],
@@ -168,17 +174,11 @@ const EducationSection = () => {
               exit={{ opacity: 0, y: -14 }}
               transition={{ duration: 0.35 }}
             >
-              <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <Button variant="heroOutline" className="w-full md:w-auto" onClick={() => setActiveCategory(null)}>
-                  <ArrowLeft className="h-4 w-4" />
-                  Volver a Categorías
-                </Button>
-                <div className="text-left md:text-right">
-                  <h3 className="font-display text-2xl font-bold text-foreground">
-                    Cursos de <span className="text-primary">{selectedTrack.title}</span>
-                  </h3>
-                  <p className="text-sm text-muted-foreground">10 cursos disponibles</p>
-                </div>
+              <div className="mb-8">
+                <h3 className="font-display text-2xl font-bold text-foreground">
+                  Cursos de <span className="text-primary">{selectedTrack.title}</span>
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">10 cursos disponibles</p>
               </div>
 
               <div
@@ -271,7 +271,7 @@ const EducationSection = () => {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ delay: index * 0.12 }}
-                    onClick={() => setActiveCategory(track.id)}
+                    onClick={() => onActiveCategoryChange(track.id)}
                     className={educacionGridCellClass}
                   >
                     <article className="group box-border h-full w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-primary/30 bg-card/50 backdrop-blur-md transition-all duration-300 hover:border-primary/60 hover:shadow-[0_0_35px_-12px_hsl(var(--primary)/0.8)]">

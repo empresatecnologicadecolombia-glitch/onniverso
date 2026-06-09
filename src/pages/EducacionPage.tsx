@@ -1,10 +1,9 @@
-import { useEffect } from "react";
-import { GraduationCap } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { ArrowLeft, GraduationCap } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import EducationSection from "@/components/EducationSection";
-import BackToProfileHomeButton from "@/components/BackToProfileHomeButton";
+import EducationSection, { type EducationCategoryId } from "@/components/EducationSection";
 import { Button } from "@/components/ui/button";
 import abecedarioPreviewImg from "@/assets/aula-preview/abecedario.png";
 import { useAulaVirtualCardChoice } from "@/hooks/useAulaVirtualCardChoice";
@@ -13,11 +12,29 @@ import { AULA_VIRTUAL_LOBBY_PATH, EDUCACION_LOBBY_CARD_HASH } from "@/lib/aulaVi
 
 const EducacionPage = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [activeCategory, setActiveCategory] = useState<EducationCategoryId | null>(null);
   const { requestAulaVirtualEntry, dialog: aulaCardDialog } = useAulaVirtualCardChoice();
   const onAndroid = isAndroidLiveStreamChoicePlatform();
 
+  const handleBack = () => {
+    if (activeCategory) {
+      setActiveCategory(null);
+      return;
+    }
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+    navigate("/");
+  };
+
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [location.pathname]);
+
+  useEffect(() => {
+    setActiveCategory(null);
   }, [location.pathname]);
 
   return (
@@ -45,9 +62,20 @@ const EducacionPage = () => {
           <section id="educacion-contenido" className="scroll-mt-24">
             <div className="mb-10 overflow-hidden rounded-2xl border border-primary/20 bg-card/30 backdrop-blur-sm">
               <div className="border-b border-primary/10 px-4 py-3 sm:px-6">
-                <BackToProfileHomeButton className="mx-auto w-full max-w-xs sm:mx-0 sm:max-w-none sm:w-auto" />
+                <Button
+                  type="button"
+                  variant="heroOutline"
+                  className="mx-auto w-full max-w-xs gap-2 sm:mx-0 sm:w-auto"
+                  onClick={handleBack}
+                >
+                  <ArrowLeft className="h-4 w-4" aria-hidden />
+                  Volver atrás
+                </Button>
               </div>
-              <EducationSection />
+              <EducationSection
+                activeCategory={activeCategory}
+                onActiveCategoryChange={setActiveCategory}
+              />
             </div>
 
             <article
