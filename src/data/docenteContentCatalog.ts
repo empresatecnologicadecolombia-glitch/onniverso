@@ -26,6 +26,16 @@ export type DocenteCatalogVideoItem = {
   badge: string;
 };
 
+export type DocenteCatalogPdfItem = {
+  id: string;
+  title: string;
+  description: string;
+  /** Enlace al PDF para «Copiar»; vacío hasta publicar el archivo. */
+  pdfUrl: string;
+  imageUrl: string;
+  badge: string;
+};
+
 const PRESENTACION_VR_1 =
   "https://res.cloudinary.com/dmbpk37l5/video/upload/v1780439303/presentacion_vr1_nklmmf_ead8hs.mp4";
 const PRESENTACION_VR_2 =
@@ -59,6 +69,100 @@ export { DOCENTE_EDUCATIONAL_VIDEOS };
 export const DOCENTE_PANEL_VIDEOS: DocenteCatalogVideoItem[] = [
   ...DOCENTE_CATALOG_VIDEOS,
   ...DOCENTE_EDUCATIONAL_VIDEOS,
+];
+
+/** PDFs de cursos (categoría Tecnología): enlaces se completan cuando estén publicados. */
+export const DOCENTE_CATALOG_PDF: DocenteCatalogPdfItem[] = [
+  {
+    id: "ia-generativa",
+    title: "IA Generativa",
+    description: "Crea apps y agentes con modelos de última generación.",
+    pdfUrl: "",
+    imageUrl:
+      "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=1200&q=80",
+    badge: "8 horas",
+  },
+  {
+    id: "desarrollo-vr",
+    title: "Desarrollo VR",
+    description: "Diseño de experiencias inmersivas para eventos en vivo.",
+    pdfUrl: "",
+    imageUrl:
+      "https://images.unsplash.com/photo-1622979135225-d2ba269cf1ac?auto=format&fit=crop&w=1200&q=80",
+    badge: "10 horas",
+  },
+  {
+    id: "python-para-expertos",
+    title: "Python para Expertos",
+    description: "Optimización, arquitectura y automatización avanzada.",
+    pdfUrl: "",
+    imageUrl:
+      "https://images.unsplash.com/photo-1526379095098-d400fd0bf935?auto=format&fit=crop&w=1200&q=80",
+    badge: "12 horas",
+  },
+  {
+    id: "ciberseguridad-360",
+    title: "Ciberseguridad 360",
+    description: "Protege identidades y plataformas en entornos digitales.",
+    pdfUrl: "",
+    imageUrl:
+      "https://images.unsplash.com/photo-1510511459019-5dda7724fd87?auto=format&fit=crop&w=1200&q=80",
+    badge: "9 horas",
+  },
+  {
+    id: "blockchain-aplicado",
+    title: "Blockchain Aplicado",
+    description: "Smart contracts y modelos de negocio descentralizados.",
+    pdfUrl: "",
+    imageUrl:
+      "https://images.unsplash.com/photo-1639322537228-f710d846310a?auto=format&fit=crop&w=1200&q=80",
+    badge: "7 horas",
+  },
+  {
+    id: "devops-cloud",
+    title: "DevOps Cloud",
+    description: "CI/CD y despliegue automatizado para apps de alto tráfico.",
+    pdfUrl: "",
+    imageUrl:
+      "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80",
+    badge: "8 horas",
+  },
+  {
+    id: "ux-para-metaverso",
+    title: "UX para Metaverso",
+    description: "Interfaces inmersivas con foco en retención y experiencia.",
+    pdfUrl: "",
+    imageUrl:
+      "https://images.unsplash.com/photo-1545239351-1141bd82e8a6?auto=format&fit=crop&w=1200&q=80",
+    badge: "6 horas",
+  },
+  {
+    id: "arquitectura-de-apis",
+    title: "Arquitectura de APIs",
+    description: "Diseño robusto para plataformas escalables en tiempo real.",
+    pdfUrl: "",
+    imageUrl:
+      "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1200&q=80",
+    badge: "6 horas",
+  },
+  {
+    id: "prompt-engineering",
+    title: "Prompt Engineering",
+    description: "Optimiza prompts para resultados precisos y consistentes.",
+    pdfUrl: "",
+    imageUrl:
+      "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=1200&q=80",
+    badge: "4 horas",
+  },
+  {
+    id: "automatizacion-no-code",
+    title: "Automatización No-Code",
+    description: "Flujos inteligentes sin programar desde cero.",
+    pdfUrl: "",
+    imageUrl:
+      "https://images.unsplash.com/photo-1517430816045-df4b7de11d1d?auto=format&fit=crop&w=1200&q=80",
+    badge: "5 horas",
+  },
 ];
 
 const REPTISECT_GLB =

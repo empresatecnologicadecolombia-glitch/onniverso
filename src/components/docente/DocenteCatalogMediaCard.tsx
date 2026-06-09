@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Box, Film, Sparkles, type LucideIcon } from "lucide-react";
+import { Box, FileText, Film, Sparkles, type LucideIcon } from "lucide-react";
 import {
   salaRoomCardPadding,
   salaRoomDesc,
@@ -16,18 +16,19 @@ type DocenteCatalogMediaCardProps = {
   imageUrl: string;
   imageAlt: string;
   badge: string;
-  mediaKind?: "video" | "element3d";
+  mediaKind?: "video" | "element3d" | "pdf";
   index?: number;
   actionLabel?: string;
   onAction?: () => void;
 };
 
 const MEDIA_KIND_META: Record<
-  "video" | "element3d",
+  "video" | "element3d" | "pdf",
   { label: string; icon: LucideIcon }
 > = {
   video: { label: "Video", icon: Film },
   element3d: { label: "3D", icon: Box },
+  pdf: { label: "PDF", icon: FileText },
 };
 
 /** Misma estructura visual que tarjetas Live / conciertos (borde ámbar → cyan educativo). */

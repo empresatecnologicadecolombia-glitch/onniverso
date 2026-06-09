@@ -5,6 +5,7 @@ import DocenteCatalogMediaCard from "@/components/docente/DocenteCatalogMediaCar
 import { salaRoomGrid3ColClass } from "@/components/salas/salaRoomCardStyles";
 import {
   DOCENTE_CATALOG_ELEMENTS_3D,
+  DOCENTE_CATALOG_PDF,
   DOCENTE_PANEL_VIDEOS,
   type DocenteContentTabId,
 } from "@/data/docenteContentCatalog";
@@ -14,9 +15,14 @@ import { toast } from "sonner";
 export default function DocenteContentLibraryPanel() {
   const [tab, setTab] = useState<DocenteContentTabId>("videos");
 
-  const copyResourceLink = async (url: string, fieldHint: "video" | "glb") => {
+  const copyResourceLink = async (url: string, fieldHint: "video" | "glb" | "pdf") => {
     const link = url.trim();
-    if (!link) return;
+    if (!link) {
+      if (fieldHint === "pdf") {
+        toast.info("El PDF de este curso estará disponible pronto.");
+      }
+      return;
+    }
     const copied = await copyToClipboard(link);
     if (!copied) {
       toast.error("No se pudo copiar. Copia el enlace manualmente desde el navegador.");
@@ -25,7 +31,9 @@ export default function DocenteContentLibraryPanel() {
     const hint =
       fieldHint === "glb"
         ? "Pégalo en el campo GLB de la clase que quieras."
-        : "Pégalo en el campo de video de la clase que quieras.";
+        : fieldHint === "pdf"
+          ? "Pégalo en el campo PDF de la clase que quieras."
+          : "Pégalo en el campo de video de la clase que quieras.";
     toast.success(`Enlace copiado. ${hint}`);
   };
 
@@ -74,9 +82,22 @@ export default function DocenteContentLibraryPanel() {
         </TabsContent>
 
         <TabsContent value="pdf" className="mt-0">
-          <p className="rounded-xl border border-dashed border-border/60 bg-background/30 px-4 py-8 text-center text-sm text-muted-foreground">
-            Próximamente: tarjetas PDF con el mismo diseño.
-          </p>
+          <div className={`${salaRoomGrid3ColClass} max-w-4xl`}>
+            {DOCENTE_CATALOG_PDF.map((item, index) => (
+              <DocenteCatalogMediaCard
+                key={item.id}
+                index={index}
+                title={item.title}
+                description={item.description}
+                imageUrl={item.imageUrl}
+                imageAlt={item.title}
+                badge={item.badge}
+                mediaKind="pdf"
+                actionLabel="Copiar"
+                onAction={() => void copyResourceLink(item.pdfUrl, "pdf")}
+              />
+            ))}
+          </div>
         </TabsContent>
 
         <TabsContent value="elementos-3d" className="mt-0">
