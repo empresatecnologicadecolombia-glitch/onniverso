@@ -5,7 +5,7 @@ import DocenteCatalogMediaCard from "@/components/docente/DocenteCatalogMediaCar
 import { salaRoomGrid3ColClass } from "@/components/salas/salaRoomCardStyles";
 import {
   DOCENTE_CATALOG_ELEMENTS_3D,
-  DOCENTE_CATALOG_VIDEOS,
+  DOCENTE_PANEL_VIDEOS,
   type DocenteContentTabId,
 } from "@/data/docenteContentCatalog";
 import { toast } from "sonner";
@@ -55,7 +55,7 @@ export default function DocenteContentLibraryPanel() {
 
         <TabsContent value="videos" className="mt-0">
           <div className={`${salaRoomGrid3ColClass} max-w-4xl`}>
-            {DOCENTE_CATALOG_VIDEOS.map((item, index) => (
+            {DOCENTE_PANEL_VIDEOS.map((item, index) => (
               <DocenteCatalogMediaCard
                 key={item.id}
                 index={index}

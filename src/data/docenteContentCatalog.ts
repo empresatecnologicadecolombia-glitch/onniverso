@@ -1,4 +1,5 @@
 import dinosauriosPreviewImg from "@/assets/aula-preview/dinosaurios.png";
+import { DOCENTE_EDUCATIONAL_VIDEOS } from "@/data/docenteEducationalVideos";
 import { cloudinaryVideoPosterUrl } from "@/lib/cloudinaryVideoPoster";
 import { publicAssetUrl, publicLocalGlbUrl } from "@/lib/publicAssetUrl";
 
@@ -49,6 +50,15 @@ export const DOCENTE_CATALOG_VIDEOS: DocenteCatalogVideoItem[] = [
     imageUrl: publicAssetUrl("2.jpeg"),
     badge: "Educación inmersiva",
   },
+];
+
+/** Videos educativos del panel docente (catálogo propio, independiente de Nuestras Salas). */
+export { DOCENTE_EDUCATIONAL_VIDEOS };
+
+/** Todos los videos visibles en la pestaña Videos del panel docente. */
+export const DOCENTE_PANEL_VIDEOS: DocenteCatalogVideoItem[] = [
+  ...DOCENTE_CATALOG_VIDEOS,
+  ...DOCENTE_EDUCATIONAL_VIDEOS,
 ];
 
 const REPTISECT_GLB =
