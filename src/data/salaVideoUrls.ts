@@ -11,12 +11,14 @@ const IA_TRANSFORMARA_ECONOMIA_MP4 =
 const IA_Y_ROBOTS_MP4 =
   "https://res.cloudinary.com/dmbpk37l5/video/upload/v1780849180/La_IA_y_los_robots_van_a_provocar_el_mayor_boom_econ%C3%B3mico_de_la_historia_-_Si_lo_hubiera_sabido_qhqwco.mp4";
 
+const PROGRAMAR_IA_MP4 =
+  "https://res.cloudinary.com/dmbpk37l5/video/upload/v1780849079/La_forma_CORRECTA_de_programar_con_IA_en_2026__Spec_Driven_Development_a4gaqc.mp4";
+
 export const SALA_MP4_URL_BY_ID: Record<string, string> = {
   "nova-byte": ECONOMIA_IA_MP4,
   "luisito-comunica-er": IA_TRANSFORMARA_ECONOMIA_MP4,
   "ia-y-robots": IA_Y_ROBOTS_MP4,
-  "gopro-gpy":
-    "https://res.cloudinary.com/dfsabdxup/video/upload/v1778011486/gopro_1_jyzdtl.mp4",
+  "gopro-gpy": PROGRAMAR_IA_MP4,
 };
 
 export function onniverseDeepLink(mp4Url: string): string {

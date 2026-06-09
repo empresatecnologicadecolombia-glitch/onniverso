@@ -1,4 +1,5 @@
 import { SALA_MP4_URL_BY_ID } from "@/data/salaVideoUrls";
+import { cloudinaryVideoPosterUrl } from "@/lib/cloudinaryVideoPoster";
 
 export type StreamStatus = "live" | "offline";
 export type StreamType = "platform" | "youtube";
@@ -82,18 +83,18 @@ export const podcastStreamers: StreamerProfile[] = [
   },
   {
     id: "gopro-gpy",
-    name: "GoPro GP",
-    avatar: "/gopro-gpy-avatar.png",
-    immersiveSalaName: "GoPro 360",
+    name: "Como programar con IA",
+    avatar: cloudinaryVideoPosterUrl(SALA_MP4_URL_BY_ID["gopro-gpy"]),
+    immersiveSalaName: "Programación e IA",
     panoramaImage:
       "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=4096&q=85",
     status: "live",
     streamType: "platform",
     salaVideoUrl: SALA_MP4_URL_BY_ID["gopro-gpy"],
     fallbackVideoId: "ScMzIvxBSi4",
-    loungeTitle: "Action Cam Lounge",
+    loungeTitle: "Como programar con IA",
     loungeDescription:
-      "Recorridos 360, aventura y contenido inmersivo en primera persona.",
+      "La forma correcta de programar con IA en 2026: Spec Driven Development.",
     ticketGrada: 0,
     ticketVip: 0,
     featuredGames: ["Action Tour VR", "Fan Zone", "Creator Chat"],

@@ -48,7 +48,7 @@ const SALA_CONTENT_INDEX: SalaContentItem[] = [
     tags: ["#Educacion", "#IA", "#Robots"],
     mp4Url: SALA_MP4_URL_BY_ID["ia-y-robots"],
   },
-  { id: "gopro-gpy", title: "GoPro GP", tags: ["#Aventura"], mp4Url: SALA_MP4_URL_BY_ID["gopro-gpy"] },
+  { id: "gopro-gpy", title: "Como programar con IA", tags: ["#IA", "#Programación"], mp4Url: SALA_MP4_URL_BY_ID["gopro-gpy"] },
 ];
 
 const SearchHub = ({ currentUserId }: SearchHubProps) => {
