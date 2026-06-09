@@ -69,6 +69,8 @@ const GEOQUIMICO_GLB =
   "https://res.cloudinary.com/dmbpk37l5/image/upload/v1780439309/modelo_geoquimico_lwbh6v_s3hcjj.glb";
 const EARTH_MOON_LOBBY_GLB =
   "https://res.cloudinary.com/dmbpk37l5/image/upload/v1780542025/earth_moon_lobby_daifrb.glb";
+const PIRAMIDE_EGIPTO_GLB =
+  "https://res.cloudinary.com/dmbpk37l5/image/upload/v1780971812/piramide_3d_modelo_lmafow.glb";
 const ANATOMIA_HUMANA_LOCAL = "assets/models/modello 3d anatomia umana.glb";
 const TIERRA_TEXTURE = publicAssetUrl("assets/textures/earth/earth_day_4096.jpg");
 
@@ -119,6 +121,16 @@ export const DOCENTE_CATALOG_ELEMENTS_3D: DocenteCatalogElement3dItem[] = [
       "Modelo 3D del planeta con la Luna en órbita, como en el lobby inmersivo. Ideal para astronomía y ciencias de la Tierra en la pared del Coliseo.",
     resourceUrl: EARTH_MOON_LOBBY_GLB,
     imageUrl: TIERRA_TEXTURE,
+    badge: "Elemento 3D",
+  },
+  {
+    id: "piramide-egipto",
+    title: "Pirámide de Egipto",
+    description:
+      "Modelo 3D de una pirámide egipcia para la pared del Coliseo. Ideal para historia, civilizaciones antiguas y geografía.",
+    resourceUrl: PIRAMIDE_EGIPTO_GLB,
+    imageUrl:
+      "https://images.unsplash.com/photo-1539650116574-8efeb43eabd0?auto=format&fit=crop&w=1200&q=80",
     badge: "Elemento 3D",
   },
 ];
