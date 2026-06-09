@@ -10,9 +10,11 @@ import {
   isAnatomiaHumanaGlbUrl,
   isEarthMoonLobbyGlbUrl,
   isGeoquimicoGlbUrl,
+  isVolcanGlbUrl,
   orientAnatomiaHumanaStanding,
   prepareAnatomiaHumanaColiseoMaterials,
   prepareEarthMoonLobbyColiseoMaterials,
+  prepareVolcanColiseoMaterials,
 } from "@/components/immersive/coliseoWallGlbMaterials";
 import type { BuildColiseoWallModelOptions } from "@/components/immersive/coliseoWallGlbNormalize";
 import {
@@ -65,6 +67,7 @@ function ColiseoWallGlbModel({
   const prepared = useMemo(() => {
     const earthMoon = isEarthMoonLobbyGlbUrl(url);
     const anatomia = isAnatomiaHumanaGlbUrl(url);
+    const volcan = isVolcanGlbUrl(url);
     const baked = buildColiseoWallModel(
       scene,
       (root) => {
@@ -73,6 +76,7 @@ function ColiseoWallGlbModel({
           prepareAnatomiaHumanaColiseoMaterials(root);
         }
         if (earthMoon) prepareEarthMoonLobbyColiseoMaterials(root);
+        if (volcan) prepareVolcanColiseoMaterials(root);
         prepareModel?.(root);
       },
       getColiseoWallBuildOptions(url),

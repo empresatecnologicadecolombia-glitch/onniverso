@@ -14,6 +14,15 @@ export function isGeoquimicoGlbUrl(url: string): boolean {
   return /modelo_geoquimico|geoquimico_lwbh6v|s3hcjj/i.test(url);
 }
 
+export function isVolcanGlbUrl(url: string): boolean {
+  try {
+    const decoded = decodeURIComponent(url).toLowerCase();
+    return decoded.includes("volc") && decoded.includes("lava");
+  } catch {
+    return /volc[aá]n.*lava|volcan_lava|bsbarf/i.test(url);
+  }
+}
+
 export function isAnatomiaHumanaGlbUrl(url: string): boolean {
   try {
     const decoded = decodeURIComponent(url).toLowerCase();
@@ -113,6 +122,34 @@ export function prepareEarthMoonLobbyColiseoMaterials(root: THREE.Object3D): voi
 /** Anatomía humana: mismo tratamiento con un poco más de brillo en materiales. */
 export function prepareAnatomiaHumanaColiseoMaterials(root: THREE.Object3D): void {
   applyBrighterColiseoMaterials(root, 1.28);
+}
+
+/** Volcán: roca oscura y lava — más brillo y emisión cálida en la escena 360. */
+export function prepareVolcanColiseoMaterials(root: THREE.Object3D): void {
+  applyBrighterColiseoMaterials(root, 1.42);
+  root.traverse((node) => {
+    if (!(node instanceof THREE.Mesh)) return;
+    const isArray = Array.isArray(node.material);
+    const mats = isArray ? node.material : [node.material];
+    const updated = mats.map((mat) => {
+      if (!(mat instanceof THREE.MeshStandardMaterial || mat instanceof THREE.MeshPhysicalMaterial)) {
+        return mat;
+      }
+      const clone = mat.clone();
+      const { r, g } = clone.color;
+      const looksLikeLava = r > 0.35 && g < r * 0.72;
+      if (looksLikeLava) {
+        clone.emissive.setRGB(Math.min(1, r * 1.15), Math.min(1, g * 0.55), 0.04);
+        clone.emissiveIntensity = 0.95;
+      } else {
+        clone.emissive.copy(clone.color);
+        clone.emissiveIntensity = 0.32;
+      }
+      clone.roughness = Math.min(clone.roughness ?? 0.85, 0.55);
+      return clone;
+    });
+    node.material = isArray ? updated : updated[0];
+  });
 }
 
 /** Lobby en móvil: materiales simples (sin PBR) para más FPS. */

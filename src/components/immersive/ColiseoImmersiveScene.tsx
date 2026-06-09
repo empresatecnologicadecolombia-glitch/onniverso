@@ -14,6 +14,7 @@ import { ColiseoWallGlb } from "@/components/immersive/coliseoWallGlb";
 import {
   isAnatomiaHumanaGlbUrl,
   isEarthMoonLobbyGlbUrl,
+  isVolcanGlbUrl,
 } from "@/components/immersive/coliseoWallGlbMaterials";
 import { WallSceneGlb } from "@/components/lobby/lobbyWallGlbScene";
 import {
@@ -139,6 +140,7 @@ function ColiseoSceneContent({
     classGlbUrl && (isEarthColiseoUrl(classGlbUrl) || isEarthMoonLobbyGlbUrl(classGlbUrl)),
   );
   const anatomiaOnWall = Boolean(classGlbUrl && isAnatomiaHumanaGlbUrl(classGlbUrl));
+  const volcanOnWall = Boolean(classGlbUrl && isVolcanGlbUrl(classGlbUrl));
   const catalogGlbOnWall = Boolean(
     classGlbUrl &&
       !isHeartModelUrl(classGlbUrl) &&
@@ -146,9 +148,9 @@ function ColiseoSceneContent({
       !isEarthMoonLobbyGlbUrl(classGlbUrl),
   );
   const wallModelLights = catalogGlbOnWall || lobbyEarthOnWall;
-  const ambientIntensity = lobbyEarthOnWall ? 0.96 : anatomiaOnWall ? 0.78 : 0.68;
-  const keyLightIntensity = lobbyEarthOnWall ? 3.65 : anatomiaOnWall ? 2.75 : 2.1;
-  const fillLightIntensity = lobbyEarthOnWall ? 1.9 : anatomiaOnWall ? 1.35 : 1;
+  const ambientIntensity = lobbyEarthOnWall ? 0.96 : volcanOnWall ? 0.86 : anatomiaOnWall ? 0.78 : 0.68;
+  const keyLightIntensity = lobbyEarthOnWall ? 3.65 : volcanOnWall ? 3.1 : anatomiaOnWall ? 2.75 : 2.1;
+  const fillLightIntensity = lobbyEarthOnWall ? 1.9 : volcanOnWall ? 1.55 : anatomiaOnWall ? 1.35 : 1;
 
   return (
     <>
@@ -196,6 +198,12 @@ function ColiseoSceneContent({
             ) : null}
             {lobbyEarthOnWall ? (
               <pointLight position={[0.2, 0.25, 0.9]} intensity={1.15} distance={5} color="#fff4e6" />
+            ) : null}
+            {volcanOnWall ? (
+              <>
+                <pointLight position={[0.15, -0.05, 1.05]} intensity={1.45} distance={4.8} color="#ff8c42" />
+                <pointLight position={[-0.55, 0.35, 0.95]} intensity={0.95} distance={4.2} color="#fff0d8" />
+              </>
             ) : null}
           </>
         ) : null}
