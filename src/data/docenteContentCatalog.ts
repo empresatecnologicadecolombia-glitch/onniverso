@@ -101,8 +101,7 @@ export const DOCENTE_CATALOG_ELEMENTS_3D: DocenteCatalogElement3dItem[] = [
     description:
       "Modelo 3D del cerebro humano para la pared del Coliseo. Ideal para biología, neurociencia y anatomía en clase inmersiva.",
     resourceUrl: CEREBRO_HUMANO_GLB,
-    imageUrl:
-      "https://images.unsplash.com/photo-1559757175-5700bbe67559?auto=format&fit=crop&w=1200&q=80",
+    imageUrl: encodeURI(publicAssetUrl("cerebro humano.png")),
     badge: "Elemento 3D",
   },
   {
