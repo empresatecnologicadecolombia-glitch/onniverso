@@ -2,7 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Mic, MicOff, PanelRight, Radio } from "lucide-react";
 import AgoraRTC, { type IAgoraRTCClient, type IMicrophoneAudioTrack } from "agora-rtc-sdk-ng";
 import AgoraClassVoiceTeacherPanel from "@/components/streaming/AgoraClassVoiceTeacherPanel";
-import { buildAgoraChannel } from "@/lib/agoraRooms";
+import {
+  buildClassVoiceAgoraChannel,
+  buildClassVoicePresenceChannel,
+} from "@/lib/coliseoClassVoiceBaseline";
 import { fetchAgoraVoiceTokens, type AgoraVoiceRole } from "@/lib/agoraClassVoiceToken";
 import {
   buildClassVoiceControlChannel,
@@ -52,11 +55,8 @@ export default function AgoraClassVoiceBridge({ classSlug, role }: AgoraClassVoi
   const controlChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  const channelName = useMemo(() => {
-    const slug = classSlug.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "-");
-    return buildAgoraChannel(`class-voice-${slug || "main"}`);
-  }, [classSlug]);
-  const presenceChannelName = useMemo(() => `class-voice-presence-${channelName}`, [channelName]);
+  const channelName = useMemo(() => buildClassVoiceAgoraChannel(classSlug), [classSlug]);
+  const presenceChannelName = useMemo(() => buildClassVoicePresenceChannel(classSlug), [classSlug]);
   const controlChannelName = useMemo(() => buildClassVoiceControlChannel(classSlug), [classSlug]);
 
   const audienceStudents = useMemo(

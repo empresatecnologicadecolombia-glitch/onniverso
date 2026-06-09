@@ -263,6 +263,7 @@ export default function ClaseVirtualEntryPage() {
         toast.error(onniMicDeniedMessage());
       }
     }
+    // Candado: coliseo-class-voice-frozen — APK nativo primero, luego navigate web.
     stashColiseoClassLaunch(classUrl);
     if (invokeOpenColiceoDirect(classUrl)) return;
     navigate(classUrl);

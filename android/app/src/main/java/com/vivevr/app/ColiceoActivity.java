@@ -35,6 +35,7 @@ import org.json.JSONObject;
 /**
  * Sala Coliseo 360° — WebView de la ruta {@value #COLOSSEO_PAGE_URL} + overlay nativo YouTube
  * sobre el slot {@code #coliseo-browser-screen}.
+ * Candado clase+voz: .cursor/rules/coliseo-class-voice-frozen.mdc (URL ?class=, AndroidBridge, RECORD_AUDIO).
  */
 public class ColiceoActivity extends AppCompatActivity {
 

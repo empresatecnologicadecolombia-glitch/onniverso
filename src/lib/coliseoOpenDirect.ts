@@ -1,3 +1,8 @@
+import { resolveColiseoLaunchUrl } from "@/lib/coliseoClassVoiceBaseline";
+
+/** Baseline congelado: `.cursor/rules/coliseo-class-voice-frozen.mdc` */
+export { resolveColiseoLaunchUrl };
+
 /** Hay puente nativo Coliseo (APK). */
 export function hasColiceoNativeBridge(): boolean {
   return (
@@ -8,16 +13,6 @@ export function hasColiceoNativeBridge(): boolean {
     typeof window.AndroidBridge?.openColiceoDirect === "function" ||
     typeof window.AndroidBridge?.openColiceo === "function"
   );
-}
-
-function resolveColiseoLaunchUrl(classPageUrl?: string): string {
-  const raw = classPageUrl?.trim() ?? "";
-  if (!raw) return "";
-  if (/^https?:\/\//i.test(raw)) return raw;
-  if (typeof window !== "undefined") {
-    return `${window.location.origin}${raw.startsWith("/") ? raw : `/${raw}`}`;
-  }
-  return raw;
 }
 
 /** Abre {@link ColiceoActivity} en Android (Coliseo 360 / clase con pantalla nativa). */

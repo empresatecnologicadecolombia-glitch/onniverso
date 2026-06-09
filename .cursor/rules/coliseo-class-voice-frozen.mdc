@@ -1,0 +1,53 @@
+---
+description: Candado — clase Coliseo 360 + voz Agora + presencia Supabase + APK; intocable sin orden explícita
+globs: src/lib/coliseoClassVoiceBaseline.ts,src/lib/coliseoOpenDirect.ts,src/lib/coliseoClassLaunch.ts,src/pages/ClaseVirtualEntryPage.tsx,src/pages/ColiseoPage.tsx,src/components/streaming/AgoraClassVoiceBridge.tsx,src/lib/classVoiceControl.ts,src/lib/agoraClassVoiceToken.ts,android/app/src/main/java/com/vivevr/app/ColiceoActivity.java,src/test/coliseoClassVoiceBaseline.test.ts
+alwaysApply: false
+---
+
+# Clase Coliseo + voz — congelado (candado jun 2026)
+
+Configuración **validada por el usuario**: docente en PC ve alumnos conectados, micrófono Agora, pantalla nativa Coliseo (APK) con `?class=...`.
+
+**No confundir** con voz Onni (`.cursor/rules/onni-voice-frozen.mdc`) ni con videos educativos del menú.
+
+## Fuente única
+
+| Qué | Archivo |
+|-----|---------|
+| Baseline + nombres de canal | `src/lib/coliseoClassVoiceBaseline.ts` |
+| Abrir Coliseo nativo APK | `src/lib/coliseoOpenDirect.ts` |
+| Entrada alumno a clase | `src/pages/ClaseVirtualEntryPage.tsx` → `enterClassroom` |
+| Rol host/audience + escena | `src/pages/ColiseoPage.tsx` |
+| Agora + presencia Supabase | `src/components/streaming/AgoraClassVoiceBridge.tsx` |
+| Handoff URL clase (localStorage) | `src/lib/coliseoClassLaunch.ts` |
+| Coliseo nativo Android | `android/.../ColiceoActivity.java` |
+| Tests candado | `src/test/coliseoClassVoiceBaseline.test.ts` |
+
+## Flujo alumno APK (no alterar)
+
+1. `enterClassroom`: pedir mic → `stashColiseoClassLaunch(classUrl)` → `invokeOpenColiceoDirect(classUrl)` → si falla, `navigate(classUrl)`.
+2. `invokeOpenColiceoDirect` con URL que incluye `class=` debe llamar `AndroidBridge.openColiseoDirect(launchUrl, "class")` **antes** de `openColiseoVR()` sin URL.
+3. **Prohibido** volver a `navigate(classUrl)` solo en APK (sin intentar nativo) ni bloquear `class=` en `invokeOpenColiceoDirect`.
+4. ColiceoActivity debe cargar URL con query (`resolveColiseoContentPageUrl`) y exponer `AndroidBridge.requestOnniMicrophonePermission` + `handleWebKitMediaPermission` (RECORD_AUDIO).
+
+## Presencia docente ↔ alumno (no alterar)
+
+- Canal presencia: `buildClassVoicePresenceChannel(classSlug)` desde baseline (prefijo `class-voice-presence-` + canal Agora `class-voice-{slug}`).
+- `AgoraClassVoiceBridge` solo monta si hay `classSlug` + `role` (`host` | `audience`).
+- No eliminar `presenceChannel.track` ni sustituir presencia por otro canal sin petición explícita.
+
+## Prohibido sin petición explícita del usuario
+
+- Abrir clase en WebView principal **en lugar de** ColiceoActivity en APK (rompe pantalla dividida).
+- Quitar `AndroidBridge` o permisos mic de `ColiceoActivity`.
+- Cargar ColiseoActivity sin `?class=` cuando el intent trae URL de clase.
+- Refactorizar `AgoraClassVoiceBridge` mezclando canales de video-sync con presencia de voz.
+- Tocar esta zona por “arreglos” de cámara sync, touch estudiante u otras features del Coliseo sin confirmación.
+
+## Tras cambiar web
+
+Ejecutar `npm run sync:android` y publicar APK si se modifica `ColiceoActivity.java`.
+
+## Si el usuario pide otra cosa
+
+- Diff **mínimo**; actualizar tests en `coliseoClassVoiceBaseline.test.ts` solo si el cambio es intencional y acordado.
