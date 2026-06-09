@@ -120,8 +120,7 @@ export const DOCENTE_CATALOG_ELEMENTS_3D: DocenteCatalogElement3dItem[] = [
     description:
       "Estructuras y procesos geoquímicos en 3D para geología, química de la Tierra y educación ambiental.",
     resourceUrl: GEOQUIMICO_GLB,
-    imageUrl:
-      "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80",
+    imageUrl: encodeURI(publicAssetUrl("geoquimico tierra.png")),
     badge: "Elemento 3D",
   },
   {
