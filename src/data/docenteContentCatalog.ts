@@ -125,11 +125,11 @@ export const DOCENTE_CATALOG_ELEMENTS_3D: DocenteCatalogElement3dItem[] = [
   },
   {
     id: "tierra-luna-lobby",
-    title: "Tierra y Luna (lobby)",
+    title: "Tierra y la Luna",
     description:
-      "Modelo 3D del planeta con la Luna en órbita, como en el lobby inmersivo. Ideal para astronomía y ciencias de la Tierra en la pared del Coliseo.",
+      "Modelo 3D del planeta con la Luna en órbita. Ideal para astronomía y ciencias de la Tierra en la pared del Coliseo.",
     resourceUrl: EARTH_MOON_LOBBY_GLB,
-    imageUrl: TIERRA_TEXTURE,
+    imageUrl: encodeURI(publicAssetUrl("tierra y luna.png")),
     badge: "Elemento 3D",
   },
   {
