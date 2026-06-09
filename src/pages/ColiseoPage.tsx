@@ -1,5 +1,6 @@
 import ColiseoImmersiveScene from "@/components/immersive/ColiseoImmersiveScene";
 import AgoraClassVoiceBridge from "@/components/streaming/AgoraClassVoiceBridge";
+import { useColiseoTeacherCameraSync } from "@/hooks/useColiseoTeacherCameraSync";
 import {
   attachCameraStreamToVideo,
   isCameraStreamLive,
@@ -22,6 +23,10 @@ const ColiseoPage = () => {
   const [cameraReady, setCameraReady] = useState(false);
   const cameraStreamRef = useRef<MediaStream | null>(null);
   const cameraBackgroundRef = useRef<HTMLVideoElement | null>(null);
+  const applyingRemoteCameraRef = useRef(false);
+
+  const isTeacher = voiceRole === "host";
+  const canControlCamera = voiceRole !== "audience";
 
   const stopCamera = useCallback(() => {
     cameraStreamRef.current?.getTracks().forEach((track) => track.stop());
@@ -120,12 +125,8 @@ const ColiseoPage = () => {
     cameraEnabled && cameraStream && (cameraReady || isCameraStreamLive(cameraStream)),
   );
 
-  const toggleCamera = useCallback(async () => {
-    if (cameraBusy) return;
-    if (cameraEnabled) {
-      stopCamera();
-      return;
-    }
+  const startCamera = useCallback(async (): Promise<boolean> => {
+    if (cameraBusy || cameraEnabled) return cameraEnabled;
 
     setCameraBusy(true);
     setCameraError(null);
@@ -143,13 +144,53 @@ const ColiseoPage = () => {
       setCameraEnabled(true);
       await attachCameraStreamToVideo(video, stream);
       setCameraReady(isCameraStreamLive(stream));
+      return true;
     } catch (error) {
       setCameraError(error instanceof Error ? error.message : "No se pudo activar la camara.");
       stopCamera();
+      return false;
     } finally {
       setCameraBusy(false);
     }
   }, [cameraBusy, cameraEnabled, stopCamera]);
+
+  const handleRemoteCameraChange = useCallback(
+    (enabled: boolean) => {
+      if (voiceRole !== "audience") return;
+      applyingRemoteCameraRef.current = true;
+      if (enabled) {
+        void startCamera().finally(() => {
+          applyingRemoteCameraRef.current = false;
+        });
+        return;
+      }
+      stopCamera();
+      applyingRemoteCameraRef.current = false;
+    },
+    [startCamera, stopCamera, voiceRole],
+  );
+
+  const { broadcastCamera } = useColiseoTeacherCameraSync(classSlug, isTeacher, handleRemoteCameraChange);
+
+  const toggleCamera = useCallback(async () => {
+    if (cameraBusy || !canControlCamera || applyingRemoteCameraRef.current) return;
+    if (cameraEnabled) {
+      stopCamera();
+      if (isTeacher) void broadcastCamera(false);
+      return;
+    }
+
+    const started = await startCamera();
+    if (started && isTeacher) void broadcastCamera(true);
+  }, [
+    broadcastCamera,
+    cameraBusy,
+    cameraEnabled,
+    canControlCamera,
+    isTeacher,
+    startCamera,
+    stopCamera,
+  ]);
 
   return (
     <div className="relative">
@@ -185,6 +226,7 @@ const ColiseoPage = () => {
           top: "max(1rem, env(safe-area-inset-top))",
           right: "max(5.75rem, calc(env(safe-area-inset-right) + 4.75rem))",
         }}
+        hidden={!canControlCamera}
       >
         {cameraBusy ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden /> : <Camera className="h-5 w-5" aria-hidden />}
       </button>
@@ -230,6 +272,7 @@ const ColiseoPage = () => {
         mixedRealityActive={mixedRealityActive}
         classSlug={classSlug}
         isTeacher={voiceRole === "host"}
+        studentViewLocked={voiceRole === "audience"}
       />
       <AgoraClassVoiceBridge classSlug={classSlug} role={voiceRole} />
     </div>
