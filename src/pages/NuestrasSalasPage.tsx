@@ -201,7 +201,7 @@ const NuestrasSalasPage = () => {
   };
 
   return (
-    <div className="relative min-h-screen w-full max-w-full overflow-x-clip overflow-y-auto bg-background" data-camera-page-root>
+    <div className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto bg-background" data-camera-page-root>
       <Navbar />
 
       <div className="pointer-events-none fixed inset-0" data-camera-decorative-bg>
@@ -216,27 +216,28 @@ const NuestrasSalasPage = () => {
         />
       </div>
 
-      <main className="relative z-20 px-4 pt-20 pb-20 sm:px-6">
-        <div className="mx-auto w-full max-w-6xl">
+      <main className="relative z-20 box-border w-full max-w-full px-4 pt-20 pb-20 sm:px-6">
+        <div className="mx-auto box-border w-full max-w-6xl">
           <div className="mb-6">
-            <BackToProfileHomeButton />
+            <BackToProfileHomeButton className="mx-auto w-full max-w-xs sm:mx-0 sm:max-w-none sm:w-auto" />
           </div>
           {/* === SALAS === */}
-          <section id="podcast" className="scroll-mt-24">
-            <div className={salaRoomGridClass}>
+          <section id="podcast" className="scroll-mt-24 box-border w-full min-w-0">
+            <div className={`${salaRoomGridClass} box-border w-full min-w-0 [&>*]:min-w-0`}>
               {creatorRooms.map((room, index) => {
                 const linkedStream = getRoomActiveStream(room, activeStreams);
                 const online = Boolean(linkedStream?.is_live);
                 return (
                   <motion.div
                     key={room.id}
+                    className="w-full min-w-0"
                     initial={{ opacity: 0, y: 24 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true, margin: "-60px" }}
                     transition={{ delay: index * 0.06 }}
                   >
                     <article
-                      className={`group block w-full rounded-2xl border bg-card/40 text-left backdrop-blur-xl transition-all duration-500 hover:-translate-y-1 ${salaRoomCardPadding} ${
+                      className={`group box-border w-full min-w-0 max-w-full overflow-hidden rounded-2xl border bg-card/40 text-left backdrop-blur-xl transition-all duration-500 sm:hover:-translate-y-1 ${salaRoomCardPadding} ${
                         online
                           ? "border-amber-300/80 shadow-[0_0_55px_-10px_rgba(250,204,21,0.95)] hover:border-yellow-200/90"
                           : "border-border/50 hover:border-primary/50 hover:shadow-[0_0_45px_-10px_hsl(var(--primary)/0.5)]"
@@ -246,7 +247,7 @@ const NuestrasSalasPage = () => {
                       <img
                         src={room.image}
                         alt={room.name}
-                        className={`${salaRoomImageHeight} w-full object-cover transition-transform duration-500 group-hover:scale-105`}
+                        className={`${salaRoomImageHeight} w-full object-cover transition-transform duration-500 sm:group-hover:scale-105`}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent" />
                       <div
