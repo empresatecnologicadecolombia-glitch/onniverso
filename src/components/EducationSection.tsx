@@ -257,7 +257,7 @@ const EducationSection = ({ activeCategory, onActiveCategoryChange }: EducationS
                   Educación <span className="text-primary">Inmersiva</span>
                 </h2>
                 <p className="mt-4 text-muted-foreground text-lg max-w-2xl mx-auto">
-                  Rutas de aprendizaje con estética futurista para dominar habilidades de alto impacto
+                  Rutas de aprendizaje para dominar habilidades de alto impacto
                   en tecnología, idiomas y negocios.
                 </p>
               </motion.div>
