@@ -129,8 +129,7 @@ export const DOCENTE_CATALOG_ELEMENTS_3D: DocenteCatalogElement3dItem[] = [
     description:
       "Modelo 3D de una pirámide egipcia para la pared del Coliseo. Ideal para historia, civilizaciones antiguas y geografía.",
     resourceUrl: PIRAMIDE_EGIPTO_GLB,
-    imageUrl:
-      "https://images.unsplash.com/photo-1539650116574-8efeb43eabd0?auto=format&fit=crop&w=1200&q=80",
+    imageUrl: publicAssetUrl("piramide-de-egipto.png"),
     badge: "Elemento 3D",
   },
 ];
