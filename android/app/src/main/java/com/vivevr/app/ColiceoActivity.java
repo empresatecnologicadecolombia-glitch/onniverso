@@ -55,7 +55,7 @@ public class ColiceoActivity extends AppCompatActivity {
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     configureContentWebView(contentWebView);
     contentWebView.addJavascriptInterface(new ColiceoJsApi(), "Android");
-    contentWebView.loadUrl(COLOSSEO_PAGE_URL);
+    contentWebView.loadUrl(resolveColiseoContentPageUrl(getIntent()));
     root.addView(contentWebView);
 
     float density = getResources().getDisplayMetrics().density;
@@ -74,6 +74,28 @@ public class ColiceoActivity extends AppCompatActivity {
     root.addView(closeBtn);
 
     setContentView(root);
+  }
+
+  /** URL de la escena 360 con query (?class=...) cuando el alumno entra desde la clase virtual. */
+  private String resolveColiseoContentPageUrl(Intent intent) {
+    if (intent == null) {
+      return COLOSSEO_PAGE_URL;
+    }
+    String legacyUrl = intent.getStringExtra("url");
+    if (legacyUrl == null || legacyUrl.trim().isEmpty()) {
+      return COLOSSEO_PAGE_URL;
+    }
+    String trimmed = legacyUrl.trim();
+    if (!trimmed.contains("/coliseo")) {
+      return COLOSSEO_PAGE_URL;
+    }
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+      return trimmed;
+    }
+    if (trimmed.startsWith("/")) {
+      return "https://onnivers.com" + trimmed;
+    }
+    return COLOSSEO_PAGE_URL;
   }
 
   private void resolveInitialPayloadFromIntent() {

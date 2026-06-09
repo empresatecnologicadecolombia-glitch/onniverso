@@ -50,6 +50,7 @@ export default function AgoraClassVoiceBridge({ classSlug, role }: AgoraClassVoi
   const selfUserIdRef = useRef("");
   const speakGrantedRef = useRef(false);
   const controlChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const channelName = useMemo(() => {
     const slug = classSlug.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "-");
@@ -234,14 +235,14 @@ export default function AgoraClassVoiceBridge({ classSlug, role }: AgoraClassVoi
   useEffect(() => {
     if (!role || !classSlug.trim()) return;
     let cancelled = false;
-    let presenceChannel: ReturnType<typeof supabase.channel> | null = null;
 
     const normalizeRole = (value: unknown): AgoraVoiceRole =>
       value === "host" || value === "audience" ? value : "audience";
 
     const rebuildParticipants = () => {
-      if (!presenceChannel || cancelled) return;
-      const presence = presenceChannel.presenceState();
+      const channel = presenceChannelRef.current;
+      if (!channel || cancelled) return;
+      const presence = channel.presenceState();
       const next: VoiceParticipant[] = [];
       Object.values(presence).forEach((entries) => {
         entries.forEach((entry) => {
@@ -273,10 +274,17 @@ export default function AgoraClassVoiceBridge({ classSlug, role }: AgoraClassVoi
       setParticipants(next);
     };
 
+    const teardownPresenceChannel = (channel: ReturnType<typeof supabase.channel> | null) => {
+      if (!channel) return;
+      void channel.untrack();
+      void supabase.removeChannel(channel);
+    };
+
     const setupPresence = async () => {
       const { data: authData } = await supabase.auth.getUser();
+      if (cancelled) return;
       const user = authData.user;
-      if (!user || cancelled) return;
+      if (!user) return;
       selfUserIdRef.current = user.id;
 
       const { data: profileData } = await supabase
@@ -284,6 +292,7 @@ export default function AgoraClassVoiceBridge({ classSlug, role }: AgoraClassVoi
         .select("full_name,display_name")
         .eq("id", user.id)
         .maybeSingle();
+      if (cancelled) return;
 
       const profile = profileData as { full_name?: string | null; display_name?: string | null } | null;
       const metadataName =
@@ -295,31 +304,46 @@ export default function AgoraClassVoiceBridge({ classSlug, role }: AgoraClassVoi
         user.email ||
         user.id;
 
-      presenceChannel = supabase.channel(presenceChannelName, {
+      const channel = supabase.channel(presenceChannelName, {
         config: { presence: { key: user.id } },
       });
+      presenceChannelRef.current = channel;
 
-      presenceChannel
+      channel
         .on("presence", { event: "sync" }, rebuildParticipants)
         .on("presence", { event: "join" }, rebuildParticipants)
         .on("presence", { event: "leave" }, rebuildParticipants)
         .subscribe(async (subscribeStatus) => {
-          if (subscribeStatus !== "SUBSCRIBED" || !presenceChannel || cancelled) return;
-          await presenceChannel.track({
+          if (cancelled) {
+            teardownPresenceChannel(channel);
+            if (presenceChannelRef.current === channel) presenceChannelRef.current = null;
+            return;
+          }
+          if (subscribeStatus !== "SUBSCRIBED") return;
+
+          const { error } = await channel.track({
             user_id: user.id,
             display_name: displayName,
             voice_role: role,
             joined_at: new Date().toISOString(),
           });
+          if (cancelled) return;
+          if (error) {
+            if (role === "host") {
+              toast.error("No se pudo registrar presencia de la clase. Recarga la página.");
+            }
+            return;
+          }
+          rebuildParticipants();
         });
     };
 
     void setupPresence();
     return () => {
       cancelled = true;
-      if (!presenceChannel) return;
-      void presenceChannel.untrack();
-      void supabase.removeChannel(presenceChannel);
+      const channel = presenceChannelRef.current;
+      presenceChannelRef.current = null;
+      teardownPresenceChannel(channel);
       setParticipants([]);
       setPanelOpen(false);
       setGrantedSpeakIds(new Set());

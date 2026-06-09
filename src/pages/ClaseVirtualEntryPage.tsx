@@ -264,7 +264,7 @@ export default function ClaseVirtualEntryPage() {
       }
     }
     stashColiseoClassLaunch(classUrl);
-    if (invokeOpenColiceoDirect()) return;
+    if (invokeOpenColiceoDirect(classUrl)) return;
     navigate(classUrl);
   };
 
