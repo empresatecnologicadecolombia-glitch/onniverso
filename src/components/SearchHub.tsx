@@ -49,6 +49,12 @@ const SALA_CONTENT_INDEX: SalaContentItem[] = [
     mp4Url: SALA_MP4_URL_BY_ID["ia-y-robots"],
   },
   { id: "gopro-gpy", title: "Como programar con IA", tags: ["#IA", "#Programación"], mp4Url: SALA_MP4_URL_BY_ID["gopro-gpy"] },
+  {
+    id: "programar-chatgpt",
+    title: "Como programar con ChatGPT",
+    tags: ["#IA", "#ChatGPT", "#Programación"],
+    mp4Url: SALA_MP4_URL_BY_ID["programar-chatgpt"],
+  },
 ];
 
 const SearchHub = ({ currentUserId }: SearchHubProps) => {

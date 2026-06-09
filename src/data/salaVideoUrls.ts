@@ -14,11 +14,15 @@ const IA_Y_ROBOTS_MP4 =
 const PROGRAMAR_IA_MP4 =
   "https://res.cloudinary.com/dmbpk37l5/video/upload/v1780849079/La_forma_CORRECTA_de_programar_con_IA_en_2026__Spec_Driven_Development_a4gaqc.mp4";
 
+const PROGRAMAR_CHATGPT_MP4 =
+  "https://res.cloudinary.com/dmbpk37l5/video/upload/v1780848929/C%C3%B3mo_APRENDER_a_PROGRAMAR_R%C3%81PIDO_usando_ChatGPT_w936db.mp4";
+
 export const SALA_MP4_URL_BY_ID: Record<string, string> = {
   "nova-byte": ECONOMIA_IA_MP4,
   "luisito-comunica-er": IA_TRANSFORMARA_ECONOMIA_MP4,
   "ia-y-robots": IA_Y_ROBOTS_MP4,
   "gopro-gpy": PROGRAMAR_IA_MP4,
+  "programar-chatgpt": PROGRAMAR_CHATGPT_MP4,
 };
 
 export function onniverseDeepLink(mp4Url: string): string {
