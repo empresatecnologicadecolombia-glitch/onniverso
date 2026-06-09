@@ -74,7 +74,6 @@ const PIRAMIDE_EGIPTO_GLB =
 const CEREBRO_HUMANO_GLB =
   "https://res.cloudinary.com/dmbpk37l5/image/upload/v1780973228/cerebro_3d_modelo_qtpeez.glb";
 const ANATOMIA_HUMANA_LOCAL = "assets/models/modello 3d anatomia umana.glb";
-const TIERRA_TEXTURE = publicAssetUrl("assets/textures/earth/earth_day_4096.jpg");
 
 export const DOCENTE_CATALOG_ELEMENTS_3D: DocenteCatalogElement3dItem[] = [
   {
