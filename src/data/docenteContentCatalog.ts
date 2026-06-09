@@ -73,6 +73,8 @@ const PIRAMIDE_EGIPTO_GLB =
   "https://res.cloudinary.com/dmbpk37l5/image/upload/v1780971812/piramide_3d_modelo_lmafow.glb";
 const CEREBRO_HUMANO_GLB =
   "https://res.cloudinary.com/dmbpk37l5/image/upload/v1780973228/cerebro_3d_modelo_qtpeez.glb";
+const VOLCAN_GLB =
+  "https://res.cloudinary.com/dmbpk37l5/image/upload/v1780974210/volc%C3%A1n_lava_3d_modelo_bsbarf.glb";
 const ANATOMIA_HUMANA_LOCAL = "assets/models/modello 3d anatomia umana.glb";
 
 export const DOCENTE_CATALOG_ELEMENTS_3D: DocenteCatalogElement3dItem[] = [
@@ -138,6 +140,15 @@ export const DOCENTE_CATALOG_ELEMENTS_3D: DocenteCatalogElement3dItem[] = [
       "Modelo 3D de una pirámide egipcia para la pared del Coliseo. Ideal para historia, civilizaciones antiguas y geografía.",
     resourceUrl: PIRAMIDE_EGIPTO_GLB,
     imageUrl: publicAssetUrl("piramide-de-egipto.png"),
+    badge: "Elemento 3D",
+  },
+  {
+    id: "volcan",
+    title: "Volcán",
+    description:
+      "Modelo 3D de volcán activo con flujo de lava. Ideal para geología, ciencias de la Tierra y fenómenos naturales en la clase inmersiva.",
+    resourceUrl: VOLCAN_GLB,
+    imageUrl: publicAssetUrl("volcan.png"),
     badge: "Elemento 3D",
   },
 ];
