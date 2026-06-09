@@ -1,6 +1,8 @@
 package com.vivevr.app;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Gravity;
@@ -15,7 +17,16 @@ import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 
 import com.google.android.material.button.MaterialButton;
 
@@ -38,8 +49,22 @@ public class ColiceoActivity extends AppCompatActivity {
   private WebView coliseoBrowserWebView;
   private String initialColiseoUrl = COLOSSEO_BROWSER_DEFAULT_URL;
   private String initialColiseoPlaybackId = "";
+  private ActivityResultLauncher<String[]> webkitMediaPermissionLauncher;
+  private ActivityResultLauncher<String[]> onniMicPermissionLauncher;
+  private PermissionRequest pendingWebkitPermissionRequest;
+  private String[] pendingAndroidPermissionNames;
+  private String pendingOnniMicCallback;
+
   @Override
   protected void onCreate(Bundle savedInstanceState) {
+    webkitMediaPermissionLauncher =
+        registerForActivityResult(
+            new ActivityResultContracts.RequestMultiplePermissions(),
+            this::finishWebKitPermissionPrompt);
+    onniMicPermissionLauncher =
+        registerForActivityResult(
+            new ActivityResultContracts.RequestMultiplePermissions(),
+            this::finishOnniMicPermission);
     super.onCreate(savedInstanceState);
     resolveInitialPayloadFromIntent();
 
@@ -55,6 +80,7 @@ public class ColiceoActivity extends AppCompatActivity {
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     configureContentWebView(contentWebView);
     contentWebView.addJavascriptInterface(new ColiceoJsApi(), "Android");
+    contentWebView.addJavascriptInterface(new ColiseoAndroidBridge(), "AndroidBridge");
     contentWebView.loadUrl(resolveColiseoContentPageUrl(getIntent()));
     root.addView(contentWebView);
 
@@ -147,11 +173,129 @@ public class ColiceoActivity extends AppCompatActivity {
         new WebChromeClient() {
           @Override
           public void onPermissionRequest(final PermissionRequest request) {
-            if (request != null && request.getResources() != null) {
-              request.grant(request.getResources());
-            }
+            runOnUiThread(() -> handleWebKitMediaPermission(request));
           }
         });
+  }
+
+  private void handleWebKitMediaPermission(PermissionRequest request) {
+    if (request == null || request.getResources() == null) {
+      return;
+    }
+    List<String> androidPerms = new ArrayList<>();
+    List<String> resources = Arrays.asList(request.getResources());
+
+    if (resources.contains(PermissionRequest.RESOURCE_VIDEO_CAPTURE)) {
+      androidPerms.add(Manifest.permission.CAMERA);
+    }
+    if (resources.contains(PermissionRequest.RESOURCE_AUDIO_CAPTURE)) {
+      androidPerms.add(Manifest.permission.RECORD_AUDIO);
+    }
+
+    if (androidPerms.isEmpty()) {
+      request.grant(request.getResources());
+      return;
+    }
+
+    LinkedHashSet<String> uniq = new LinkedHashSet<>(androidPerms);
+    String[] toRequest = uniq.toArray(new String[0]);
+
+    boolean alreadyGranted = true;
+    for (String perm : toRequest) {
+      if (ContextCompat.checkSelfPermission(this, perm) != PackageManager.PERMISSION_GRANTED) {
+        alreadyGranted = false;
+        break;
+      }
+    }
+    if (alreadyGranted) {
+      request.grant(request.getResources());
+      return;
+    }
+
+    pendingWebkitPermissionRequest = request;
+    pendingAndroidPermissionNames = toRequest;
+    webkitMediaPermissionLauncher.launch(toRequest);
+  }
+
+  private void finishWebKitPermissionPrompt(Map<String, Boolean> result) {
+    PermissionRequest kitRequest = pendingWebkitPermissionRequest;
+    String[] asked = pendingAndroidPermissionNames;
+    pendingWebkitPermissionRequest = null;
+    pendingAndroidPermissionNames = null;
+
+    if (kitRequest == null || asked == null) {
+      return;
+    }
+
+    boolean allOk = true;
+    for (String perm : asked) {
+      Boolean granted = result.get(perm);
+      if (granted == null || !granted) {
+        allOk = false;
+        break;
+      }
+    }
+
+    if (allOk) {
+      kitRequest.grant(kitRequest.getResources());
+    } else {
+      kitRequest.deny();
+    }
+  }
+
+  private void launchOnniMicrophonePermissionFlow(String callbackName) {
+    if (callbackName != null && !callbackName.isEmpty()) {
+      pendingOnniMicCallback = callbackName;
+    }
+    if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+        == PackageManager.PERMISSION_GRANTED) {
+      if (callbackName != null && !callbackName.isEmpty()) {
+        dispatchOnniMicResult(callbackName, true);
+      }
+      return;
+    }
+    try {
+      onniMicPermissionLauncher.launch(new String[] {Manifest.permission.RECORD_AUDIO});
+    } catch (Exception ignored) {
+      String cb = pendingOnniMicCallback;
+      pendingOnniMicCallback = null;
+      if (cb != null && !cb.isEmpty()) {
+        dispatchOnniMicResult(cb, false);
+      }
+    }
+  }
+
+  private void finishOnniMicPermission(Map<String, Boolean> result) {
+    String cb = pendingOnniMicCallback;
+    pendingOnniMicCallback = null;
+    boolean granted =
+        Boolean.TRUE.equals(result.get(Manifest.permission.RECORD_AUDIO))
+            || ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+                == PackageManager.PERMISSION_GRANTED;
+    if (cb != null && !cb.isEmpty()) {
+      dispatchOnniMicResult(cb, granted);
+    }
+  }
+
+  private void dispatchOnniMicResult(String callbackName, boolean granted) {
+    if (contentWebView == null || callbackName == null || callbackName.isEmpty()) {
+      return;
+    }
+    String escCb = callbackName.replace("\\", "\\\\").replace("'", "\\'");
+    String code =
+        "(function(){ try { var cb = window['"
+            + escCb
+            + "']; if (typeof cb === 'function') cb("
+            + (granted ? "true" : "false")
+            + "); } catch(e) { console.warn('onni mic callback failed', e); } })();";
+    contentWebView.evaluateJavascript(code, null);
+  }
+
+  private final class ColiseoAndroidBridge {
+    @JavascriptInterface
+    public void requestOnniMicrophonePermission(String callbackName) {
+      runOnUiThread(() -> launchOnniMicrophonePermissionFlow(callbackName));
+    }
   }
 
   private void ensureColiseoBrowserWebViewCreated() {
