@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Mic2, Radio, Box } from "lucide-react";
+import { Mic2, Box } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { Capacitor } from "@capacitor/core";
@@ -50,40 +50,6 @@ function isExcludedTestConciertoCardInSalasGrid(room: RoomCard): boolean {
     .replace(/\s+/g, "");
   return titleKey === "davis2";
 }
-
-const SectionHeader = ({
-  badge,
-  icon: Icon,
-  title,
-  highlight,
-  subtitle,
-  accent,
-}: {
-  badge: string;
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  highlight: string;
-  subtitle: string;
-  accent: string;
-}) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true, margin: "-80px" }}
-    className="mb-10 text-center"
-  >
-    <span
-      className={`mb-5 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-display font-semibold uppercase tracking-[0.2em] ${accent}`}
-    >
-      <Icon className="h-4 w-4" />
-      {badge}
-    </span>
-    <h2 className="font-display text-4xl font-bold tracking-tight md:text-5xl">
-      {title} <span className="text-gradient-neon">{highlight}</span>
-    </h2>
-    <p className="mx-auto mt-4 max-w-3xl text-base text-muted-foreground md:text-lg">{subtitle}</p>
-  </motion.div>
-);
 
 const NuestrasSalasPage = () => {
   const navigate = useNavigate();
@@ -250,45 +216,38 @@ const NuestrasSalasPage = () => {
         />
       </div>
 
-      <main className="relative z-20 px-6 pt-20 pb-20">
-        <div className="container mx-auto max-w-6xl">
+      <main className="relative z-20 box-border w-full max-w-[100dvw] pt-20 pb-20">
+        <div className="mx-auto box-border w-full max-w-6xl px-4 sm:px-6">
           <div className="mb-6">
-            <BackToProfileHomeButton />
+            <BackToProfileHomeButton className="mx-auto w-full max-w-xs sm:mx-0 sm:max-w-none sm:w-auto" />
           </div>
           {/* === SALAS === */}
-          <section id="podcast" className="scroll-mt-24">
-            <SectionHeader
-              badge="Salas Maestras"
-              icon={Radio}
-              title="VIVE"
-              highlight="SALAS"
-              subtitle="Todas las salas de creadores en una sola cuadrícula. Clic en tarjeta y entras directo."
-              accent="border-primary/40 bg-primary/10 text-primary"
-            />
-            <div className={salaRoomGridClass}>
+          <section id="podcast" className="scroll-mt-24 box-border w-full">
+            <div className={`${salaRoomGridClass} box-border w-full [&>*]:min-w-0`}>
               {creatorRooms.map((room, index) => {
                 const linkedStream = getRoomActiveStream(room, activeStreams);
                 const online = Boolean(linkedStream?.is_live);
                 return (
                   <motion.div
                     key={room.id}
+                    className="w-full min-w-0"
                     initial={{ opacity: 0, y: 24 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true, margin: "-60px" }}
                     transition={{ delay: index * 0.06 }}
                   >
                     <article
-                      className={`group block w-full rounded-2xl border bg-card/40 text-left backdrop-blur-xl transition-all duration-500 hover:-translate-y-1 ${salaRoomCardPadding} ${
+                      className={`group box-border w-full overflow-hidden rounded-2xl border bg-card/40 text-left backdrop-blur-xl transition-all duration-500 sm:hover:-translate-y-1 ${salaRoomCardPadding} ${
                         online
-                          ? "border-amber-300/80 shadow-[0_0_55px_-10px_rgba(250,204,21,0.95)] hover:border-yellow-200/90"
-                          : "border-border/50 hover:border-primary/50 hover:shadow-[0_0_45px_-10px_hsl(var(--primary)/0.5)]"
+                          ? "border-amber-300/80 shadow-[0_0_40px_-14px_rgba(250,204,21,0.95)] hover:border-yellow-200/90 sm:shadow-[0_0_55px_-10px_rgba(250,204,21,0.95)]"
+                          : "border-border/50 hover:border-primary/50 hover:shadow-[0_0_35px_-12px_hsl(var(--primary)/0.5)] sm:hover:shadow-[0_0_45px_-10px_hsl(var(--primary)/0.5)]"
                       }`}
                     >
                     <div className={`relative overflow-hidden rounded-xl border border-primary/20 ${salaRoomImageWrapMb}`}>
                       <img
                         src={room.image}
                         alt={room.name}
-                        className={`${salaRoomImageHeight} w-full object-cover transition-transform duration-500 group-hover:scale-105`}
+                        className="h-36 w-full object-cover transition-transform duration-500 sm:h-44 sm:group-hover:scale-105"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent" />
                       <div
