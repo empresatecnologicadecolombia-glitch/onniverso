@@ -144,7 +144,7 @@ export const DOCENTE_CATALOG_ELEMENTS_3D: DocenteCatalogElement3dItem[] = [
   },
   {
     id: "volcan",
-    title: "Volcán",
+    title: "Volcan",
     description:
       "Modelo 3D de volcán activo con flujo de lava. Ideal para geología, ciencias de la Tierra y fenómenos naturales en la clase inmersiva.",
     resourceUrl: VOLCAN_GLB,
