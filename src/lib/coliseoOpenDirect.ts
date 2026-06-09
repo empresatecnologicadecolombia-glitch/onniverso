@@ -20,9 +20,17 @@ function resolveColiseoLaunchUrl(classPageUrl?: string): string {
   return raw;
 }
 
-/** Abre {@link ColiceoActivity} en Android (mismo flujo que btn_coliceo en SelectorActivity). */
+/**
+ * Abre {@link ColiceoActivity} en Android (icono Coliseo / eventos sin clase).
+ * Las sesiones con `?class=` deben quedarse en el WebView principal de la app:
+ * ColiceoActivity no expone AndroidBridge ni el flujo de permiso RECORD_AUDIO de Agora.
+ */
 export function invokeOpenColiceoDirect(classPageUrl?: string): boolean {
   const launchUrl = resolveColiseoLaunchUrl(classPageUrl);
+
+  if (launchUrl.includes("class=")) {
+    return false;
+  }
 
   if (launchUrl) {
     if (typeof window.AndroidBridge?.openColiseoDirect === "function") {

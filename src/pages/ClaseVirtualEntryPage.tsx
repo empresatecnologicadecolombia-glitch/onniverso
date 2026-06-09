@@ -5,7 +5,6 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { invokeOpenColiceoDirect } from "@/lib/coliseoOpenDirect";
 import { COLOSSEO_PATH } from "@/data/coliseoScene";
 import { stashColiseoClassLaunch } from "@/lib/coliseoClassLaunch";
 import { onniMicDeniedMessage, requestOnniMicrophoneAccess } from "@/lib/requestOnniMicrophone";
@@ -264,7 +263,7 @@ export default function ClaseVirtualEntryPage() {
       }
     }
     stashColiseoClassLaunch(classUrl);
-    if (invokeOpenColiceoDirect(classUrl)) return;
+    // APK: clase en vivo → navegación web (mismo WebView que login, mic + presencia Supabase).
     navigate(classUrl);
   };
 
