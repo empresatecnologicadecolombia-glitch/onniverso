@@ -71,12 +71,13 @@ export function isOnniVoiceSupported(): boolean {
 
 const VOICE_PREFERENCE: RegExp[] = [
   /google.*espa[nñ]ol/i,
-  /microsoft.*(helena|sabina|elvira|raul)/i,
+  /microsoft.*(helena|sabina|elvira)/i,
   /es[-_]co/i,
   /es[-_]mx/i,
   /es[-_]us/i,
   /^spanish/i,
   /\bes\b/i,
+  /microsoft.*raul/i,
 ];
 
 export function pickOnniSpanishVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
