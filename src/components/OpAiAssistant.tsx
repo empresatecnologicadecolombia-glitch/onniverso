@@ -12,6 +12,7 @@ import { getOpAssistantHint, resolveOpCommand, shouldAskOnniGemini } from "@/lib
 import { runOnniDesktopJob } from "@/lib/onniDesktop/dispatcher";
 import { isOnniDesktopOfficeAvailable } from "@/lib/onniDesktop/bridge";
 import { askOnniGemini, isOnniNavigationResult } from "@/lib/onniGemini";
+import { askOnniOllama } from "@/lib/onniOllama";
 import { invokeOpenGalleryDirect } from "@/lib/galleryOpenDirect";
 import { invokeOpenColiceoDirect } from "@/lib/coliseoOpenDirect";
 import { publishOnniAulaKnowledge } from "@/lib/onniAulaKnowledgeBoard";
@@ -227,6 +228,48 @@ export default function OpAiAssistant() {
           sessionRef.current.lastAnswer = result.answer;
           appendAssistantAnswer(setMessages, sessionRef, result.answer, speakAnswer);
           return result.answer;
+        }
+
+        // Solo .exe: intenta primero la IA local (Ollama) con streaming en pantalla.
+        // Si Ollama no está corriendo o falla, sigue el flujo Gemini de siempre.
+        if (isElectronDesktopApp()) {
+          let streamStarted = false;
+          const ollamaAnswer = await askOnniOllama(
+            { message: trimmed, contextPath: location.pathname },
+            (partial) => {
+              if (!streamStarted) {
+                streamStarted = true;
+                setMessages((prev) => [...prev, { role: "assistant", text: partial }]);
+              } else {
+                setMessages((prev) => {
+                  const next = [...prev];
+                  const last = next[next.length - 1];
+                  if (last?.role === "assistant") {
+                    next[next.length - 1] = { role: "assistant", text: partial };
+                  }
+                  return next;
+                });
+              }
+            },
+          );
+          if (ollamaAnswer) {
+            sessionRef.current.lastAnswer = ollamaAnswer;
+            sessionRef.current.lastAnswerFromGemini = false;
+            if (streamStarted) {
+              setMessages((prev) => {
+                const next = [...prev];
+                const last = next[next.length - 1];
+                if (last?.role === "assistant") {
+                  next[next.length - 1] = { role: "assistant", text: ollamaAnswer };
+                }
+                return next;
+              });
+              speakAnswer(ollamaAnswer);
+            } else {
+              appendAssistantAnswer(setMessages, sessionRef, ollamaAnswer, speakAnswer);
+            }
+            return ollamaAnswer;
+          }
         }
 
         const geminiAnswer = await askOnniGemini({
