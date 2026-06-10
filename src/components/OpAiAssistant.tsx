@@ -12,7 +12,7 @@ import { getOpAssistantHint, resolveOpCommand, shouldAskOnniGemini } from "@/lib
 import { runOnniDesktopJob } from "@/lib/onniDesktop/dispatcher";
 import { isOnniDesktopOfficeAvailable } from "@/lib/onniDesktop/bridge";
 import { askOnniGemini, isOnniNavigationResult } from "@/lib/onniGemini";
-import { askOnniOllama } from "@/lib/onniOllama";
+import { askOnniOllama, isOnniOllamaAvailable } from "@/lib/onniOllama";
 import { invokeOpenGalleryDirect } from "@/lib/galleryOpenDirect";
 import { invokeOpenColiceoDirect } from "@/lib/coliseoOpenDirect";
 import { publishOnniAulaKnowledge } from "@/lib/onniAulaKnowledgeBoard";
@@ -224,7 +224,12 @@ export default function OpAiAssistant() {
           return result.answer;
         }
 
-        if (!shouldAskOnniGemini(result)) {
+        // En el .exe con Ollama corriendo, la conversación libre la responde primero
+        // la IA local (los comandos/navegación ya se resolvieron arriba). Sin Ollama,
+        // o fuera del .exe, la respuesta local enlatada se mantiene como siempre.
+        const ollamaTakesOver = isElectronDesktopApp() && (await isOnniOllamaAvailable());
+
+        if (!shouldAskOnniGemini(result) && !ollamaTakesOver) {
           sessionRef.current.lastAnswer = result.answer;
           appendAssistantAnswer(setMessages, sessionRef, result.answer, speakAnswer);
           return result.answer;
@@ -232,7 +237,7 @@ export default function OpAiAssistant() {
 
         // Solo .exe: intenta primero la IA local (Ollama) con streaming en pantalla.
         // Si Ollama no está corriendo o falla, sigue el flujo Gemini de siempre.
-        if (isElectronDesktopApp()) {
+        if (ollamaTakesOver) {
           let streamStarted = false;
           const ollamaAnswer = await askOnniOllama(
             { message: trimmed, contextPath: location.pathname },
