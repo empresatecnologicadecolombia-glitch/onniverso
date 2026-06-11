@@ -12,6 +12,35 @@ export const COLOSSEO_GUIDE_LOOK_TARGETS: Record<ColiseoGuidePoint, [number, num
 
 export const COLOSSEO_CAMERA_GUIDE_ANIM_MS = 1500;
 
+export function isColiseoGuidePoint(value: unknown): value is ColiseoGuidePoint {
+  return value === 1 || value === 2 || value === 3;
+}
+
+export type ColiseoGuidePresenceMeta = {
+  userId?: string;
+  role?: string;
+  lastGuidePoint?: ColiseoGuidePoint;
+  guideAt?: number;
+};
+
+/** El punto más reciente publicado por otro participante (p. ej. docente). */
+export function pickLatestColiseoGuideFromPresence(
+  state: Record<string, ColiseoGuidePresenceMeta[]>,
+  selfUserId: string,
+): { point: ColiseoGuidePoint; guideAt: number } | null {
+  let best: { point: ColiseoGuidePoint; guideAt: number } | null = null;
+  for (const metas of Object.values(state)) {
+    for (const meta of metas) {
+      if (meta.userId === selfUserId) continue;
+      if (!isColiseoGuidePoint(meta.lastGuidePoint) || typeof meta.guideAt !== "number") continue;
+      if (!best || meta.guideAt > best.guideAt) {
+        best = { point: meta.lastGuidePoint, guideAt: meta.guideAt };
+      }
+    }
+  }
+  return best;
+}
+
 export function coliseoCameraGuideChannelName(classSlug: string): string {
   const slug = classSlug.trim().toLowerCase() || "main";
   return `class-camera-guide-${slug}`;
