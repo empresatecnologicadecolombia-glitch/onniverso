@@ -6,8 +6,6 @@ import {
   openCameraStream,
 } from "@/lib/cameraMedia";
 import { ArrowLeft, Camera, Loader2 } from "lucide-react";
-import { ColiseoStudentCameraSyncProvider } from "@/contexts/ColiseoStudentCameraSyncContext";
-import { useColiseoStudentCameraSync } from "@/hooks/useColiseoStudentCameraSync";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { consumeColiseoClassLaunch } from "@/lib/coliseoClassLaunch";
@@ -73,24 +71,6 @@ const ColiseoPage = () => {
     }
     await startCamera();
   }, [cameraBusy, cameraEnabled, startCamera, stopCamera]);
-
-  const studentCameraSync = useColiseoStudentCameraSync({
-    classSlug,
-    role: voiceRole,
-    cameraEnabled,
-    cameraBusy,
-    startCamera,
-    stopCamera,
-  });
-
-  const teacherCameraSyncUi =
-    voiceRole === "host" && classSlug
-      ? {
-          studentsCamerasOn: studentCameraSync.studentsCamerasOn,
-          studentsCamerasBusy: studentCameraSync.studentsCamerasBusy,
-          toggleStudentCameras: studentCameraSync.toggleStudentCameras,
-        }
-      : null;
 
   useEffect(() => () => stopCamera(), [stopCamera]);
 
@@ -200,7 +180,6 @@ const ColiseoPage = () => {
   );
 
   return (
-    <ColiseoStudentCameraSyncProvider value={teacherCameraSyncUi}>
     <div className="relative">
       <button
         type="button"
@@ -282,7 +261,6 @@ const ColiseoPage = () => {
       />
       <AgoraClassVoiceBridge classSlug={classSlug} role={voiceRole} />
     </div>
-    </ColiseoStudentCameraSyncProvider>
   );
 };
 
