@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { invokeOpenColiceoDirect } from "@/lib/coliseoOpenDirect";
 import { COLOSSEO_PATH } from "@/data/coliseoScene";
 import { stashColiseoClassLaunch } from "@/lib/coliseoClassLaunch";
+import { COLISEO_CLASS_ENTRY_POLL } from "@/lib/coliseoClassVoiceBaseline";
 import { onniMicDeniedMessage, requestOnniMicrophoneAccess } from "@/lib/requestOnniMicrophone";
 
 type Aula = {
@@ -43,10 +44,11 @@ type SessionSnapshot = {
   metadata?: { video_urls?: unknown } | null;
 };
 
-const LIVE_SESSION_POLL_MS = 3000;
-const AULA_RETRY_POLL_MS = 2500;
-const AUTH_SESSION_WAIT_MS = 4000;
-const AUTH_SESSION_POLL_MS = 200;
+const LIVE_SESSION_POLL_MS = COLISEO_CLASS_ENTRY_POLL.liveSessionMs;
+const AULA_RETRY_POLL_MS = COLISEO_CLASS_ENTRY_POLL.aulaRetryMs;
+const AUTH_SESSION_WAIT_MS = COLISEO_CLASS_ENTRY_POLL.authSessionWaitMs;
+const AUTH_SESSION_POLL_MS = COLISEO_CLASS_ENTRY_POLL.authSessionPollMs;
+const AULA_LOOKUP_FAIL_THRESHOLD = COLISEO_CLASS_ENTRY_POLL.aulaLookupFailThreshold;
 
 async function waitForAuthUser(fallbackUser: User | null): Promise<User | null> {
   if (fallbackUser?.id) {
@@ -187,7 +189,7 @@ export default function ClaseVirtualEntryPage() {
         if (!user) {
           setCurrentUserId("");
           aulaLookupAttemptsRef.current += 1;
-          setLookupFailed(aulaLookupAttemptsRef.current >= 4);
+          setLookupFailed(aulaLookupAttemptsRef.current >= AULA_LOOKUP_FAIL_THRESHOLD);
           return;
         }
         setCurrentUserId(user.id);
@@ -214,7 +216,7 @@ export default function ClaseVirtualEntryPage() {
           setAula(null);
           setTemplate(null);
           setMember(null);
-          setLookupFailed(aulaLookupAttemptsRef.current >= 4);
+          setLookupFailed(aulaLookupAttemptsRef.current >= AULA_LOOKUP_FAIL_THRESHOLD);
           return;
         }
 

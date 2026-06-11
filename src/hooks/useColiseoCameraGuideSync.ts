@@ -6,6 +6,7 @@ import {
   pickLatestColiseoGuideFromPresence,
   type ColiseoGuidePresenceMeta,
 } from "@/lib/coliseoDocenteGuide";
+import { COLISEO_CLASS_GUIDE_SYNC } from "@/lib/coliseoClassVoiceBaseline";
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
@@ -15,9 +16,10 @@ type CameraGuidePayload = {
   guideAt?: number;
 };
 
-const GUIDE_BROADCAST_RETRIES = 4;
-const GUIDE_SEND_RETRY_MS = 200;
-const GUIDE_SUBSCRIBE_TIMEOUT_MS = 8000;
+const GUIDE_BROADCAST_RETRIES = COLISEO_CLASS_GUIDE_SYNC.broadcastRetries;
+const GUIDE_SEND_RETRY_MS = COLISEO_CLASS_GUIDE_SYNC.sendRetryMs;
+const GUIDE_SUBSCRIBE_TIMEOUT_MS = COLISEO_CLASS_GUIDE_SYNC.subscribeTimeoutMs;
+const GUIDE_BROADCAST_EVENT = COLISEO_CLASS_GUIDE_SYNC.event;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -83,7 +85,7 @@ export function useColiseoCameraGuideSync(classSlug: string, isTeacher: boolean)
 
         const status = await channelRef.current.send({
           type: "broadcast",
-          event: "camera-guide",
+          event: GUIDE_BROADCAST_EVENT,
           payload,
         });
         if (status === "ok") return;
@@ -173,7 +175,7 @@ export function useColiseoCameraGuideSync(classSlug: string, isTeacher: boolean)
       channelRef.current = syncChannel;
 
       syncChannel
-        .on("broadcast", { event: "camera-guide" }, ({ payload }) => {
+        .on("broadcast", { event: GUIDE_BROADCAST_EVENT }, ({ payload }) => {
           const command = (payload as CameraGuidePayload | null) ?? null;
           if (!command || command.senderId === user.id) return;
           if (!isColiseoGuidePoint(command.point)) return;

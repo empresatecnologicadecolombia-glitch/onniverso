@@ -6,7 +6,4 @@ export type ClassVoiceControlPayload = {
   teacherId: string;
 };
 
-export function buildClassVoiceControlChannel(classSlug: string): string {
-  const slug = classSlug.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "-");
-  return `class-voice-control-${slug || "main"}`;
-}
+export { buildClassVoiceControlChannel } from "@/lib/coliseoClassVoiceBaseline";

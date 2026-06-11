@@ -4,6 +4,10 @@ import {
   COLOSSEO_NATIVE_BROWSER_SLOT_ID,
   useColiseoNativeWebViewSlot,
 } from "@/lib/coliseoNativeWebView";
+import {
+  COLISEO_CLASS_VIDEO_SYNC,
+  buildClassVideoSyncChannel,
+} from "@/lib/coliseoClassVoiceBaseline";
 import { supabase } from "@/integrations/supabase/client";
 import {
   getCachedPlaybackUrl,
@@ -71,7 +75,7 @@ export default function ColiseoAndroidWebViewSlot({
       if (!isTeacher || !channelRef.current || !selfUserId) return;
       await channelRef.current.send({
         type: "broadcast",
-        event: "video-control",
+        event: COLISEO_CLASS_VIDEO_SYNC.event,
         payload: { ...command, senderId: selfUserId },
       });
     },
@@ -102,7 +106,7 @@ export default function ColiseoAndroidWebViewSlot({
 
       // Usamos solo classSlug para que docente y alumnos queden en el mismo canal
       // aunque lleguen con/ sin query `session` en la URL.
-      const channelName = `class-video-sync-${syncContext.classSlug || "main"}`;
+      const channelName = buildClassVideoSyncChannel(syncContext.classSlug || "main");
       syncChannel = supabase.channel(channelName);
       channelRef.current = syncChannel;
 

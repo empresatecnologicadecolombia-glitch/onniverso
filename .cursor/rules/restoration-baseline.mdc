@@ -58,3 +58,25 @@ El usuario validó y publicó en producción estos comportamientos; quedan **con
 - **No** revertir el selector de rol de registro ni su persistencia en `profiles.app_role`.
 - **No** volver a redirigir a alumnos al panel docente desde Coliseo.
 - Cualquier mejora nueva debe ser incremental y sin romper estos flujos ya validados.
+
+## Baseline clase Coliseo en vivo — validado (11 junio 2026)
+
+El usuario validó en **producción** (PC docente + APK alumno) el flujo completo de aula virtual 360:
+
+- Entrada `/clase/:slug` con espera de sesión Supabase, polling live y APK nativo.
+- Voz Agora + presencia docente ↔ alumnos + grant/revoke mic.
+- Video MP4 play/pausa/siguiente/anterior sincronizado.
+- Guía 3 puntos (vista 360) con broadcast + presence replay.
+- Sin sync remoto de cámara del dispositivo (revertido).
+
+### Restaurar este baseline
+
+- **Etiqueta:** `coliseo-class-live-validado-2026-06-11`
+- **Comando:** `git checkout coliseo-class-live-validado-2026-06-11`
+- **Regla agente:** `.cursor/rules/coliseo-class-live-frozen.mdc` (`alwaysApply: true`)
+- **Contratos:** `src/lib/coliseoClassVoiceBaseline.ts` → `2026-06-11-validated`
+
+### Candado
+
+- Complementa y **prioriza** sobre candados parciales anteriores de aulas en vivo.
+- **No** modificar archivos listados en `coliseo-class-live-frozen.mdc` sin orden explícita del usuario.

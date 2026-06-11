@@ -1,0 +1,88 @@
+---
+description: Candado — clase Coliseo 360 en vivo (entrada, voz, video, guía 3 puntos, APK); intocable sin orden explícita
+alwaysApply: true
+---
+
+# Clase Coliseo en vivo — congelado (candado jun 2026)
+
+El usuario **validó en producción** (PC docente + APK/celular alumno) el flujo completo de **aula virtual en Coliseo 360**. Es la **parte más importante del proyecto**. Tratar como **solo lectura** salvo petición **explícita** que nombre **archivo(s) y cambio concreto**.
+
+**No confundir** con voz Onni (`.cursor/rules/onni-voice-frozen.mdc`) ni con streaming Agora de salas públicas (`streaming-frozen.mdc`).
+
+## Punto de restauración Git
+
+- **Etiqueta:** `coliseo-class-live-validado-2026-06-11`
+- **Comando:** `git checkout coliseo-class-live-validado-2026-06-11`
+- **Baseline código:** `src/lib/coliseoClassVoiceBaseline.ts` → `COLISEO_CLASS_VOICE_BASELINE_VERSION`
+- **Tests candado:** `src/test/coliseoClassVoiceBaseline.test.ts`, `src/test/coliseoDocenteGuide.test.ts`
+
+## Fuente única de contratos
+
+| Qué | Archivo |
+|-----|---------|
+| Canales, eventos, polling, versión | `src/lib/coliseoClassVoiceBaseline.ts` |
+| Entrada alumno `/clase/:slug` | `src/pages/ClaseVirtualEntryPage.tsx` |
+| Coliseo + rol host/audience + cámara local | `src/pages/ColiseoPage.tsx` |
+| Escena 360 + hotspots guía | `src/components/immersive/ColiseoImmersiveScene.tsx` |
+| Guía 3 puntos (sync) | `src/hooks/useColiseoCameraGuideSync.ts` |
+| Targets / animación guía | `src/lib/coliseoDocenteGuide.ts`, `ColiseoCameraGuideDriver.tsx`, `ColiseoDocenteGuideHotspots.tsx` |
+| Video MP4 play/pausa/siguiente | `src/components/immersive/ColiseoBrowserPanel.tsx` |
+| Voz Agora + presencia + panel alumnos | `src/components/streaming/AgoraClassVoiceBridge.tsx`, `AgoraClassVoiceTeacherPanel.tsx` |
+| Mic grant/revoke broadcast | `src/lib/classVoiceControl.ts` |
+| Crear/iniciar clase + snapshot | `src/pages/DocenteClasesPage.tsx` |
+| APK Coliseo nativo | `src/lib/coliseoOpenDirect.ts`, `coliseoClassLaunch.ts`, `android/.../ColiceoActivity.java` |
+
+## Canales Realtime (no renombrar ni fusionar)
+
+| Feature | Canal | Evento |
+|---------|-------|--------|
+| Voz Agora | `buildClassVoiceAgoraChannel(slug)` | (Agora SDK) |
+| Presencia conectados | `buildClassVoicePresenceChannel(slug)` | presence |
+| Mic docente → alumno | `buildClassVoiceControlChannel(slug)` | `voice-control` |
+| Video play/pausa/lista | `buildClassVideoSyncChannel(slug)` | `video-control` |
+| Guía 3 puntos vista 360 | `buildClassCameraGuideChannel(slug)` | `camera-guide` + **presence replay** |
+
+## Comportamiento validado (no alterar)
+
+### Entrada de clase (`ClaseVirtualEntryPage`)
+
+- Esperar sesión Supabase (`getSession` + poll) **antes** de consultar `aulas_virtuales` (evita falso “no existe” en APK).
+- Polling de `clase_sesiones` live cada 3 s si alumno aprobado y clase aún no en vivo.
+- Reintentos silenciosos de carga de aula si falla la primera consulta.
+- `enterClassroom`: mic → `stashColiseoClassLaunch` → `invokeOpenColiceoDirect` → fallback `navigate`.
+
+### Guía 3 puntos (`useColiseoCameraGuideSync`)
+
+- Broadcast solo tras canal `SUBSCRIBED`, con reintentos.
+- Docente publica último punto en **presence** para alumnos que entran tarde.
+- **Prohibido** reintroducir sync remoto de cámara del dispositivo (`class-student-camera-*`) sin orden explícita.
+
+### Video en pantalla (`ColiseoBrowserPanel`)
+
+- Canal solo por `classSlug` (sin depender de `session` en URL).
+- Docente controla play/pausa/siguiente/anterior vía broadcast.
+
+### Voz + presencia (`AgoraClassVoiceBridge`)
+
+- Monta solo con `classSlug` + `role` (`host` | `audience`).
+- Presencia Supabase en canal aparte del control de mic y del video-sync.
+- Retries de rol en `ColiseoPage` para APK (no quitar).
+
+## Prohibido sin petición explícita del usuario
+
+- Refactors que mezclen canales (voz + video + guía + presencia en uno solo).
+- Quitar polling/reintentos de entrada de clase o presence replay de guía.
+- Volver a botón docente “encender cámaras alumnos” o canal `class-student-camera-*`.
+- Abrir clase en WebView principal en APK en lugar de `ColiceoActivity`.
+- Tocar `AgoraClassVoiceBridge` por features de cámara local, guía o UI no pedidas.
+- Cambiar nombres de eventos broadcast o prefijos de canal sin actualizar baseline + tests.
+
+## Tras cambiar web o Java Android
+
+- Web: despliegue Vercel habitual.
+- APK: `npm run sync:android` + subir `versionCode` si publicas APK.
+
+## Si el usuario pide otra cosa
+
+- Diff **mínimo**; si toca la tabla anterior, **avisar** qué archivo/línea se vería afectada.
+- Cambio intencional → actualizar `coliseoClassVoiceBaseline.ts` + tests candado en el mismo diff.
