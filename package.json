@@ -21,10 +21,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "desktop:icon": "node scripts/generate-desktop-icon.mjs",
-    "desktop:speech-build": "node scripts/build-win-speech.mjs",
-    "desktop:whisper-build": "node scripts/setup-whisper.mjs",
     "desktop:dev": "npm run desktop:icon && electron .",
-    "desktop:pack": "npm run desktop:speech-build && npm run desktop:whisper-build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win --dir && node scripts/apply-desktop-icon.mjs",
+    "desktop:pack": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win --dir && node scripts/apply-desktop-icon.mjs",
     "desktop:dist": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false node scripts/apply-desktop-icon.mjs && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win nsis --prepackaged release/win-unpacked",
     "desktop:build": "npm run desktop:icon && npm run desktop:pack && npm run desktop:dist"
   },
@@ -82,6 +80,7 @@
     "hls.js": "^1.6.16",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.462.0",
+    "microsoft-cognitiveservices-speech-sdk": "^1.50.0",
     "next-themes": "^0.3.0",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
@@ -174,20 +173,6 @@
       {
         "from": "electron/icons/icon.png",
         "to": "icon.png"
-      },
-      {
-        "from": "electron/onni-win-speech/publish/onni-win-speech.exe",
-        "to": "onni-win-speech.exe",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "electron/whisper/publish",
-        "to": "whisper",
-        "filter": [
-          "**/*"
-        ]
       }
     ]
   }

@@ -6,20 +6,10 @@ function isValidCallbackName(name: string): boolean {
   return /^[a-zA-Z_$][\w$]*$/.test(name);
 }
 
-/** WinRT legacy: solo omite getUserMedia si Whisper no está en el .exe. */
-function usesElectronWindowsNativeVoice(): boolean {
-  return (
-    isElectronDesktopApp() &&
-    typeof window.onniversDesktop?.voice?.startListening === "function" &&
-    typeof window.onniversDesktop?.whisper?.transcribe !== "function"
-  );
-}
-
 /**
  * Pide permiso de micrófono para Onni.
  * - APK Android: diálogo nativo vía AndroidBridge.
- * - OnniVers .exe con voz Windows: no requiere getUserMedia.
- * - Navegador / fallback Electron: getUserMedia.
+ * - Navegador / OnniVers .exe: getUserMedia.
  */
 export function requestOnniMicrophoneAccess(): Promise<MicPermissionStatus> {
   const nativeRequest = window.AndroidBridge?.requestOnniMicrophonePermission;
@@ -38,10 +28,6 @@ export function requestOnniMicrophoneAccess(): Promise<MicPermissionStatus> {
         resolve("unsupported");
       }
     });
-  }
-
-  if (usesElectronWindowsNativeVoice()) {
-    return Promise.resolve("granted");
   }
 
   if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
@@ -63,7 +49,7 @@ export function requestOnniMicrophoneAccess(): Promise<MicPermissionStatus> {
 }
 
 export function onniMicDeniedMessage(): string {
-  if (usesElectronWindowsNativeVoice() || isElectronDesktopApp()) {
+  if (isElectronDesktopApp()) {
     return "Permite el micrófono: Configuración de Windows → Privacidad → Micrófono → OnniVers.";
   }
   const isNative = typeof window.AndroidBridge?.requestOnniMicrophonePermission === "function";

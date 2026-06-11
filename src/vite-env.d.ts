@@ -52,19 +52,6 @@ interface Window {
     platform?: string;
     version?: string;
     isDesktopApp?: boolean;
-    windowsNativeVoice?: boolean;
-    whisper?: {
-      isAvailable?: () => Promise<boolean>;
-      transcribe?: (payload: {
-        audioBase64: string;
-        mimeType?: string;
-      }) => Promise<{ text?: string }>;
-    };
-    voice?: {
-      isAvailable?: () => Promise<boolean>;
-      startListening?: () => Promise<boolean>;
-      stopListening?: () => Promise<boolean>;
-    };
     clipboard?: {
       writeText?: (text: string) => Promise<void>;
     };

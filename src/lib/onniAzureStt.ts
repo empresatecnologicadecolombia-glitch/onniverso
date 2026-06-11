@@ -1,6 +1,12 @@
 import { onniMicDeniedMessage, requestOnniMicrophoneAccess } from "@/lib/requestOnniMicrophone";
 import { stopAzureVoice } from "@/lib/onniAzureTts";
 import { isElectronDesktopApp } from "@/lib/deviceDetection";
+import {
+  cancelAzureStreamingRecognition,
+  isAzureStreamingRecording,
+  startAzureStreamingRecognition,
+  stopAzureStreamingRecognitionAndGetText,
+} from "@/lib/onniAzureStreamingStt";
 
 const TARGET_SAMPLE_RATE = 16_000;
 const MAX_RECORD_MS = 25_000;
@@ -110,7 +116,7 @@ export function isAzureMicSupported(): boolean {
 }
 
 export function isAzureMicRecording(): boolean {
-  return activeSession !== null;
+  return activeSession !== null || isAzureStreamingRecording();
 }
 
 async function blobToBase64(blob: Blob): Promise<string> {
@@ -143,6 +149,13 @@ export async function startAzureMicRecording(
   }
   if (permission === "unsupported") {
     return { ok: false, error: "Micrófono no disponible en este dispositivo." };
+  }
+
+  // Solo .exe: STT streaming (transcribe mientras hablas, respuesta casi
+  // instantánea al soltar). Si falla, sigue el flujo clásico de abajo.
+  if (isElectronDesktopApp()) {
+    const streamingStarted = await startAzureStreamingRecognition();
+    if (streamingStarted) return { ok: true };
   }
 
   try {
@@ -202,6 +215,10 @@ export async function transcribeBlobWithAzure(blob: Blob): Promise<string> {
 }
 
 export async function stopAzureMicRecordingAndTranscribe(): Promise<string> {
+  if (isAzureStreamingRecording()) {
+    return stopAzureStreamingRecognitionAndGetText();
+  }
+
   const session = activeSession;
   if (!session) return "";
 
@@ -222,6 +239,7 @@ export async function stopAzureMicRecordingAndTranscribe(): Promise<string> {
 }
 
 export function cancelAzureMicRecording(): void {
+  cancelAzureStreamingRecognition();
   const session = activeSession;
   if (!session) return;
   if (session.recorder.state === "recording") {

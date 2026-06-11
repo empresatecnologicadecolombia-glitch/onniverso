@@ -44,8 +44,8 @@ El usuario **validó y restauró desde Vercel** el micrófono y la voz en **Onni
 |------|----------|
 | Asistente Onni (bloques voz/mic) | `src/components/OpAiAssistant.tsx` — hooks `useOnniChatVoice`, `useOnniVoice`, mic Android/Electron, switch, botones mic/volumen |
 | Orquestación chat + voz | `src/hooks/useOnniChatVoice.ts` |
-| Azure STT/TTS servidor | `api/azure/speech-stt.js`, `api/azure/speech-tts.js` |
-| Cliente Azure | `src/lib/onniAzureStt.ts`, `src/lib/onniAzureTts.ts` |
+| Azure STT/TTS servidor | `api/azure/speech-stt.js`, `api/azure/speech-tts.js`, `api/azure/speech-token.js` |
+| Cliente Azure | `src/lib/onniAzureStt.ts`, `src/lib/onniAzureTts.ts`, `src/lib/onniAzureStreamingStt.ts` (streaming .exe) |
 | Permisos mic | `src/lib/requestOnniMicrophone.ts`, `src/lib/onniNativeVoiceErrors.ts` |
 | Detección plataforma | `src/lib/deviceDetection.ts` — funciones `isElectronDesktopApp`, `isDesktopWebBrowser`, `isOnniAndroidVoice` |
 | Tests mic | `src/test/requestOnniMicrophone.test.ts` |
