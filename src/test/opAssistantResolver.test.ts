@@ -129,7 +129,6 @@ describe("resolveOpCommand", () => {
     expect(resolveOpCommand("ir a la clase virtual", "/nuestras-salas").navigateTo).toBe("/3d");
     expect(resolveOpCommand("aula virtual", "/").navigateTo).toBe("/3d");
     expect(resolveOpCommand("lleva al aula", "/").navigateTo).toBe("/3d");
-    expect(resolveOpCommand("aula caminable", "/").navigateTo).toBe("/aula-virtual");
   });
 
   it("video de ia y robots va a su sala espectador", () => {

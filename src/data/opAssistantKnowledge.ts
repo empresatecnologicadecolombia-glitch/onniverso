@@ -150,34 +150,6 @@ export const OP_ROUTES: OpRouteEntry[] = [
     requiresAuth: true,
   },
   {
-    id: "galeria-3d",
-    path: GALERIA_AULA_SECTION_PATH,
-    label: "Galería 3D",
-    description: "Modelos 3D y tarjeta del Aula Virtual.",
-    aliases: ["galeria", "galeria 3d", "3d", "modelos 3d", "galeria tres d"],
-    requiresAuth: true,
-  },
-  {
-    id: "galeria-aula-card",
-    path: GALERIA_AULA_SECTION_PATH,
-    label: "Aula Virtual (tarjeta en galería)",
-    description: "Sección del menú que lleva a la tarjeta Aula en Galería 3D.",
-    aliases: ["aula tarjeta", "tarjeta aula", "aula en galeria", "seccion aula"],
-    requiresAuth: true,
-  },
-  {
-    id: "aula-lobby",
-    path: "/aula-virtual",
-    label: "Aula Virtual (lobby 3D)",
-    description: "Lobby caminable del aula con decoración educativa.",
-    aliases: [
-      "aula caminable",
-      "lobby del aula",
-      "entrar al aula caminable",
-    ],
-    requiresAuth: true,
-  },
-  {
     id: "lobby-inmersivo",
     path: "/lobby-inmersivo",
     label: "Lobby inmersivo",
@@ -255,13 +227,6 @@ export const OP_ROUTES: OpRouteEntry[] = [
     requiresAuth: true,
   },
   {
-    id: "eventos",
-    path: "/eventos",
-    label: "Eventos",
-    description: "Listado de eventos.",
-    aliases: ["eventos", "evento", "agenda"],
-  },
-  {
     id: "educacion",
     path: "/educacion",
     label: "Educación",
@@ -292,22 +257,6 @@ export const OP_ROUTES: OpRouteEntry[] = [
     label: "Red social inmersiva",
     description: "Experiencia social inmersiva.",
     aliases: ["red social inmersiva", "red inmersiva", "social inmersivo"],
-  },
-  {
-    id: "podcast-hub",
-    path: "/podcast-hub",
-    label: "Podcast Hub",
-    description: "Listado de podcasts / salas esféricas.",
-    aliases: ["podcast", "podcasts", "podcast hub", "hub podcast"],
-    requiresAuth: true,
-  },
-  {
-    id: "teatro-hub",
-    path: "/teatro-hub",
-    label: "Teatro Hub",
-    description: "Stand-up y teatro en vivo.",
-    aliases: ["teatro", "stand up", "standup", "teatro hub", "comedia"],
-    requiresAuth: true,
   },
   {
     id: "pc",
@@ -362,9 +311,6 @@ export const OP_ROUTES: OpRouteEntry[] = [
     aliases: ["terminos", "condiciones", "legal", "terminos y condiciones"],
   },
 ];
-
-/** Salas de teatro (TeatroHub). */
-export const OP_TEATRO_ROOMS: { id: string; title: string; aliases: string[]; path: string }[] = [];
 
 function streamerAliases(name: string, id: string, immersiveSalaName: string): string[] {
   const sala = immersiveSalaName.trim().toLowerCase();

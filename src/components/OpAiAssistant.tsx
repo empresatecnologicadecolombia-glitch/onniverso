@@ -6,11 +6,9 @@ import { Input } from "@/components/ui/input";
 import OnniAvatarDots from "@/components/OnniAvatarDots";
 import HomeSocialRedesRow from "@/components/HomeSocialRedesRow";
 import { dispatchOpCommand } from "@/lib/opCommandBus";
-import { getOnniIntroduction, sayOnni } from "@/data/onniBrain";
+import { getOnniIntroduction } from "@/data/onniBrain";
 import { toast } from "sonner";
 import { getOpAssistantHint, resolveOpCommand, shouldAskOnniGemini } from "@/lib/opAssistantResolver";
-import { runOnniDesktopJob } from "@/lib/onniDesktop/dispatcher";
-import { isOnniDesktopOfficeAvailable } from "@/lib/onniDesktop/bridge";
 import { askOnniGemini, isOnniNavigationResult } from "@/lib/onniGemini";
 import { askOnniOllama, isOnniOllamaAvailable } from "@/lib/onniOllama";
 import { invokeOpenGalleryDirect } from "@/lib/galleryOpenDirect";
@@ -25,10 +23,6 @@ import {
 import { openHomeSocialRedes } from "@/lib/homeSocialRedesOpen";
 import { shouldShowNativeVoiceError } from "@/lib/onniNativeVoiceErrors";
 import { useOnniChatVoice } from "@/hooks/useOnniChatVoice";
-import { useOnniDesktopOfficeMode } from "@/hooks/useOnniDesktopOfficeMode";
-import { getDesktopOfficePlaceholder } from "@/lib/onniDesktop/officeMode";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import OpAiAndroidAzureMic from "@/components/OpAiAndroidAzureMic";
 import OpAiElectronAzureMic from "@/components/OpAiElectronAzureMic";
 import { useOnniAzureMic } from "@/hooks/useOnniAzureMic";
@@ -126,20 +120,13 @@ export default function OpAiAssistant() {
   const showElectronMic = isElectronDesktopApp() && isAzureMicSupported();
   /** Chrome/Edge escritorio: mic Web Speech mantener pulsado + Espacio (sin Azure). */
   const showChromeWebPushToTalk = isDesktopWebBrowser() && canListen;
-  const { available: desktopOfficeAvailable, enabled: desktopOfficeMode, setOfficeMode } =
-    useOnniDesktopOfficeMode();
 
   const runCommandRef = useRef<(raw: string) => Promise<string | undefined>>(async () => undefined);
   const openRef = useRef(open);
   openRef.current = open;
 
-  const hint = useMemo(
-    () => getOpAssistantHint(location.pathname, desktopOfficeMode),
-    [location.pathname, desktopOfficeMode],
-  );
-  const inputPlaceholder = desktopOfficeMode
-    ? getDesktopOfficePlaceholder()
-    : "videos educativos, lobby, ayuda o pregunta libre";
+  const hint = useMemo(() => getOpAssistantHint(location.pathname), [location.pathname]);
+  const inputPlaceholder = "videos educativos, lobby, ayuda o pregunta libre";
   const isColiseoClassScene = location.pathname.startsWith("/coliseo");
   const isAulaVirtualScene = location.pathname === "/aula-virtual";
   const shiftOnniRight = isColiseoClassScene || isAulaVirtualScene;
@@ -170,20 +157,7 @@ export default function OpAiAssistant() {
         const result = resolveOpCommand(trimmed, location.pathname, {
           lastAnswer: sessionRef.current.lastAnswer,
           appRole: roleForCommand,
-          desktopOfficeMode,
         });
-
-        if (result.desktopJob && isOnniDesktopOfficeAvailable()) {
-          sessionRef.current.lastAnswer = result.answer;
-          appendAssistantAnswer(setMessages, sessionRef, result.answer, speakAnswer);
-          const desktopResult = await runOnniDesktopJob(result.desktopJob);
-          const tail = desktopResult.ok
-            ? desktopResult.mensaje || "Listo en tu carpeta local."
-            : desktopResult.mensaje || "No pude completar la tarea en tu PC.";
-          sessionRef.current.lastAnswer = tail;
-          appendAssistantAnswer(setMessages, sessionRef, sayOnni(tail), speakAnswer);
-          return tail;
-        }
 
         if (isOnniNavigationResult(result)) {
           sessionRef.current.lastAnswer = result.answer;
@@ -331,7 +305,7 @@ export default function OpAiAssistant() {
         setProcessing(false);
       }
     },
-    [desktopOfficeMode, location.pathname, navigate, speakAnswer, user?.id],
+    [location.pathname, navigate, speakAnswer, user?.id],
   );
 
   runCommandRef.current = runCommand;
@@ -686,25 +660,6 @@ export default function OpAiAssistant() {
             <OnniAvatarDots size="md" state={avatarState} className="mt-0.5 shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-cyan-100">Onni</p>
-              {desktopOfficeAvailable ? (
-                <div className="mt-2 flex items-center gap-2">
-                  <Switch
-                    id="onni-desktop-office-mode"
-                    checked={desktopOfficeMode}
-                    onCheckedChange={setOfficeMode}
-                    aria-label="Activar modo oficina docente"
-                  />
-                  <Label
-                    htmlFor="onni-desktop-office-mode"
-                    className="cursor-pointer text-[10px] font-normal leading-tight text-cyan-100/85"
-                  >
-                    Modo oficina
-                    <span className="block text-[9px] text-muted-foreground">
-                      {desktopOfficeMode ? "Preparar clases en tu PC" : "Navegación OnniVers normal"}
-                    </span>
-                  </Label>
-                </div>
-              ) : null}
             </div>
             <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(false)}>
               Cerrar

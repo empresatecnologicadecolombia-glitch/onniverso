@@ -95,6 +95,4 @@ export const ONNI_STORAGE_KEYS = {
   /** Escucha automática en OnniVers .exe */
   listenElectron: "onniverso.onni.listen.electron",
   speak: "onniverso.onni.speak",
-  /** Modo oficina docente en OnniVers .exe (preparar clases en carpeta local). */
-  desktopOfficeMode: "onniverso.onni.desktopOfficeMode",
 } as const;

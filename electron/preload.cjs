@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer, clipboard } = require("electron");
+const { contextBridge, clipboard } = require("electron");
 
 contextBridge.exposeInMainWorld("onniversDesktop", {
   platform: process.platform,
@@ -6,9 +6,5 @@ contextBridge.exposeInMainWorld("onniversDesktop", {
   isDesktopApp: true,
   clipboard: {
     writeText: (text) => Promise.resolve(clipboard.writeText(String(text ?? ""))),
-  },
-  docenteOffice: {
-    getBasePath: () => ipcRenderer.invoke("onnivers:docente:getBasePath"),
-    execute: (payload) => ipcRenderer.invoke("onnivers:docente:execute", payload),
   },
 });

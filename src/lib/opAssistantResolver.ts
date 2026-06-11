@@ -1,5 +1,5 @@
 import { GALERIA_AULA_SECTION_PATH } from "@/lib/aulaVirtual";
-import { OP_LOBBY_HINTS, OP_ROUTES, OP_STREAMERS, OP_TEATRO_ROOMS, type OpRouteEntry } from "@/data/opAssistantKnowledge";
+import { OP_LOBBY_HINTS, OP_ROUTES, OP_STREAMERS, type OpRouteEntry } from "@/data/opAssistantKnowledge";
 import { parseOnniWakePhrase } from "@/lib/onniVoice";
 import {
   getContextGuide,
@@ -18,17 +18,10 @@ import {
   setFavoriteStreamerId,
 } from "@/data/onniBrain";
 import type { OpCommand } from "@/lib/opCommandBus";
-import { isElectronDesktopApp } from "@/lib/deviceDetection";
-import { isOnniDesktopOfficeAvailable } from "@/lib/onniDesktop/bridge";
-import { looksLikeDesktopOfficeRequest, matchOnniDesktopIntent } from "@/lib/onniDesktop/intents";
-import { readDesktopOfficeMode } from "@/lib/onniDesktop/officeMode";
-import type { OnniDesktopJob } from "@/lib/onniDesktop/types";
-
 export type OpResolveResult = {
   command?: OpCommand;
   navigateTo?: string;
   navigateBack?: boolean;
-  desktopJob?: OnniDesktopJob;
   answer: string;
 };
 
@@ -36,8 +29,6 @@ export type OpResolveSession = {
   lastAnswer?: string;
   /** Rol actual (`docente`, `admin`, etc.) para comandos restringidos. */
   appRole?: string | null;
-  /** Modo oficina docente activo (solo .exe). */
-  desktopOfficeMode?: boolean;
 };
 
 const DOCENTE_PANEL_PATH = "/docente-clases";
@@ -523,10 +514,6 @@ function matchLocalReproductor(text: string): OpResolveResult | null {
   const route = OP_ROUTES.find((r) => r.id === "reproductor");
   if (!route) return null;
 
-  if (isElectronDesktopApp() && readDesktopOfficeMode() && looksLikeDesktopOfficeRequest(text)) {
-    return null;
-  }
-
   const explicitLocal =
     /\b(mp4|mp3)\b/.test(text) ||
     /\b(video local|videos locales|archivos mp4|archivo mp4)\b/.test(text) ||
@@ -579,19 +566,13 @@ function matchStreamer(text: string): OpResolveResult | null {
   if (!hit || !hasNamedStreamerIntent(text, hit.alias)) return null;
 
   const wantsPodcast = /\b(podcast|lounge|esferico|esfera)\b/.test(text);
-  const wantsTeatro = /\b(teatro|standup|stand up|comedia)\b/.test(text);
   const wantsVideo =
     /\b(video|videos|vivo|live|stream|sala|espectador|mirar|escuchar)\b/.test(text) ||
     /\b(entra|entrar|abre|abrir|ver)\b/.test(text);
   const namesArtistOnly =
-    !wantsVideo && !wantsPodcast && !wantsTeatro && hasNamedStreamerIntent(text, hit.alias);
+    !wantsVideo && !wantsPodcast && hasNamedStreamerIntent(text, hit.alias);
 
   const { item } = hit;
-  const teatro = OP_TEATRO_ROOMS.find((t) => t.id === item.id);
-
-  if (wantsTeatro && teatro) {
-    return { navigateTo: teatro.path, answer: sayOnni(`Te llevo al teatro: ${teatro.title}.`) };
-  }
 
   if (wantsPodcast) {
     return {
@@ -608,16 +589,6 @@ function matchStreamer(text: string): OpResolveResult | null {
   }
 
   return null;
-}
-
-function matchTeatro(text: string): OpResolveResult | null {
-  const hit = findLongestAliasMatch(text, OP_TEATRO_ROOMS);
-  if (!hit) return null;
-  if (!/\b(teatro|stand|comedia|sala)\b/.test(text) && !hit.alias.includes(" ")) {
-    const streamerHit = OP_STREAMERS.some((s) => s.id === hit.item.id && text.includes(hit.alias));
-    if (streamerHit) return null;
-  }
-  return { navigateTo: hit.item.path, answer: sayOnni(`Te llevo al teatro: ${hit.item.title}.`) };
 }
 
 function matchInicio(text: string): OpResolveResult | null {
@@ -796,10 +767,6 @@ function matchRoute(text: string): OpResolveResult | null {
   const hit = findLongestAliasMatch(core, OP_ROUTES);
   if (!hit) return null;
   const route = hit.item as OpRouteEntry;
-  if (route.id === "aula-lobby") {
-    const explicitLobby = /\b(aula caminable|lobby del aula|entrar al aula caminable)\b/.test(text);
-    if (!explicitLobby) return null;
-  }
   return { navigateTo: route.path, answer: sayOnni(`Te llevo a ${route.label}.`) };
 }
 
@@ -870,29 +837,6 @@ export function resolveOpCommand(
     };
   }
 
-  if (isElectronDesktopApp() && session.desktopOfficeMode) {
-    const desktopJob = matchOnniDesktopIntent(text);
-    if (desktopJob) {
-      if (!isOnniDesktopOfficeAvailable()) {
-        return {
-          answer: sayOnni(
-            "Detecté un pedido de oficina docente, pero este .exe no tiene el módulo nuevo. Cierra OnniVers y ábrelo con: npm run desktop:dev (desde la carpeta del proyecto actualizada).",
-          ),
-        };
-      }
-      const summary =
-        desktopJob.tipo === "flujo"
-          ? `Voy a preparar la clase${desktopJob.params?.tema ? ` sobre ${String(desktopJob.params.tema)}` : ""} en tu PC.`
-          : desktopJob.tipo === "secuencia"
-            ? `Voy a ejecutar ${desktopJob.pasos.length} pasos en tu carpeta local.`
-            : `Voy a ${desktopJob.accion.replace(/_/g, " ")} en tu PC.`;
-      return {
-        desktopJob,
-        answer: sayOnni(`${summary} Todo queda en Documentos/OnniVers/Clases.`),
-      };
-    }
-  }
-
   const social = matchSocial(text);
   if (social) return social;
 
@@ -941,9 +885,6 @@ export function resolveOpCommand(
   const streamer = matchStreamer(text);
   if (streamer) return avoidEspectadorLoop(streamer, text, currentPath);
 
-  const teatro = matchTeatro(text);
-  if (teatro) return teatro;
-
   const docentePanel = matchDocentePanel(text, session.appRole);
   if (docentePanel) return docentePanel;
 
@@ -968,10 +909,7 @@ export function resolveOpCommand(
   return fallback(text);
 }
 
-export function getOpAssistantHint(currentPath: string, desktopOfficeMode = false): string {
-  if (desktopOfficeMode) {
-    return 'Modo oficina activo: "prepárame una clase sobre…", "crea carpeta con PDF", "abre la carpeta".';
-  }
+export function getOpAssistantHint(currentPath: string): string {
   if (currentPath.startsWith("/lobby-inmersivo")) {
     return 'Di: "pantalla 3", "cambia el video a Daddy Yankee", "giroscopio".';
   }
