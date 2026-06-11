@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import type { User } from "@supabase/supabase-js";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 import { invokeOpenColiceoDirect } from "@/lib/coliseoOpenDirect";
 import { COLOSSEO_PATH } from "@/data/coliseoScene";
 import { stashColiseoClassLaunch } from "@/lib/coliseoClassLaunch";
@@ -41,7 +43,26 @@ type SessionSnapshot = {
   metadata?: { video_urls?: unknown } | null;
 };
 
-const LIVE_SESSION_POLL_MS = 5000;
+const LIVE_SESSION_POLL_MS = 3000;
+const AULA_RETRY_POLL_MS = 2500;
+const AUTH_SESSION_WAIT_MS = 4000;
+const AUTH_SESSION_POLL_MS = 200;
+
+async function waitForAuthUser(fallbackUser: User | null): Promise<User | null> {
+  if (fallbackUser?.id) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.id) return session.user;
+  }
+
+  const deadline = Date.now() + AUTH_SESSION_WAIT_MS;
+  while (Date.now() < deadline) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.id) return session.user;
+    await new Promise((resolve) => window.setTimeout(resolve, AUTH_SESSION_POLL_MS));
+  }
+
+  return fallbackUser?.id ? fallbackUser : null;
+}
 
 function normalizeVideoUrls(primaryMp4: string, rawList: unknown): string[] {
   const list = Array.isArray(rawList) ? rawList : [];
@@ -58,7 +79,9 @@ function normalizeVideoUrls(primaryMp4: string, rawList: unknown): string[] {
 export default function ClaseVirtualEntryPage() {
   const navigate = useNavigate();
   const { slug = "" } = useParams();
+  const { user: authUser } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [lookupFailed, setLookupFailed] = useState(false);
   const [requesting, setRequesting] = useState(false);
   const [aula, setAula] = useState<Aula | null>(null);
   const [template, setTemplate] = useState<Template | null>(null);
@@ -67,8 +90,10 @@ export default function ClaseVirtualEntryPage() {
   const [isClassLive, setIsClassLive] = useState(false);
   const [liveSessionId, setLiveSessionId] = useState<string>("");
   const [liveSnapshot, setLiveSnapshot] = useState<SessionSnapshot | null>(null);
-  const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [currentUserId, setCurrentUserId] = useState("");
   const realtimeReloadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loadGenerationRef = useRef(0);
+  const aulaLookupAttemptsRef = useRef(0);
   const aulaRef = useRef<Aula | null>(null);
   aulaRef.current = aula;
 
@@ -141,74 +166,103 @@ export default function ClaseVirtualEntryPage() {
     [applyLiveSession],
   );
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setIsClassLive(false);
-    setLiveSessionId("");
-    setLiveSnapshot(null);
-    try {
-      const { data: authData } = await supabase.auth.getUser();
-      const user = authData.user;
-      if (!user) {
-        setCurrentUserId("");
-        return;
-      }
-      setCurrentUserId(user.id);
-
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("app_role")
-        .eq("id", user.id)
-        .maybeSingle();
-      const currentRole = ((profileData as { app_role?: string } | null)?.app_role ?? "particular") as string;
-      setRole(currentRole);
-
-      const { data: aulaData, error: aulaError } = await supabase
-        .from("aulas_virtuales" as any)
-        .select("id,slug,nombre,descripcion,docente_id,is_active")
-        .eq("slug", slug)
-        .maybeSingle();
-      if (aulaError || !aulaData) {
+  const load = useCallback(
+    async (options?: { silent?: boolean }) => {
+      const slugTrimmed = slug.trim();
+      if (!slugTrimmed) {
         setAula(null);
-        setTemplate(null);
-        setMember(null);
+        setLookupFailed(true);
+        setLoading(false);
         return;
       }
-      setAula(aulaData as Aula);
 
-      const { data: tpl } = await supabase
-        .from("clase_templates" as any)
-        .select("titulo,mp4_url,pdf_url,glb_url,metadata")
-        .eq("aula_id", aulaData.id)
-        .maybeSingle();
-      setTemplate((tpl as Template | null) ?? null);
+      const generation = ++loadGenerationRef.current;
+      const silent = options?.silent ?? false;
+      if (!silent) setLoading(true);
 
-      const isOwner = aulaData.docente_id === user.id;
-      let currentMember: Member | null = null;
-      if (isOwner) {
-        setMember({ id: "owner", estado: "approved", rol: "teacher" });
-      } else {
-        const { data: memberData } = await supabase
-          .from("aula_miembros" as any)
-          .select("id,estado,rol")
-          .eq("aula_id", aulaData.id)
-          .eq("user_id", user.id)
+      try {
+        const user = await waitForAuthUser(authUser);
+        if (generation !== loadGenerationRef.current) return;
+
+        if (!user) {
+          setCurrentUserId("");
+          aulaLookupAttemptsRef.current += 1;
+          setLookupFailed(aulaLookupAttemptsRef.current >= 4);
+          return;
+        }
+        setCurrentUserId(user.id);
+
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("app_role")
+          .eq("id", user.id)
           .maybeSingle();
-        currentMember = (memberData as Member | null) ?? null;
-        setMember(currentMember);
-      }
+        if (generation !== loadGenerationRef.current) return;
 
-      const canReadSessionState =
-        currentRole === "admin" || isOwner || currentMember?.estado === "approved";
-      if (canReadSessionState) {
-        await refreshLiveSession(aulaData.id);
+        const currentRole = ((profileData as { app_role?: string } | null)?.app_role ?? "particular") as string;
+        setRole(currentRole);
+
+        const { data: aulaData, error: aulaError } = await supabase
+          .from("aulas_virtuales" as any)
+          .select("id,slug,nombre,descripcion,docente_id,is_active")
+          .eq("slug", slugTrimmed)
+          .maybeSingle();
+        if (generation !== loadGenerationRef.current) return;
+
+        if (aulaError || !aulaData) {
+          aulaLookupAttemptsRef.current += 1;
+          setAula(null);
+          setTemplate(null);
+          setMember(null);
+          setLookupFailed(aulaLookupAttemptsRef.current >= 4);
+          return;
+        }
+
+        aulaLookupAttemptsRef.current = 0;
+        setLookupFailed(false);
+        setAula(aulaData as Aula);
+
+        const { data: tpl } = await supabase
+          .from("clase_templates" as any)
+          .select("titulo,mp4_url,pdf_url,glb_url,metadata")
+          .eq("aula_id", aulaData.id)
+          .maybeSingle();
+        if (generation !== loadGenerationRef.current) return;
+        setTemplate((tpl as Template | null) ?? null);
+
+        const isOwner = aulaData.docente_id === user.id;
+        let currentMember: Member | null = null;
+        if (isOwner) {
+          setMember({ id: "owner", estado: "approved", rol: "teacher" });
+        } else {
+          const { data: memberData } = await supabase
+            .from("aula_miembros" as any)
+            .select("id,estado,rol")
+            .eq("aula_id", aulaData.id)
+            .eq("user_id", user.id)
+            .maybeSingle();
+          if (generation !== loadGenerationRef.current) return;
+          currentMember = (memberData as Member | null) ?? null;
+          setMember(currentMember);
+        }
+
+        const canReadSessionState =
+          currentRole === "admin" || isOwner || currentMember?.estado === "approved";
+        if (canReadSessionState) {
+          await refreshLiveSession(aulaData.id);
+        }
+      } finally {
+        if (generation === loadGenerationRef.current && !silent) {
+          setLoading(false);
+        }
       }
-    } finally {
-      setLoading(false);
-    }
-  }, [slug, refreshLiveSession]);
+    },
+    [authUser, slug, refreshLiveSession],
+  );
 
   useEffect(() => {
+    aulaLookupAttemptsRef.current = 0;
+    setLookupFailed(false);
     void load();
   }, [load]);
 
@@ -251,12 +305,25 @@ export default function ClaseVirtualEntryPage() {
   }, [aula?.id, currentUserId, queueRealtimeReload]);
 
   useEffect(() => {
+    if (!aula?.id || !hasAccess) return;
+    void refreshLiveSession(aula.id);
+  }, [aula?.id, hasAccess, refreshLiveSession]);
+
+  useEffect(() => {
     if (!aula?.id || !hasAccess || isClassLive || loading) return;
     const timer = window.setInterval(() => {
       void refreshLiveSession(aula.id);
     }, LIVE_SESSION_POLL_MS);
     return () => window.clearInterval(timer);
   }, [aula?.id, hasAccess, isClassLive, loading, refreshLiveSession]);
+
+  useEffect(() => {
+    if (loading || aula || !slug.trim() || lookupFailed) return;
+    const timer = window.setInterval(() => {
+      void load({ silent: true });
+    }, AULA_RETRY_POLL_MS);
+    return () => window.clearInterval(timer);
+  }, [loading, aula, slug, lookupFailed, load]);
 
   const requestAccess = async () => {
     if (!aula || requesting) return;
@@ -296,7 +363,7 @@ export default function ClaseVirtualEntryPage() {
       <Navbar />
       <main className="relative z-20 px-4 pb-20 pt-20 md:px-6">
         <div className="container mx-auto max-w-2xl rounded-2xl border border-cyan-400/25 bg-card/45 p-5 backdrop-blur-xl">
-          {loading ? (
+          {loading || (!aula && !lookupFailed) ? (
             <p className="text-sm text-muted-foreground">Cargando clase…</p>
           ) : !aula ? (
             <p className="text-sm text-rose-200">Esta clase no existe o no está activa.</p>
