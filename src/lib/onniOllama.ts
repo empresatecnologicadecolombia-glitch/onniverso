@@ -8,7 +8,7 @@ import { isElectronDesktopApp } from "@/lib/deviceDetection";
  */
 
 const OLLAMA_BASE_URL = "http://localhost:11434";
-const OLLAMA_MODEL = "llama3.2:3b";
+const OLLAMA_MODEL = "gemma3:1b";
 const AVAILABILITY_TTL_MS = 60_000;
 const AVAILABILITY_TIMEOUT_MS = 1_500;
 const GENERATION_TIMEOUT_MS = 90_000;
@@ -81,6 +81,7 @@ export async function askOnniOllama(
           { role: "user", content: message },
         ],
         options: { temperature: 0.65, num_predict: 256 },
+        keep_alive: "30m",
       }),
       signal: controller.signal,
     });
