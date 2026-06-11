@@ -1,5 +1,6 @@
-import { Mic, MicOff, Users, X } from "lucide-react";
+import { Camera, CameraOff, Mic, MicOff, Users, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useColiseoStudentCameraSyncUi } from "@/contexts/ColiseoStudentCameraSyncContext";
 
 export type ClassVoiceStudentRow = {
   userId: string;
@@ -20,6 +21,8 @@ export default function AgoraClassVoiceTeacherPanel({
   students,
   onToggleStudentSpeak,
 }: AgoraClassVoiceTeacherPanelProps) {
+  const studentCameraSync = useColiseoStudentCameraSyncUi();
+
   if (!open) return null;
 
   return (
@@ -81,6 +84,37 @@ export default function AgoraClassVoiceTeacherPanel({
           </ul>
         )}
       </div>
+
+      {studentCameraSync ? (
+        <div className="border-t border-cyan-400/15 px-3 py-2">
+          <button
+            type="button"
+            onClick={() => studentCameraSync.toggleStudentCameras()}
+            disabled={studentCameraSync.studentsCamerasBusy}
+            className={cn(
+              "flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-[11px] font-semibold transition",
+              studentCameraSync.studentsCamerasOn
+                ? "border-emerald-400/45 bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30"
+                : "border-cyan-300/35 bg-cyan-500/10 text-cyan-50 hover:bg-cyan-500/20",
+            )}
+            title={
+              studentCameraSync.studentsCamerasOn
+                ? "Apagar cámaras de los alumnos"
+                : "Encender cámaras de los alumnos"
+            }
+          >
+            {studentCameraSync.studentsCamerasOn ? (
+              <CameraOff className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            ) : (
+              <Camera className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            )}
+            {studentCameraSync.studentsCamerasOn ? "Apagar cámaras alumnos" : "Encender cámaras alumnos"}
+          </button>
+          <p className="mt-1.5 text-center text-[9px] leading-snug text-cyan-200/55">
+            Activa la cámara en el celular de cada alumno (como si pulsaran su botón).
+          </p>
+        </div>
+      ) : null}
 
       <p className="border-t border-cyan-400/15 px-3 py-2 text-[10px] leading-snug text-cyan-200/65">
         El alumno activa el micrófono al entrar. Tú decides cuándo se escucha en clase.

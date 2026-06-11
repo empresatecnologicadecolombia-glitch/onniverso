@@ -6,6 +6,8 @@ import {
   openCameraStream,
 } from "@/lib/cameraMedia";
 import { ArrowLeft, Camera, Loader2 } from "lucide-react";
+import { ColiseoStudentCameraSyncProvider } from "@/contexts/ColiseoStudentCameraSyncContext";
+import { useColiseoStudentCameraSync } from "@/hooks/useColiseoStudentCameraSync";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { consumeColiseoClassLaunch } from "@/lib/coliseoClassLaunch";
@@ -23,6 +25,11 @@ const ColiseoPage = () => {
   const cameraStreamRef = useRef<MediaStream | null>(null);
   const cameraBackgroundRef = useRef<HTMLVideoElement | null>(null);
 
+  const classSlug = useMemo(
+    () => new URLSearchParams(location.search).get("class")?.trim() ?? "",
+    [location.search],
+  );
+
   const stopCamera = useCallback(() => {
     cameraStreamRef.current?.getTracks().forEach((track) => track.stop());
     cameraStreamRef.current = null;
@@ -31,12 +38,62 @@ const ColiseoPage = () => {
     setCameraEnabled(false);
   }, []);
 
+  const startCamera = useCallback(async () => {
+    if (cameraBusy || cameraEnabled) return;
+
+    setCameraBusy(true);
+    setCameraError(null);
+    setCameraReady(false);
+    try {
+      const stream = await openCameraStream();
+      const video = cameraBackgroundRef.current;
+      if (!video) {
+        stream.getTracks().forEach((track) => track.stop());
+        throw new Error("No se pudo preparar la vista de camara.");
+      }
+
+      cameraStreamRef.current = stream;
+      setCameraStream(stream);
+      setCameraEnabled(true);
+      await attachCameraStreamToVideo(video, stream);
+      setCameraReady(isCameraStreamLive(stream));
+    } catch (error) {
+      setCameraError(error instanceof Error ? error.message : "No se pudo activar la camara.");
+      stopCamera();
+    } finally {
+      setCameraBusy(false);
+    }
+  }, [cameraBusy, cameraEnabled, stopCamera]);
+
+  const toggleCamera = useCallback(async () => {
+    if (cameraBusy) return;
+    if (cameraEnabled) {
+      stopCamera();
+      return;
+    }
+    await startCamera();
+  }, [cameraBusy, cameraEnabled, startCamera, stopCamera]);
+
+  const studentCameraSync = useColiseoStudentCameraSync({
+    classSlug,
+    role: voiceRole,
+    cameraEnabled,
+    cameraBusy,
+    startCamera,
+    stopCamera,
+  });
+
+  const teacherCameraSyncUi =
+    voiceRole === "host" && classSlug
+      ? {
+          studentsCamerasOn: studentCameraSync.studentsCamerasOn,
+          studentsCamerasBusy: studentCameraSync.studentsCamerasBusy,
+          toggleStudentCameras: studentCameraSync.toggleStudentCameras,
+        }
+      : null;
+
   useEffect(() => () => stopCamera(), [stopCamera]);
 
-  const classSlug = useMemo(
-    () => new URLSearchParams(location.search).get("class")?.trim() ?? "",
-    [location.search],
-  );
   const backTarget = useMemo(() => {
     if (voiceRole === "host") return "/docente-clases";
     if (classSlug) return `/clase/${classSlug}`;
@@ -142,38 +199,8 @@ const ColiseoPage = () => {
     cameraEnabled && cameraStream && (cameraReady || isCameraStreamLive(cameraStream)),
   );
 
-  const toggleCamera = useCallback(async () => {
-    if (cameraBusy) return;
-    if (cameraEnabled) {
-      stopCamera();
-      return;
-    }
-
-    setCameraBusy(true);
-    setCameraError(null);
-    setCameraReady(false);
-    try {
-      const stream = await openCameraStream();
-      const video = cameraBackgroundRef.current;
-      if (!video) {
-        stream.getTracks().forEach((track) => track.stop());
-        throw new Error("No se pudo preparar la vista de camara.");
-      }
-
-      cameraStreamRef.current = stream;
-      setCameraStream(stream);
-      setCameraEnabled(true);
-      await attachCameraStreamToVideo(video, stream);
-      setCameraReady(isCameraStreamLive(stream));
-    } catch (error) {
-      setCameraError(error instanceof Error ? error.message : "No se pudo activar la camara.");
-      stopCamera();
-    } finally {
-      setCameraBusy(false);
-    }
-  }, [cameraBusy, cameraEnabled, stopCamera]);
-
   return (
+    <ColiseoStudentCameraSyncProvider value={teacherCameraSyncUi}>
     <div className="relative">
       <button
         type="button"
@@ -255,6 +282,7 @@ const ColiseoPage = () => {
       />
       <AgoraClassVoiceBridge classSlug={classSlug} role={voiceRole} />
     </div>
+    </ColiseoStudentCameraSyncProvider>
   );
 };
 
