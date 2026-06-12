@@ -104,11 +104,11 @@ describe("resolveOpCommand", () => {
     expect(r.answer.toLowerCase()).toContain("panel de docente");
   });
 
-  it("oni inicio y llevame al inicio van a Mi Mundo /", () => {
-    expect(resolveOpCommand("inicio", "/coliseo").navigateTo).toBe("/");
-    expect(resolveOpCommand("llevame al inicio", "/coliseo").navigateTo).toBe("/");
-    expect(resolveOpCommand("oni inicio", "/nuestras-salas").navigateTo).toBe("/");
-    expect(resolveOpCommand("oni llevame al inicio", "/3d").navigateTo).toBe("/");
+  it("oni inicio y llevame al inicio van a Mi Mundo /inicio", () => {
+    expect(resolveOpCommand("inicio", "/coliseo").navigateTo).toBe("/inicio");
+    expect(resolveOpCommand("llevame al inicio", "/coliseo").navigateTo).toBe("/inicio");
+    expect(resolveOpCommand("oni inicio", "/nuestras-salas").navigateTo).toBe("/inicio");
+    expect(resolveOpCommand("oni llevame al inicio", "/3d").navigateTo).toBe("/inicio");
   });
 
   it("clase virtual y llevame a la clase van a seccion /3d", () => {
@@ -195,7 +195,7 @@ describe("resolveOpCommand", () => {
 
   it("ayuda responde breve sin lista de comandos", () => {
     const r = resolveOpCommand("ayuda", "/");
-    expect(r.answer).toMatch(/inicio|mi mundo/i);
+    expect(r.answer).toMatch(/landing|onniverso|presentaci/i);
     expect(r.answer.toLowerCase()).not.toMatch(/lobby.*conciertos|comandos como/);
   });
 

@@ -103,7 +103,13 @@ type PathGuide = {
 
 const PATH_GUIDES: PathGuide[] = [
   {
-    test: (p) => p === "/" || p.startsWith("/inicio"),
+    test: (p) => p === "/",
+    title: "OnniVerso (landing)",
+    tips: ["Página pública de presentación.", "Entra o regístrate para acceder a Mi Mundo y el resto de experiencias."],
+    commands: ["entrar", "registro", "onniverso", "landing"],
+  },
+  {
+    test: (p) => p === "/inicio",
     title: "Inicio / Mi Mundo",
     tips: ["Aquí está tu perfil VR y acceso rápido a experiencias.", "Abre el menú (☰) para ver todas las secciones."],
     commands: ["inicio", "lobby", "clase virtual", "llevame a clases", "videos educativos", "reproductor mp4", "tienda"],

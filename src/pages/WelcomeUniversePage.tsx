@@ -44,13 +44,13 @@ const WelcomeUniversePage = () => {
           } else {
             toast.success("Bienvenido al universo");
           }
-          navigate("/", { replace: true });
+          navigate("/inicio", { replace: true });
         })
         .catch((err) => {
           console.warn("[profiles] OAuth ensureProfileRowForUser:", err);
           clearPendingOAuthRegisterRole();
           toast.error("Entraste con Google, pero no pudimos guardar tu tipo de cuenta. Contacta soporte.");
-          navigate("/", { replace: true });
+          navigate("/inicio", { replace: true });
         });
     };
 
@@ -99,7 +99,7 @@ const WelcomeUniversePage = () => {
       });
       if (error) throw error;
       toast.success("Bienvenido al universo");
-      navigate("/", { replace: true });
+      navigate("/inicio", { replace: true });
     } catch (err: unknown) {
       toast.error(formatSupabaseAuthError(err));
     } finally {
@@ -217,7 +217,7 @@ const WelcomeUniversePage = () => {
           </form>
 
           <p className="mt-6 text-center text-sm">
-            <Link to="/inicio-2" className="text-muted-foreground underline-offset-4 transition hover:text-primary hover:underline">
+            <Link to="/" className="text-muted-foreground underline-offset-4 transition hover:text-primary hover:underline">
               ← Volver a la portada (Mundial VR)
             </Link>
           </p>

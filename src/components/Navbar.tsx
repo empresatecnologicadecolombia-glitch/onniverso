@@ -31,7 +31,7 @@ import { isMobileUserAgent } from "@/lib/deviceDetection";
 import { onOpCommand } from "@/lib/opCommandBus";
 
 const NAV_ITEMS: { label: string; path: string; icon: LucideIcon }[] = [
-  { label: "ONNIVERSO", path: "/inicio-2", icon: Sparkles },
+  { label: "ONNIVERSO", path: "/", icon: Sparkles },
   /** Clase Virtual 360 (Coliseo); solo tarjeta de aula en vivo. */
   { label: "CLASE VIRTUAL", path: GALERIA_AULA_SECTION_PATH, icon: Box },
   { label: "EDUCACIÓN", path: EDUCACION_SECTION_PATH, icon: GraduationCap },
@@ -99,7 +99,7 @@ const Navbar = () => {
     await signOut();
     toast.success("Sesión cerrada");
     setIsMenuOpen(false);
-    navigate("/inicio-2");
+    navigate("/");
   };
 
   const closeMenu = () => setIsMenuOpen(false);
@@ -117,9 +117,9 @@ const Navbar = () => {
         className={`relative mx-auto flex ${LOCKED_NAVBAR_HEIGHT_CLASS} w-full max-w-full items-center justify-between gap-2 px-3 sm:px-6`}
       >
         <Link
-          to="/"
+          to={user ? "/inicio" : "/"}
           className="flex shrink-0 cursor-pointer items-center gap-2 rounded-lg border-0 bg-transparent p-0 text-left focus-visible:outline focus-visible:ring-2 focus-visible:ring-primary/50"
-          aria-label="OnniVers — Inicio"
+          aria-label={user ? "OnniVers — Mi Mundo" : "OnniVers — Inicio"}
         >
           <OnniVersoLogo className="shrink-0" iconSize={24} />
         </Link>

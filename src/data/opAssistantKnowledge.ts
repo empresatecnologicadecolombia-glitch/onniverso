@@ -57,7 +57,7 @@ export const OP_ROUTES: OpRouteEntry[] = [
   },
   {
     id: "inicio",
-    path: "/",
+    path: "/inicio",
     label: "Inicio (Mi Mundo)",
     description: "Pantalla principal con perfil VR tras iniciar sesión.",
     aliases: [
@@ -80,7 +80,7 @@ export const OP_ROUTES: OpRouteEntry[] = [
   },
   {
     id: "landing",
-    path: "/inicio-2",
+    path: "/",
     label: "OnniVerso (landing)",
     description: "Página pública de presentación con hero y SEO.",
     aliases: ["onniverso", "landing", "presentacion", "pagina principal publica"],

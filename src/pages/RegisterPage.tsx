@@ -91,7 +91,7 @@ const RegisterPage = () => {
             ? "¡Cuenta docente lista! Entrando al universo…"
             : "¡Cuenta lista! Entrando al universo…",
         );
-        navigate("/", { replace: true });
+        navigate("/inicio", { replace: true });
       } else {
         toast.success("Revisa tu correo para confirmar la cuenta. Luego podrás iniciar sesión.");
         navigate("/entrar", { replace: true });
@@ -277,7 +277,7 @@ const RegisterPage = () => {
           </form>
 
           <p className="mt-6 text-center text-sm">
-            <Link to="/inicio-2" className="text-muted-foreground underline-offset-4 transition hover:text-primary hover:underline">
+            <Link to="/" className="text-muted-foreground underline-offset-4 transition hover:text-primary hover:underline">
               ← Volver a la portada
             </Link>
           </p>

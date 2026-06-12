@@ -62,7 +62,7 @@ const UpdatePasswordPage = () => {
       if (error) throw error;
       toast.success("Contraseña actualizada. Ya puedes entrar.");
       await supabase.auth.signOut();
-      navigate("/", { replace: true });
+      navigate("/inicio", { replace: true });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "No se pudo actualizar";
       toast.error(message);
@@ -88,7 +88,7 @@ const UpdatePasswordPage = () => {
             Abre este enlace desde el correo de recuperación de contraseña. Si ya pediste uno, revisa la bandeja de
             entrada.
           </p>
-          <Button variant="heroOutline" className="mt-6" onClick={() => navigate("/inicio-2")}>
+          <Button variant="heroOutline" className="mt-6" onClick={() => navigate("/")}>
             Volver al inicio
           </Button>
         </div>

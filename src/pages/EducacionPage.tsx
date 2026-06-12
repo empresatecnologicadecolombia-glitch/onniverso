@@ -26,7 +26,7 @@ const EducacionPage = () => {
       navigate(-1);
       return;
     }
-    navigate("/");
+    navigate("/inicio");
   };
 
   useEffect(() => {

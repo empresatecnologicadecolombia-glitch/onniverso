@@ -130,8 +130,9 @@ export default function OpAiAssistant() {
   const isColiseoClassScene = location.pathname.startsWith("/coliseo");
   const isAulaVirtualScene = location.pathname === "/aula-virtual";
   const shiftOnniRight = isColiseoClassScene || isAulaVirtualScene;
-  const showSocialIcons = location.pathname === "/";
-  const isHomePortada = location.pathname === "/";
+  /** Iconos sociales y Onni grande solo en Mi Mundo (`/inicio`), no en la landing pública (`/`). */
+  const showSocialIcons = location.pathname === "/inicio";
+  const isHomePortada = location.pathname === "/inicio";
 
   const runCommand = useCallback(
     async (raw: string) => {

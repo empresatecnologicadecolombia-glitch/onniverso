@@ -9,7 +9,7 @@ type BackToProfileHomeButtonProps = {
   iconOnly?: boolean;
 };
 
-/** Regresa a la pantalla de inicio con perfil y Tierra (`/`). */
+/** Regresa a Mi Mundo (`/inicio`) con perfil y Tierra. */
 export default function BackToProfileHomeButton({ className, iconOnly }: BackToProfileHomeButtonProps) {
   const navigate = useNavigate();
 
@@ -17,7 +17,7 @@ export default function BackToProfileHomeButton({ className, iconOnly }: BackToP
     return (
       <button
         type="button"
-        onClick={() => navigate("/")}
+        onClick={() => navigate("/inicio")}
         aria-label="Volver al inicio del perfil"
         className={cn(
           "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
@@ -36,7 +36,7 @@ export default function BackToProfileHomeButton({ className, iconOnly }: BackToP
       type="button"
       variant="heroOutline"
       className={cn("w-full gap-2 sm:w-auto", className)}
-      onClick={() => navigate("/")}
+      onClick={() => navigate("/inicio")}
     >
       <ArrowLeft className="h-4 w-4" aria-hidden />
       Volver al inicio del perfil

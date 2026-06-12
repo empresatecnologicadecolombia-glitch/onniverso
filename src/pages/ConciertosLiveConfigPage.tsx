@@ -89,7 +89,7 @@ function PremiumPlansFooter({ highlight }: { highlight?: boolean }) {
             Elegir planes
           </Link>
         </Button>
-        <Button type="button" variant="ghost" onClick={() => navigate("/")}>
+        <Button type="button" variant="ghost" onClick={() => navigate("/inicio")}>
           Volver al inicio
         </Button>
       </div>

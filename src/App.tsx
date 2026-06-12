@@ -86,16 +86,16 @@ const App = () => {
           <Suspense fallback={<PageLoader />}>
           <OpAiAssistant />
           <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/inicio-2" element={<Navigate to="/" replace />} />
             <Route
-              path="/"
+              path="/inicio"
               element={
                 <PrivateRoute>
                   <InicioPage />
                 </PrivateRoute>
               }
             />
-            <Route path="/inicio" element={<Navigate to="/" replace />} />
-            <Route path="/inicio-2" element={<Index />} />
             <Route
               path="/entrar"
               element={
