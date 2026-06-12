@@ -28,12 +28,10 @@ const LandingSeoContent = ({ embedded = false }: LandingSeoContentProps) => {
         </h2>
         <div className="mt-4 space-y-4 text-sm leading-relaxed text-muted-foreground sm:text-base md:leading-[1.75]">
           <p>
-            OnniVers es el ecosistema tecnológico líder en el desarrollo de experiencias educativas inmersivas,
-            transformando el aprendizaje a través de la realidad virtual, la realidad mixta y transmisiones en vivo en 360
-            grados. Respaldada por más de 10 años de experiencia real en infraestructura, redes y soluciones tecnológicas
-            de alta complejidad, nuestra plataforma está diseñada para dotar a las instituciones y creadores de una nueva
-            forma de enseñar, vivir y asimilar el conocimiento, llevando la educación del futuro a cualquier rincón del
-            mundo.
+            OnniVers es el ecosistema tecnológico líder en experiencias inmersivas, realidad virtual, realidad mixta y
+            transmisiones en vivo en 360 grados. Nacida de más de 10 años de experiencia en infraestructura, redes y
+            soluciones tecnológicas reales, nuestra plataforma está diseñada para llevar al mundo una nueva forma de vivir,
+            ver y crear contenido.
           </p>
           <p>
             Nuestra misión es democratizar la tecnología inmersiva: cualquier persona, desde cualquier lugar del mundo y
