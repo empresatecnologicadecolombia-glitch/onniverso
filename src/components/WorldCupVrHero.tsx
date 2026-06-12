@@ -221,7 +221,7 @@ const WorldCupVrHero = () => {
             </span>
           </h1>
           <h2 className="mx-auto mt-3 max-w-5xl px-2 font-headline text-[clamp(0.75rem,2.6vw,1.05rem)] font-medium leading-snug tracking-[0.08em] text-primary drop-shadow-[0_0_28px_hsl(175_80%_50%/0.38)] sm:mt-4 sm:tracking-[0.1em] md:leading-relaxed">
-            Realidad Inmersiva, Educación, Conciertos y Tecnología Accesible
+            Educación con realidad virtual inmersiva contenido interactivo y experiencias digitales en una sola plataforma
           </h2>
         </motion.div>
 
