@@ -14,7 +14,11 @@ const legalLinkClass =
   "font-medium text-primary underline-offset-4 transition-colors hover:text-primary hover:underline";
 
 const MAIL_SUPPORT =
-  "mailto:gerencia@onniverso.com?subject=Soporte%20T%C3%A9cnico%20OnniVers";
+  "mailto:gerencia@onnivers.com?subject=Soporte%20T%C3%A9cnico%20OnniVers";
+
+const CONTACT_EMAIL = "gerencia@onnivers.com";
+const CONTACT_PHONE = "+573228760268";
+const CONTACT_PHONE_HREF = "tel:+573228760268";
 
 const Footer = () => {
   return (
@@ -70,12 +74,29 @@ const Footer = () => {
               <a
                 href={MAIL_SUPPORT}
                 className={socialFooterIconClass}
-                aria-label="Soporte técnico — escribir a gerencia@onniverso.com"
+                aria-label="Soporte técnico — escribir a gerencia@onnivers.com"
                 title="Soporte Técnico"
               >
                 <Headphones className="h-[18px] w-[18px] shrink-0" aria-hidden />
               </a>
             </div>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              <a
+                href={`mailto:${CONTACT_EMAIL}`}
+                className="font-medium text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
+              >
+                {CONTACT_EMAIL}
+              </a>
+              <span className="mx-2 text-border" aria-hidden>
+                ·
+              </span>
+              <a
+                href={CONTACT_PHONE_HREF}
+                className="font-medium text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
+              >
+                {CONTACT_PHONE}
+              </a>
+            </p>
             <p className="text-sm leading-relaxed text-muted-foreground">
               OnniVers · © 2017–2026 · Casi una década de trayectoria tecnológica con operación continua desde 2017.
             </p>
