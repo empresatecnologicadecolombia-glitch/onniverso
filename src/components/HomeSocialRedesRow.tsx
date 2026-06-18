@@ -49,7 +49,7 @@ const GoogleGlyph = () => (
   </svg>
 );
 
-/** Pluto TV (películas y canales en vivo). */
+/** Caracol TV (señal en vivo). */
 const PlutoTvGlyph = () => (
   <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" aria-hidden xmlns="http://www.w3.org/2000/svg">
     <circle cx="12" cy="12" r="11" fill="#141414" />
@@ -136,7 +136,7 @@ const ICON_BUTTONS: {
   },
   {
     id: "mercadolibre",
-    label: "Pluto TV",
+    label: "Caracol TV",
     className:
       "border-[#F9E000]/80 bg-[#141414] text-white shadow-[0_0_20px_-6px_rgba(155,77,255,0.95)]",
     Glyph: PlutoTvGlyph,

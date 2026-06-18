@@ -5,6 +5,8 @@ import { Sparkles, Users, Music2, GraduationCap, Store, ArrowRight, Smartphone, 
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { ALT_CARD_MUNDIAL_STREAMING, ALT_CARD_ONNI_ECOSYSTEM, ALT_HERO_BACKDROP } from "@/lib/seoBrand";
+import { getHomeSocialUrl, loadHomeSocialRedesConfig } from "@/lib/homeSocialRedesConfig";
+import { openHomeSocialRedes } from "@/lib/homeSocialRedesOpen";
 
 /** Arte OnniVerso (metaverso / pilares) — servido desde `public/` para web y Capacitor (`base: "./"`). */
 const ONNI_ECOSYSTEM_HERO_IMAGE = `${import.meta.env.BASE_URL}onni-ecosystem-metaverse.png`;
@@ -194,7 +196,10 @@ function PillarSpotlightCard({ pillar }: { pillar: (typeof pillars)[number] }) {
 }
 
 const WorldCupVrHero = () => {
-  const navigate = useNavigate();
+  const openCaracolTv = () => {
+    const icons = loadHomeSocialRedesConfig();
+    openHomeSocialRedes(getHomeSocialUrl(icons, "mercadolibre", "redes"));
+  };
 
   return (
     <section className="relative min-h-[100dvh] overflow-hidden px-6 pt-24 pb-16">
@@ -334,23 +339,18 @@ const WorldCupVrHero = () => {
               </div>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between gap-3">
-                  <h3 className="font-display text-xl font-semibold text-foreground">Transmisiones Iniciales Mundial 2026</h3>
+                  <h3 className="font-display text-xl font-semibold text-foreground">Mundial 2026</h3>
                   <span className="rounded-full border border-emerald-300/45 bg-emerald-400/15 px-3 py-1 text-xs font-display font-bold uppercase tracking-wider text-emerald-300">
                     GRATIS
                   </span>
                 </div>
                 <p className="mt-3 text-sm text-muted-foreground">
-                  Los primeros partidos y transmisiones son gratuitos para toda la comunidad. Entra, vive la emoción del
-                  Mundial 2026 y prueba la experiencia VR premium sin costo.
+                  Vive la emoción del Mundial 2026 y prueba la experiencia VR premium sin costo.
                 </p>
                 <Button
                   variant="heroOutline"
                   className="mt-5 w-full"
-                  onClick={() =>
-                    navigate("/inicio", {
-                      state: { openFreeMatchScreen: true },
-                    })
-                  }
+                  onClick={openCaracolTv}
                 >
                   Ver partidos gratis
                 </Button>

@@ -12,7 +12,7 @@ export type HomeSocialIconId =
 
 const ONNIVERS_SITE_URL = "https://onnivers.com/";
 const LEGACY_ONNIVERS_LOBBY_PATH = "/lobby-inmersivo";
-const PLUTO_TV_URL = "https://pluto.tv/es/live-tv";
+const CARACOL_TV_URL = "https://www.caracoltv.com/senal-vivo";
 
 export type HomeSocialRedesMode = "redes" | "redesCam";
 
@@ -43,10 +43,11 @@ function normalizeOnniversHomeUrl(url: string): string {
   return trimmed;
 }
 
-function normalizePlutoTvUrl(url: string): string {
+function normalizeCaracolTvUrl(url: string): string {
   const trimmed = url.trim();
-  if (!trimmed) return PLUTO_TV_URL;
-  if (trimmed.includes("play.mercadolibre.com")) return PLUTO_TV_URL;
+  if (!trimmed) return CARACOL_TV_URL;
+  if (trimmed.includes("play.mercadolibre.com")) return CARACOL_TV_URL;
+  if (trimmed.includes("pluto.tv")) return CARACOL_TV_URL;
   return trimmed;
 }
 
@@ -89,9 +90,9 @@ export const DEFAULT_HOME_SOCIAL_ICONS: HomeSocialIconConfig[] = [
   },
   {
     id: "mercadolibre",
-    label: "Pluto TV",
-    redesUrl: PLUTO_TV_URL,
-    redesCamUrl: PLUTO_TV_URL,
+    label: "Caracol TV",
+    redesUrl: CARACOL_TV_URL,
+    redesCamUrl: CARACOL_TV_URL,
   },
   {
     id: "whatsapp",
@@ -132,8 +133,8 @@ function mergeWithDefaults(parsed: unknown): HomeSocialIconConfig[] {
     if (def.id === "mercadolibre") {
       return {
         ...def,
-        redesUrl: normalizePlutoTvUrl(redesUrl),
-        redesCamUrl: normalizePlutoTvUrl(redesCamUrl),
+        redesUrl: normalizeCaracolTvUrl(redesUrl),
+        redesCamUrl: normalizeCaracolTvUrl(redesCamUrl),
       };
     }
 
