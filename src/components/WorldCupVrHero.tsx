@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { ALT_CARD_MUNDIAL_STREAMING, ALT_CARD_ONNI_ECOSYSTEM, ALT_HERO_BACKDROP } from "@/lib/seoBrand";
 import { getHomeSocialUrl, loadHomeSocialRedesConfig } from "@/lib/homeSocialRedesConfig";
 import { openHomeSocialRedes } from "@/lib/homeSocialRedesOpen";
+import { SHOW_TIENDAS_INMERSIVAS_EXPLORAR_BUTTON } from "@/config/navVisibility";
 
 /** Arte OnniVerso (metaverso / pilares) — servido desde `public/` para web y Capacitor (`base: "./"`). */
 const ONNI_ECOSYSTEM_HERO_IMAGE = `${import.meta.env.BASE_URL}onni-ecosystem-metaverse.png`;
@@ -154,6 +155,7 @@ function AccessibilitySpotlightCard() {
 function PillarSpotlightCard({ pillar }: { pillar: (typeof pillars)[number] }) {
   const navigate = useNavigate();
   const Icon = pillar.Icon;
+  const showExplorar = pillar.key !== "stores" || SHOW_TIENDAS_INMERSIVAS_EXPLORAR_BUTTON;
 
   return (
     <Card className="overflow-hidden border border-primary/35 bg-card/60 backdrop-blur-xl shadow-[0_0_45px_-14px_hsl(var(--primary)/0.8)]">
@@ -181,15 +183,17 @@ function PillarSpotlightCard({ pillar }: { pillar: (typeof pillars)[number] }) {
           </span>
         </div>
         <p className="mt-3 text-sm text-muted-foreground">{pillar.description}</p>
-        <Button
-          type="button"
-          variant="heroOutline"
-          className="mt-5 w-full gap-2"
-          onClick={() => navigate(pillar.to)}
-        >
-          Explorar
-          <ArrowRight className="h-4 w-4" aria-hidden />
-        </Button>
+        {showExplorar ? (
+          <Button
+            type="button"
+            variant="heroOutline"
+            className="mt-5 w-full gap-2"
+            onClick={() => navigate(pillar.to)}
+          >
+            Explorar
+            <ArrowRight className="h-4 w-4" aria-hidden />
+          </Button>
+        ) : null}
       </CardContent>
     </Card>
   );

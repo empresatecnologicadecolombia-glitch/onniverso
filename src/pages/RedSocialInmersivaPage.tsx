@@ -3,7 +3,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Globe2, MessageCircle, Sparkles, Users, ArrowRight } from "lucide-react";
+import { Globe2, MessageCircle, Sparkles, Users } from "lucide-react";
+import { SHOW_RED_SOCIAL_IR_SALAS_BUTTON } from "@/config/navVisibility";
 
 const RED_SOCIAL_IMG = `${import.meta.env.BASE_URL}red-social-inmersiva.jpeg`;
 
@@ -79,12 +80,11 @@ const RedSocialInmersivaPage = () => {
                 ))}
               </div>
               <div className="flex flex-col items-center gap-4 border-t border-border/60 pt-8 sm:flex-row sm:justify-center">
-                <Button variant="hero" className="min-h-[44px] gap-2 px-8" asChild>
-                  <Link to="/nuestras-salas">
-                    Ir a Salas
-                    <ArrowRight className="h-4 w-4" aria-hidden />
-                  </Link>
-                </Button>
+                {SHOW_RED_SOCIAL_IR_SALAS_BUTTON ? (
+                  <Button variant="hero" className="min-h-[44px] gap-2 px-8" asChild>
+                    <Link to="/nuestras-salas">Ir a Salas</Link>
+                  </Button>
+                ) : null}
                 <Button variant="heroOutline" className="min-h-[44px]" asChild>
                   <Link to="/entrar">Iniciar sesión</Link>
                 </Button>
