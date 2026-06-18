@@ -119,6 +119,9 @@ public class MainActivity extends BridgeActivity {
   /** Onni — permiso RECORD_AUDIO antes de SpeechRecognition en el WebView. */
   private ActivityResultLauncher<String[]> onniMicPermissionLauncher;
   private String pendingOnniMicCallback;
+  /** Lobby MR — permiso CAMERA antes de getUserMedia en el WebView. */
+  private ActivityResultLauncher<String[]> onniCameraPermissionLauncher;
+  private String pendingOnniCameraCallback;
   private boolean pendingOnniStartListening;
   private SpeechRecognizer onniSpeechRecognizer;
   private Intent onniSpeechIntent;
@@ -433,6 +436,10 @@ public class MainActivity extends BridgeActivity {
         registerForActivityResult(
             new ActivityResultContracts.RequestMultiplePermissions(), this::finishOnniMicPermission);
 
+    onniCameraPermissionLauncher =
+        registerForActivityResult(
+            new ActivityResultContracts.RequestMultiplePermissions(), this::finishOnniCameraPermission);
+
     selectorActivityLauncher =
         registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -735,6 +742,12 @@ public class MainActivity extends BridgeActivity {
     @JavascriptInterface
     public void requestOnniMicrophonePermission(String callbackName) {
       activity.runOnUiThread(() -> activity.launchOnniMicrophonePermissionFlow(callbackName));
+    }
+
+    /** Lobby MR — pide {@link Manifest.permission#CAMERA}; llama {@code window[callbackName](grantedBoolean)}. */
+    @JavascriptInterface
+    public void requestOnniCameraPermission(String callbackName) {
+      activity.runOnUiThread(() -> activity.launchOnniCameraPermissionFlow(callbackName));
     }
 
     @JavascriptInterface
@@ -2391,6 +2404,56 @@ public class MainActivity extends BridgeActivity {
             + "']; if (typeof cb === 'function') cb("
             + (granted ? "true" : "false")
             + "); } catch(e) { console.warn('onni mic callback failed', e); } })();";
+    webView.evaluateJavascript(code, null);
+  }
+
+  private void launchOnniCameraPermissionFlow(String callbackName) {
+    if (callbackName != null && !callbackName.isEmpty()) {
+      pendingOnniCameraCallback = callbackName;
+    }
+    if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+        == PackageManager.PERMISSION_GRANTED) {
+      if (callbackName != null && !callbackName.isEmpty()) {
+        dispatchOnniCameraResult(callbackName, true);
+      }
+      return;
+    }
+    try {
+      onniCameraPermissionLauncher.launch(new String[] {Manifest.permission.CAMERA});
+    } catch (Exception ignored) {
+      String cb = pendingOnniCameraCallback;
+      pendingOnniCameraCallback = null;
+      if (cb != null && !cb.isEmpty()) {
+        dispatchOnniCameraResult(cb, false);
+      }
+    }
+  }
+
+  private void finishOnniCameraPermission(Map<String, Boolean> result) {
+    String cb = pendingOnniCameraCallback;
+    pendingOnniCameraCallback = null;
+    boolean granted =
+        Boolean.TRUE.equals(result.get(Manifest.permission.CAMERA))
+            || ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                == PackageManager.PERMISSION_GRANTED;
+    if (cb != null && !cb.isEmpty()) {
+      dispatchOnniCameraResult(cb, granted);
+    }
+  }
+
+  private void dispatchOnniCameraResult(String callbackName, boolean granted) {
+    Bridge bridge = getBridge();
+    WebView webView = bridge != null ? bridge.getWebView() : null;
+    if (webView == null) {
+      return;
+    }
+    String escCb = callbackName.replace("\\", "\\\\").replace("'", "\\'");
+    String code =
+        "(function(){ try { var cb = window['"
+            + escCb
+            + "']; if (typeof cb === 'function') cb("
+            + (granted ? "true" : "false")
+            + "); } catch(e) { console.warn('onni camera callback failed', e); } })();";
     webView.evaluateJavascript(code, null);
   }
 

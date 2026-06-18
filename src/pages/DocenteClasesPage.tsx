@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import DocenteContentLibraryPanel from "@/components/docente/DocenteContentLibraryPanel";
+import { SHOW_DOCENTE_CONTENT_LIBRARY } from "@/config/navVisibility";
 import { copyToClipboard } from "@/lib/copyToClipboard";
 import { onOpCommand } from "@/lib/opCommandBus";
 
@@ -954,7 +955,7 @@ export default function DocenteClasesPage() {
                 })}
               </div>
 
-              <DocenteContentLibraryPanel />
+              {SHOW_DOCENTE_CONTENT_LIBRARY ? <DocenteContentLibraryPanel /> : null}
             </>
           )}
         </div>

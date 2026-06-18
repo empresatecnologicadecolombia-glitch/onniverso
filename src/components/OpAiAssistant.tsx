@@ -32,8 +32,14 @@ import { isDesktopWebBrowser, isElectronDesktopApp, isOnniAndroidVoice } from "@
 import { isAzureMicSupported } from "@/lib/onniAzureStt";
 import type { OnniSpeakOptions } from "@/lib/onniVoiceRuntime";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  buildOnniAiHistory,
+  loadOnniChatMessages,
+  saveOnniChatMessages,
+  type OnniChatTurn,
+} from "@/lib/onniChatMemory";
 
-type UiMessage = { role: "user" | "assistant"; text: string };
+type UiMessage = OnniChatTurn;
 
 function isEditableKeyboardTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -63,9 +69,14 @@ export default function OpAiAssistant() {
   const [electronMicState, setElectronMicState] = useState({ isRecording: false, isProcessing: false });
   const [text, setText] = useState("");
   const [processing, setProcessing] = useState(false);
-  const [messages, setMessages] = useState<UiMessage[]>([
-    { role: "assistant", text: getOnniIntroduction() },
-  ]);
+  const introMessage = useMemo<UiMessage>(
+    () => ({ role: "assistant", text: getOnniIntroduction() }),
+    [],
+  );
+  const [messages, setMessages] = useState<UiMessage[]>([introMessage]);
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
+  const chatEndRef = useRef<HTMLDivElement>(null);
   const sessionRef = useRef<{ lastAnswer?: string; lastAnswerFromGemini?: boolean }>({});
   const appRoleRef = useRef<string | null>(null);
   const pendingVoiceRef = useRef("");
@@ -96,6 +107,19 @@ export default function OpAiAssistant() {
   }, [user?.id]);
 
   appRoleRef.current = appRole;
+
+  useEffect(() => {
+    setMessages(loadOnniChatMessages(user?.id, [introMessage]));
+  }, [user?.id, introMessage]);
+
+  useEffect(() => {
+    saveOnniChatMessages(user?.id, messages);
+  }, [messages, user?.id]);
+
+  useEffect(() => {
+    if (!open) return;
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, open, processing]);
 
   const {
     voiceListening,
@@ -210,12 +234,14 @@ export default function OpAiAssistant() {
           return result.answer;
         }
 
+        const conversationHistory = buildOnniAiHistory(messagesRef.current);
+
         // Solo .exe: intenta primero la IA local (Ollama) con streaming en pantalla.
         // Si Ollama no está corriendo o falla, sigue el flujo Gemini de siempre.
         if (ollamaTakesOver) {
           let streamStarted = false;
           const ollamaAnswer = await askOnniOllama(
-            { message: trimmed, contextPath: location.pathname },
+            { message: trimmed, contextPath: location.pathname, history: conversationHistory },
             (partial) => {
               if (!streamStarted) {
                 streamStarted = true;
@@ -255,6 +281,7 @@ export default function OpAiAssistant() {
         const geminiAnswer = await askOnniGemini({
           message: trimmed,
           contextPath: location.pathname,
+          history: conversationHistory,
         });
         const asksAboutGemini = /\b(gemini|ia externa|conectad[ao]?\s+a?\s*gemini)\b/i.test(trimmed);
         if (geminiAnswer) {
@@ -666,7 +693,7 @@ export default function OpAiAssistant() {
               Cerrar
             </Button>
           </div>
-          <div className="h-52 space-y-2 overflow-y-auto px-3 py-2">
+          <div className="h-[min(42dvh,18rem)] space-y-2 overflow-y-auto px-3 py-2">
             {messages.map((m, idx) => (
               <div key={idx} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div
@@ -678,6 +705,7 @@ export default function OpAiAssistant() {
                 </div>
               </div>
             ))}
+            <div ref={chatEndRef} aria-hidden />
             <p className="text-[11px] text-muted-foreground">{hint}</p>
             {usesOneShotNativeMic && captureMicActive && !isOnniAndroidVoice() && (
               <p className="text-[10px] font-medium text-emerald-300/90">

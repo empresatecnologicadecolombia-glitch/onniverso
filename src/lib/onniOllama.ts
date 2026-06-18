@@ -1,5 +1,6 @@
 import { ONNI_PERSONALITY } from "@/data/onniBrain";
 import { isElectronDesktopApp } from "@/lib/deviceDetection";
+import type { OnniChatTurn } from "@/lib/onniChatMemory";
 
 /**
  * Cliente de Ollama local para Onni — SOLO en OnniVers PC (.exe).
@@ -16,6 +17,7 @@ const GENERATION_TIMEOUT_MS = 90_000;
 export type OnniOllamaRequest = {
   message: string;
   contextPath: string;
+  history?: OnniChatTurn[];
 };
 
 let availabilityCache: { at: number; ok: boolean } | null = null;
@@ -78,6 +80,10 @@ export async function askOnniOllama(
         stream: true,
         messages: [
           { role: "system", content: buildOnniOllamaSystemPrompt(body.contextPath) },
+          ...(body.history ?? []).map((turn) => ({
+            role: turn.role === "assistant" ? ("assistant" as const) : ("user" as const),
+            content: turn.text,
+          })),
           { role: "user", content: message },
         ],
         options: { temperature: 0.65, num_predict: 256 },

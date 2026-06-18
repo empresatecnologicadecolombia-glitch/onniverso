@@ -42,6 +42,7 @@ import {
   LOCKED_MOON,
   LOCKED_PROFILE_CARD_WRAPPER_CLASS,
 } from "@/config/lockedHomeLayout";
+import { SHOW_PROFILE_LIVE_BUTTON, SHOW_STREAM_CONFIG_BUTTON } from "@/config/navVisibility";
 
 /**
  * Texturas Tierra alta resolucion (offline-first, copiadas a /public/assets/textures/earth/).
@@ -836,7 +837,7 @@ const MiMundoVRSection = ({
               initialAvatarSrc={cardAvatarSrc}
               isSaving={profileSaving}
               onConfirm={onProfileConfirm}
-              liveNavPath="/pc"
+              liveNavPath={SHOW_PROFILE_LIVE_BUTTON ? "/pc" : undefined}
             />
           </div>
         </div>
@@ -851,15 +852,17 @@ const MiMundoVRSection = ({
               ariaLabel="Aula Virtual"
               title="Aula Virtual"
             />
-            <button
-              type="button"
-              onClick={onEmitirLiveClick}
-              className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full border border-fuchsia-300/85 bg-[radial-gradient(circle_at_30%_30%,#ff66e5_0%,#d946ef_45%,#7e22ce_100%)] text-white shadow-[0_0_32px_rgba(236,72,153,0.8),0_0_60px_rgba(217,70,239,0.45)] backdrop-blur-md transition hover:scale-105 hover:border-fuchsia-200 hover:brightness-110"
-              aria-label="Configurar Live"
-              title="Configurar Live"
-            >
-              <Radio className="h-5 w-5" />
-            </button>
+            {SHOW_STREAM_CONFIG_BUTTON && (
+              <button
+                type="button"
+                onClick={onEmitirLiveClick}
+                className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full border border-fuchsia-300/85 bg-[radial-gradient(circle_at_30%_30%,#ff66e5_0%,#d946ef_45%,#7e22ce_100%)] text-white shadow-[0_0_32px_rgba(236,72,153,0.8),0_0_60px_rgba(217,70,239,0.45)] backdrop-blur-md transition hover:scale-105 hover:border-fuchsia-200 hover:brightness-110"
+                aria-label="Configurar Live"
+                title="Configurar Live"
+              >
+                <Radio className="h-5 w-5" />
+              </button>
+            )}
             <button
               type="button"
               onClick={onLocalPlayerClick}

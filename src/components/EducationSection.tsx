@@ -12,6 +12,7 @@ import {
   salaRoomImageWrapMb,
   salaRoomTitle,
 } from "@/components/salas/salaRoomCardStyles";
+import { SHOW_SECTION_PRICES } from "@/config/navVisibility";
 import { EDU_COURSES_USD_MAX, EDU_COURSES_USD_MIN, formatUsd, stableUsdInRange } from "@/lib/pricing";
 
 type CategoryId = "tecnologia" | "idiomas" | "negocios" | "bienestar" | "clases-privadas";
@@ -215,16 +216,18 @@ const EducationSection = ({ activeCategory, onActiveCategoryChange }: EducationS
                         {course.detail && (
                           <p className="mt-1 text-[10px] text-muted-foreground sm:text-[11px]">{course.detail}</p>
                         )}
-                        <div className="mt-2 flex items-center justify-between gap-2">
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-[8px] font-display font-bold tracking-wide sm:text-[10px] ${
-                              course.price === "GRATIS" || course.price === "Prueba Gratuita"
-                                ? "border border-emerald-300/45 bg-emerald-400/15 text-emerald-300"
-                                : "border border-primary/40 bg-primary/10 text-primary"
-                            }`}
-                          >
-                            {displayCoursePrice(course)}
-                          </span>
+                        <div className={`mt-2 flex items-center gap-2 ${SHOW_SECTION_PRICES ? "justify-between" : "justify-end"}`}>
+                          {SHOW_SECTION_PRICES && (
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[8px] font-display font-bold tracking-wide sm:text-[10px] ${
+                                course.price === "GRATIS" || course.price === "Prueba Gratuita"
+                                  ? "border border-emerald-300/45 bg-emerald-400/15 text-emerald-300"
+                                  : "border border-primary/40 bg-primary/10 text-primary"
+                              }`}
+                            >
+                              {displayCoursePrice(course)}
+                            </span>
+                          )}
                           <Button size="sm" variant="heroOutline" className="h-7 px-2 text-[10px] sm:text-[11px]">
                             {course.actionLabel}
                           </Button>

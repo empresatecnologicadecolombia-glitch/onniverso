@@ -32,6 +32,8 @@ declare global {
       openColiseoDirect?: (url: string, action: string) => void;
       /** Onni: pide RECORD_AUDIO; llama window[callbackName](granted: boolean). */
       requestOnniMicrophonePermission?: (callbackName: string) => void;
+      /** Lobby MR: pide CAMERA; llama window[callbackName](granted: boolean). */
+      requestOnniCameraPermission?: (callbackName: string) => void;
       /** Onni voz nativa Android (compat bridge legacy). */
       startListening?: () => void;
       stopListening?: () => void;

@@ -1,6 +1,7 @@
 type GeminiRequest = {
   message?: string;
   contextPath?: string;
+  history?: { role?: string; text?: string }[];
 };
 
 const corsHeaders = {
@@ -45,6 +46,21 @@ function extractGeminiText(payload: unknown): string {
     .trim();
 }
 
+function buildGeminiContents(
+  message: string,
+  history: { role?: string; text?: string }[] = [],
+): { role: string; parts: { text: string }[] }[] {
+  const contents: { role: string; parts: { text: string }[] }[] = [];
+  for (const turn of history) {
+    const text = turn.text?.trim() ?? "";
+    if (!text) continue;
+    const role = turn.role === "assistant" ? "model" : "user";
+    contents.push({ role, parts: [{ text }] });
+  }
+  contents.push({ role: "user", parts: [{ text: message }] });
+  return contents;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -66,6 +82,7 @@ Deno.serve(async (req) => {
     }
 
     const contextPath = body.contextPath?.trim() || "/";
+    const history = Array.isArray(body.history) ? body.history : [];
     const model = Deno.env.get("GEMINI_MODEL")?.trim() || DEFAULT_MODEL;
     const systemPrompt = buildSystemPrompt(contextPath);
 
@@ -78,12 +95,7 @@ Deno.serve(async (req) => {
           systemInstruction: {
             parts: [{ text: systemPrompt }],
           },
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: message }],
-            },
-          ],
+          contents: buildGeminiContents(message, history),
           generationConfig: {
             maxOutputTokens: 512,
             temperature: 0.65,

@@ -40,9 +40,38 @@ export function isCameraStreamLive(stream: MediaStream | null | undefined): bool
   return Boolean(track && track.readyState === "live" && track.enabled);
 }
 
+type CameraPermissionStatus = "granted" | "denied" | "unsupported";
+
+/** APK Android: pide CAMERA nativo antes de getUserMedia en el WebView. */
+export async function requestOnniCameraAccess(): Promise<CameraPermissionStatus> {
+  const nativeRequest = window.AndroidBridge?.requestOnniCameraPermission;
+  if (typeof nativeRequest === "function") {
+    return new Promise((resolve) => {
+      const callbackName = `__onniCamCb_${Date.now()}`;
+      const w = window as Window & Record<string, unknown>;
+      w[callbackName] = (granted: boolean) => {
+        delete w[callbackName];
+        resolve(granted ? "granted" : "denied");
+      };
+      try {
+        nativeRequest(callbackName);
+      } catch {
+        delete w[callbackName];
+        resolve("unsupported");
+      }
+    });
+  }
+  return "granted";
+}
+
 export async function openCameraStream(): Promise<MediaStream> {
   if (!navigator.mediaDevices?.getUserMedia) {
     throw new Error("Este dispositivo no soporta camara web.");
+  }
+
+  const permission = await requestOnniCameraAccess();
+  if (permission === "denied") {
+    throw new Error("Permiso de camara denegado.");
   }
 
   const constraints = buildCameraVideoConstraints();

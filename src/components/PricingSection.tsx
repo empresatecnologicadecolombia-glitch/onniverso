@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Check, Zap, Crown, Rocket } from "lucide-react";
+import { SHOW_SECTION_PRICES } from "@/config/navVisibility";
 
 const plans = [
   {
@@ -52,6 +53,10 @@ const plans = [
 ];
 
 const PricingSection = () => {
+  if (!SHOW_SECTION_PRICES) {
+    return null;
+  }
+
   return (
     <section id="precios" className="py-24 relative">
       <div className="absolute inset-0 bg-gradient-to-b from-background via-muted/20 to-background" />

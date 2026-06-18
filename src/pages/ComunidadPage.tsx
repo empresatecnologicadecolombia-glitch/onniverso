@@ -14,6 +14,7 @@ import { handleStreamCardPlay } from "@/lib/streamCardNavigation";
 import { buildAgoraChannel } from "@/lib/agoraRooms";
 import { Button } from "@/components/ui/button";
 import PayPalSmartButton from "@/components/PayPalSmartButton";
+import { SHOW_SECTION_PRICES } from "@/config/navVisibility";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useLiveStreamChoiceModal } from "@/hooks/useLiveStreamChoiceModal";
@@ -343,7 +344,9 @@ const ComunidadPage = () => {
               </p>
               <div className="mt-3 rounded-lg border border-amber-300/45 bg-amber-300/10 p-3">
                 <p className="text-sm font-semibold text-foreground">{premiumModalRoom.name}</p>
-                <p className="text-xs text-amber-200">Total: ${premiumModalRoom.priceUsd.toFixed(2)} USD</p>
+                {SHOW_SECTION_PRICES && (
+                  <p className="text-xs text-amber-200">Total: ${premiumModalRoom.priceUsd.toFixed(2)} USD</p>
+                )}
               </div>
               <PayPalSmartButton
                 priceUsd={premiumModalRoom.priceUsd}

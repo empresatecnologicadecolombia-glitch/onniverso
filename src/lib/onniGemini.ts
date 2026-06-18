@@ -1,15 +1,27 @@
 import { ONNI_PERSONALITY } from "@/data/onniBrain";
 import { supabase, supabasePublicUrl, supabasePublishableKey } from "@/integrations/supabase/client";
 
+import type { OnniChatTurn } from "@/lib/onniChatMemory";
+
 export type OnniGeminiRequest = {
   message: string;
   contextPath: string;
+  history?: OnniChatTurn[];
 };
 
 export type OnniGeminiResponse = {
   answer: string;
   model?: string;
 };
+
+function buildGeminiContents(message: string, history: OnniChatTurn[] = []) {
+  const contents = history.map((turn) => ({
+    role: turn.role === "assistant" ? ("model" as const) : ("user" as const),
+    parts: [{ text: turn.text }],
+  }));
+  contents.push({ role: "user" as const, parts: [{ text: message }] });
+  return contents;
+}
 
 async function invokeOnniGeminiEdge(body: OnniGeminiRequest): Promise<OnniGeminiResponse> {
   const { data: invokedData, error: fnError } = await supabase.functions.invoke("onni-gemini", {
@@ -88,7 +100,7 @@ async function askOnniGeminiDevDirect(body: OnniGeminiRequest, apiKey: string): 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: buildOnniGeminiSystemPrompt(body.contextPath) }] },
-        contents: [{ role: "user", parts: [{ text: body.message }] }],
+        contents: buildGeminiContents(body.message, body.history ?? []),
         generationConfig: { maxOutputTokens: 512, temperature: 0.65 },
       }),
     },

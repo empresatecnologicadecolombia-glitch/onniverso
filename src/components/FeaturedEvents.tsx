@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { COLOSSEO_PATH } from "@/data/coliseoScene";
 import { invokeOpenColiceoDirect } from "@/lib/coliseoOpenDirect";
 import { formatUsd, stableUsdInRange } from "@/lib/pricing";
+import { SHOW_SECTION_PRICES } from "@/config/navVisibility";
 
 /** Rutas reales de la app: hub teatro, eventos Supabase por id, podcast hub, educación. */
 const FeaturedEvents = () => {
@@ -173,16 +174,18 @@ const FeaturedEvents = () => {
                       Esfera 360°
                     </span>
                   )}
-                  <span
-                    className={`absolute top-2 right-2 sm:top-4 sm:right-4 flex items-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-sm font-display font-semibold rounded-full ${
-                      event.isFree
-                        ? "bg-green-500/90 text-foreground"
-                        : "bg-primary/90 text-primary-foreground"
-                    }`}
-                  >
-                    <Ticket className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-                    {event.isFree ? "Gratuito" : formatUsd(paidUsd)}
-                  </span>
+                  {SHOW_SECTION_PRICES && (
+                    <span
+                      className={`absolute top-2 right-2 sm:top-4 sm:right-4 flex items-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 text-[10px] sm:text-sm font-display font-semibold rounded-full ${
+                        event.isFree
+                          ? "bg-green-500/90 text-foreground"
+                          : "bg-primary/90 text-primary-foreground"
+                      }`}
+                    >
+                      <Ticket className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                      {event.isFree ? "Gratuito" : formatUsd(paidUsd)}
+                    </span>
+                  )}
                 </div>
                 <div className="p-3 sm:p-6 flex-1 flex flex-col">
                   <span className="text-[10px] sm:text-xs font-display text-primary tracking-wider uppercase line-clamp-3">

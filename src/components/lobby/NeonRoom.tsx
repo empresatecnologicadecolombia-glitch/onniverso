@@ -1313,16 +1313,20 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
 
     if (!navigator.mediaDevices?.getUserMedia) {
       setMixedRealityError(MIXED_REALITY_CAMERA_ERROR);
-      setMixedRealityLoading(false);
+      return;
+    }
+    if (typeof window !== "undefined" && !window.isSecureContext) {
+      setMixedRealityError("La camara requiere HTTPS. Abre onnivers.com o la app.");
       return;
     }
 
     mixedRealityStartInFlightRef.current = true;
+    const streamPromise = openCameraStream();
     setMixedRealityLoading(true);
     setMixedRealityError(null);
 
     try {
-      const stream = await openCameraStream();
+      const stream = await streamPromise;
       const video = cameraVideoRef.current;
       if (!video) {
         stream.getTracks().forEach((track) => track.stop());
@@ -1392,7 +1396,7 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
       <video
         ref={cameraVideoRef}
         playsInline
-        autoPlay={mixedRealityEnabled}
+        autoPlay
         muted
         aria-hidden
         style={

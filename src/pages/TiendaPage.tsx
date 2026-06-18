@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Navbar from "@/components/Navbar";
 import PricingSection from "@/components/PricingSection";
+import { SHOW_SECTION_PRICES } from "@/config/navVisibility";
 import Footer from "@/components/Footer";
 import InvestmentContactDialog from "@/components/InvestmentContactDialog";
 import BackToProfileHomeButton from "@/components/BackToProfileHomeButton";
@@ -394,17 +395,19 @@ const TiendaPage = () => {
                                 )
                               </p>
                             )}
-                            <div className="mt-2">
-                              <span
-                                className={`inline-block rounded-full border px-2.5 py-1 text-[10px] sm:text-[11px] font-display font-bold tracking-wide backdrop-blur-md ${
-                                  isFree
-                                    ? "border-emerald-300/55 bg-emerald-500/15 text-emerald-100 shadow-[0_0_18px_-6px_rgba(52,211,153,0.85)]"
-                                    : "border-emerald-400/50 bg-white/10 text-white shadow-[0_0_22px_-8px_rgba(110,231,183,0.9)]"
-                                }`}
-                              >
-                                {product.price}
-                              </span>
-                            </div>
+                            {SHOW_SECTION_PRICES && (
+                              <div className="mt-2">
+                                <span
+                                  className={`inline-block rounded-full border px-2.5 py-1 text-[10px] sm:text-[11px] font-display font-bold tracking-wide backdrop-blur-md ${
+                                    isFree
+                                      ? "border-emerald-300/55 bg-emerald-500/15 text-emerald-100 shadow-[0_0_18px_-6px_rgba(52,211,153,0.85)]"
+                                      : "border-emerald-400/50 bg-white/10 text-white shadow-[0_0_22px_-8px_rgba(110,231,183,0.9)]"
+                                  }`}
+                                >
+                                  {product.price}
+                                </span>
+                              </div>
+                            )}
                             {canOpenImmersive && product.actionUrl && (
                               <Button
                                 type="button"

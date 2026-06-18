@@ -12,6 +12,7 @@ import LoginAuthModal from "@/components/LoginAuthModal";
 import PaymentSuccessModal from "@/components/PaymentSuccessModal";
 import { notifyN8nPaymentSuccess } from "@/lib/n8n";
 import { addVaultItem } from "@/lib/vaultItems";
+import { SHOW_SECTION_PRICES } from "@/config/navVisibility";
 
 interface TicketPaywallProps {
   price: number;
@@ -122,7 +123,9 @@ const TicketPaywall = ({ price, eventId, requiresAuth }: TicketPaywallProps) => 
                 <Ticket className="w-5 h-5 text-primary" />
                 <span className="text-sm text-muted-foreground">Ticket de acceso</span>
               </div>
-              <span className="font-display text-2xl font-bold text-foreground">${price.toFixed(2)}</span>
+              {SHOW_SECTION_PRICES && (
+                <span className="font-display text-2xl font-bold text-foreground">${price.toFixed(2)}</span>
+              )}
             </div>
           </div>
 
