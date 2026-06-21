@@ -15,6 +15,14 @@ const LEGACY_ONNIVERS_LOBBY_PATH = "/lobby-inmersivo";
 const CARACOL_TV_URL = "https://www.caracoltv.com/senal-vivo";
 const YOUTUBE_HOME_URL = "https://www.youtube.com";
 
+/** URLs escritorio (www) para Facebook, Instagram, TikTok y Google en iconos de inicio. */
+const DESKTOP_FACEBOOK_URL = SOCIAL_LINKS.facebook;
+const DESKTOP_INSTAGRAM_URL = SOCIAL_LINKS.instagram;
+const DESKTOP_TIKTOK_URL = "https://www.tiktok.com/";
+const DESKTOP_GOOGLE_URL = "https://www.google.com/";
+
+const DESKTOP_SOCIAL_ICON_IDS = new Set<HomeSocialIconId>(["facebook", "instagram", "tiktok", "google"]);
+
 export type HomeSocialRedesMode = "redes" | "redesCam";
 
 export type HomeSocialIconConfig = {
@@ -60,6 +68,34 @@ function normalizeYouTubeHomeUrl(url: string): string {
   return trimmed;
 }
 
+function normalizeDesktopSocialUrl(id: HomeSocialIconId, url: string): string {
+  const trimmed = url.trim();
+  const lower = trimmed.toLowerCase();
+
+  if (id === "facebook") {
+    if (!trimmed) return DESKTOP_FACEBOOK_URL;
+    if (lower.includes("m.facebook.com")) return trimmed.replace(/m\.facebook\.com/gi, "www.facebook.com");
+    return trimmed;
+  }
+  if (id === "instagram") {
+    if (!trimmed) return DESKTOP_INSTAGRAM_URL;
+    if (lower.includes("m.instagram.com")) return trimmed.replace(/m\.instagram\.com/gi, "www.instagram.com");
+    return trimmed;
+  }
+  if (id === "tiktok") {
+    if (!trimmed || lower.includes("vm.tiktok.com") || lower.includes("m.tiktok.com")) {
+      return DESKTOP_TIKTOK_URL;
+    }
+    return trimmed;
+  }
+  if (id === "google") {
+    if (!trimmed) return DESKTOP_GOOGLE_URL;
+    if (lower.includes("m.google.")) return trimmed.replace(/m\.google\./gi, "www.google.");
+    return trimmed;
+  }
+  return trimmed;
+}
+
 export const DEFAULT_HOME_SOCIAL_ICONS: HomeSocialIconConfig[] = [
   {
     id: "onnivers",
@@ -88,14 +124,14 @@ export const DEFAULT_HOME_SOCIAL_ICONS: HomeSocialIconConfig[] = [
   {
     id: "tiktok",
     label: "TikTok",
-    redesUrl: SOCIAL_LINKS.tiktok,
-    redesCamUrl: SOCIAL_LINKS.tiktok,
+    redesUrl: DESKTOP_TIKTOK_URL,
+    redesCamUrl: DESKTOP_TIKTOK_URL,
   },
   {
     id: "google",
     label: "Google",
-    redesUrl: "https://www.google.com",
-    redesCamUrl: "https://www.google.com",
+    redesUrl: DESKTOP_GOOGLE_URL,
+    redesCamUrl: DESKTOP_GOOGLE_URL,
   },
   {
     id: "mercadolibre",
@@ -152,6 +188,14 @@ function mergeWithDefaults(parsed: unknown): HomeSocialIconConfig[] {
         ...def,
         redesUrl: normalizeYouTubeHomeUrl(redesUrl),
         redesCamUrl: normalizeYouTubeHomeUrl(redesCamUrl),
+      };
+    }
+
+    if (DESKTOP_SOCIAL_ICON_IDS.has(def.id)) {
+      return {
+        ...def,
+        redesUrl: normalizeDesktopSocialUrl(def.id, redesUrl),
+        redesCamUrl: normalizeDesktopSocialUrl(def.id, redesCamUrl),
       };
     }
 

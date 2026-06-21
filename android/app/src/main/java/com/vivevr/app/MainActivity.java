@@ -1136,7 +1136,18 @@ public class MainActivity extends BridgeActivity {
         || lower.contains("onnivers.com");
   }
 
-  /** YouTube en WebView estéreo: misma URL que overlay Redes ({@code www}). */
+  /** Facebook, Instagram, TikTok, Google — versión escritorio en WebView Redes. */
+  private static boolean isDesktopSocialWebUrl(String url) {
+    if (url == null || url.trim().isEmpty()) {
+      return false;
+    }
+    String lower = url.trim().toLowerCase(Locale.ROOT);
+    return lower.contains("facebook.com")
+        || lower.contains("instagram.com")
+        || lower.contains("tiktok.com")
+        || lower.contains("google.com");
+  }
+
   static String normalizeStereoWebUrl(String url) {
     if (url == null) {
       return "";
@@ -1614,6 +1625,11 @@ public class MainActivity extends BridgeActivity {
     if (wv == null) {
       return;
     }
+    wv.getSettings()
+        .setUserAgentString(
+            isDesktopSocialWebUrl(url)
+                ? COLOSSEO_BROWSER_DESKTOP_UA
+                : LOBBY_SCREEN_MOBILE_UA);
     FrameLayout.LayoutParams lp =
         new FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
