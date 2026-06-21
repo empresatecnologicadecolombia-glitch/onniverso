@@ -264,7 +264,7 @@ public class MainActivity extends BridgeActivity {
    * {@code url} = {@link AulaVirtualActivity#AULA_VIRTUAL_URL} o {@link AulaVirtualActivity#LOBBY_IMMERSIVE_URL}.
    */
   private void launchImmersiveStereoDirect(String url) {
-    String target = url != null ? url.trim() : "";
+    String target = normalizeStereoWebUrl(url);
     if (target.isEmpty()) {
       target = AulaVirtualActivity.AULA_VIRTUAL_URL;
     }
@@ -646,24 +646,23 @@ public class MainActivity extends BridgeActivity {
       activity.runOnUiThread(
           () -> {
             String url = salaUrl != null ? salaUrl.trim() : "";
-            String lower = url.toLowerCase(Locale.ROOT);
-            boolean isHls = lower.contains(".m3u8");
-            boolean isMp4 = lower.contains(".mp4");
             if (!StreamUrlResolver.isPlayableHttpUrl(url)) {
               Toast.makeText(activity, "URL de sala inválida.", Toast.LENGTH_SHORT).show();
               return;
             }
-            if (!isHls && !isMp4) {
-              String act = action != null ? action.trim().toUpperCase(Locale.ROOT) : "";
+            String act = action != null ? action.trim().toUpperCase(Locale.ROOT) : "";
+            if (!MainActivity.isDirectStreamMediaUrl(url) || MainActivity.isStereoWebPageUrl(url)) {
+              String stereoUrl = MainActivity.normalizeStereoWebUrl(url);
               if ("OPEN_SALA_MIXTA".equals(act)) {
-                activity.openSocialRedesOverlay(url, true);
+                activity.openSocialRedesOverlay(stereoUrl, true);
               } else {
-                activity.launchImmersiveStereoDirect(url);
+                activity.launchImmersiveStereoDirect(stereoUrl);
               }
               return;
             }
+            String lower = url.toLowerCase(Locale.ROOT);
+            boolean isHls = lower.contains(".m3u8");
             String id = isHls ? StreamUrlResolver.extractMuxPlaybackIdFromHls(url) : "";
-            String act = action != null ? action.trim().toUpperCase(Locale.ROOT) : "";
             String scene;
             if ("OPEN_SALA_MIXTA".equals(act)) {
               scene = "mix";
@@ -1055,6 +1054,54 @@ public class MainActivity extends BridgeActivity {
       return preferred;
     }
     return "split";
+  }
+
+  /** Solo archivos de stream reales; no usar {@code contains(".mp4")} en toda la URL. */
+  static boolean isDirectStreamMediaUrl(String url) {
+    if (url == null || url.trim().isEmpty()) {
+      return false;
+    }
+    String lower = url.trim().toLowerCase(Locale.ROOT);
+    return lower.contains(".m3u8?")
+        || lower.contains(".m3u8#")
+        || lower.endsWith(".m3u8")
+        || lower.contains(".mp4?")
+        || lower.contains(".mp4#")
+        || lower.endsWith(".mp4");
+  }
+
+  /** Páginas web de iconos Redes / Cine — siempre WebView estéreo, nunca ExoPlayer. */
+  static boolean isStereoWebPageUrl(String url) {
+    if (url == null || url.trim().isEmpty()) {
+      return false;
+    }
+    String lower = url.trim().toLowerCase(Locale.ROOT);
+    return lower.contains("youtube.com")
+        || lower.contains("youtu.be")
+        || lower.contains("facebook.com")
+        || lower.contains("instagram.com")
+        || lower.contains("tiktok.com")
+        || lower.contains("google.com")
+        || lower.contains("whatsapp.com")
+        || lower.contains("caracoltv.com")
+        || lower.contains("pluto.tv")
+        || lower.contains("onnivers.com");
+  }
+
+  /** YouTube en WebView estéreo funciona mejor con la versión móvil. */
+  static String normalizeStereoWebUrl(String url) {
+    if (url == null) {
+      return "";
+    }
+    String trimmed = url.trim();
+    if (trimmed.isEmpty()) {
+      return trimmed;
+    }
+    String lower = trimmed.toLowerCase(Locale.ROOT);
+    if (lower.contains("youtube.com") || lower.contains("youtu.be")) {
+      return "https://m.youtube.com/";
+    }
+    return trimmed;
   }
 
   private boolean isLobbyDeepLink(Uri uri) {

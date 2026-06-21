@@ -13,6 +13,7 @@ export type HomeSocialIconId =
 const ONNIVERS_SITE_URL = "https://onnivers.com/";
 const LEGACY_ONNIVERS_LOBBY_PATH = "/lobby-inmersivo";
 const CARACOL_TV_URL = "https://www.caracoltv.com/senal-vivo";
+const YOUTUBE_STEREO_URL = "https://m.youtube.com/";
 
 export type HomeSocialRedesMode = "redes" | "redesCam";
 
@@ -51,6 +52,20 @@ function normalizeCaracolTvUrl(url: string): string {
   return trimmed;
 }
 
+function normalizeYouTubeStereoUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return YOUTUBE_STEREO_URL;
+  const lower = trimmed.toLowerCase();
+  if (lower.includes("youtube.com") || lower.includes("youtu.be")) return YOUTUBE_STEREO_URL;
+  return trimmed;
+}
+
+/** YouTube en APK estéreo: usar m.youtube.com (WebView), no www. */
+export function normalizeHomeSocialCineUrl(id: HomeSocialIconId, url: string): string {
+  if (id === "youtube") return normalizeYouTubeStereoUrl(url);
+  return url.trim();
+}
+
 export const DEFAULT_HOME_SOCIAL_ICONS: HomeSocialIconConfig[] = [
   {
     id: "onnivers",
@@ -61,8 +76,8 @@ export const DEFAULT_HOME_SOCIAL_ICONS: HomeSocialIconConfig[] = [
   {
     id: "youtube",
     label: "YouTube",
-    redesUrl: "https://www.youtube.com",
-    redesCamUrl: "https://www.youtube.com",
+    redesUrl: YOUTUBE_STEREO_URL,
+    redesCamUrl: YOUTUBE_STEREO_URL,
   },
   {
     id: "facebook",
@@ -135,6 +150,14 @@ function mergeWithDefaults(parsed: unknown): HomeSocialIconConfig[] {
         ...def,
         redesUrl: normalizeCaracolTvUrl(redesUrl),
         redesCamUrl: normalizeCaracolTvUrl(redesCamUrl),
+      };
+    }
+
+    if (def.id === "youtube") {
+      return {
+        ...def,
+        redesUrl: normalizeYouTubeStereoUrl(redesUrl),
+        redesCamUrl: normalizeYouTubeStereoUrl(redesCamUrl),
       };
     }
 

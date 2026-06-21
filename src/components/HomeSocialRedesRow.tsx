@@ -1,12 +1,7 @@
 import { useCallback, useId, useMemo, useState } from "react";
 import HomeSocialCinePickerDialog from "@/components/HomeSocialCinePickerDialog";
 import { FacebookGlyph, InstagramGlyph } from "@/components/SocialFooterIcons";
-import {
-  getHomeSocialUrl,
-  loadHomeSocialRedesConfig,
-  type HomeSocialIconConfig,
-  type HomeSocialIconId,
-} from "@/lib/homeSocialRedesConfig";
+import { getHomeSocialUrl, loadHomeSocialRedesConfig, normalizeHomeSocialCineUrl, type HomeSocialIconConfig, type HomeSocialIconId } from "@/lib/homeSocialRedesConfig";
 import {
   openHomeSocialRedes,
   openHomeSocialRedesCam,
@@ -158,7 +153,8 @@ export default function HomeSocialRedesRow() {
 
   const onPickCine = useCallback(() => {
     if (!picked) return;
-    openHomeSocialRedesCine(getHomeSocialUrl(icons, picked.id, "redes"));
+    const url = normalizeHomeSocialCineUrl(picked.id, getHomeSocialUrl(icons, picked.id, "redes"));
+    openHomeSocialRedesCine(url);
     setPicked(null);
   }, [icons, picked]);
 

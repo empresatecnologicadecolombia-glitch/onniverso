@@ -1,6 +1,7 @@
 package com.vivevr.app;
 
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
@@ -26,7 +27,10 @@ public class AulaVirtualActivity extends AppCompatActivity {
   public static final String AULA_VIRTUAL_URL = "https://onnivers.com/aula-virtual";
   public static final String LOBBY_IMMERSIVE_URL = "https://onnivers.com/lobby-inmersivo";
 
-  /** YouTube y sitios similares cargan mejor con UA de escritorio en WebView estéreo. */
+  private static final String STEREO_MOBILE_UA =
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1";
+
+  /** Sitios externos (Caracol, etc.) cargan mejor con UA de escritorio. */
   private static final String STEREO_EXTERNAL_DESKTOP_UA =
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
@@ -84,7 +88,7 @@ public class AulaVirtualActivity extends AppCompatActivity {
     if (getIntent() != null) {
       String extra = getIntent().getStringExtra(ImmersiveStereoExtras.EXTRA_URL);
       if (extra != null && !extra.trim().isEmpty()) {
-        return extra.trim();
+        return MainActivity.normalizeStereoWebUrl(extra.trim());
       }
     }
     return AULA_VIRTUAL_URL;
@@ -94,15 +98,22 @@ public class AulaVirtualActivity extends AppCompatActivity {
     WebSettings settings = wv.getSettings();
     settings.setJavaScriptEnabled(true);
     settings.setDomStorageEnabled(true);
+    settings.setDatabaseEnabled(true);
     settings.setMediaPlaybackRequiresUserGesture(false);
     settings.setAllowFileAccess(true);
     settings.setAllowContentAccess(true);
     settings.setUseWideViewPort(true);
     settings.setLoadWithOverviewMode(true);
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+      settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+    }
     String stereoUrl = resolveStereoUrl().toLowerCase(Locale.ROOT);
     if (stereoUrl.contains("youtube.com") || stereoUrl.contains("youtu.be")) {
+      settings.setUserAgentString(STEREO_MOBILE_UA);
+    } else if (!stereoUrl.contains("onnivers.com")) {
       settings.setUserAgentString(STEREO_EXTERNAL_DESKTOP_UA);
     }
+    wv.setLayerType(View.LAYER_TYPE_HARDWARE, null);
     wv.setWebViewClient(new WebViewClient());
     wv.setWebChromeClient(
         new WebChromeClient() {
