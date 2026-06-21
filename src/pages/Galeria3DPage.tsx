@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import SectionHeader from "@/components/salas/SectionHeader";
 import BackToProfileHomeButton from "@/components/BackToProfileHomeButton";
 import { Button } from "@/components/ui/button";
+import ActiveVirtualClassesPanel from "@/components/galeria3d/ActiveVirtualClassesPanel";
 
 const Galeria3DPage = () => {
   const location = useLocation();
@@ -128,6 +129,8 @@ const Galeria3DPage = () => {
                 </div>
               </div>
             </article>
+
+            <ActiveVirtualClassesPanel />
           </section>
         </div>
       </main>

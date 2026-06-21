@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import DocenteContentLibraryPanel from "@/components/docente/DocenteContentLibraryPanel";
 import { SHOW_DOCENTE_CONTENT_LIBRARY } from "@/config/navVisibility";
 import { copyToClipboard } from "@/lib/copyToClipboard";
+import { buildStudentClassUrl } from "@/lib/studentClassLink";
 import { onOpCommand } from "@/lib/opCommandBus";
 
 const ONNI_DOCENTE_RETRY_MS = 450;
@@ -407,7 +408,7 @@ export default function DocenteClasesPage() {
   };
 
   const copyClassLink = async (slug: string) => {
-    const url = `${window.location.origin}/clase/${slug}`;
+    const url = buildStudentClassUrl(slug);
     const copied = await copyToClipboard(url);
     if (copied) toast.success("Link de clase copiado.");
     else toast.error("No se pudo copiar el link.");
