@@ -15,12 +15,10 @@ import * as THREE from "three";
 import { useNavigate } from "react-router-dom";
 import { Radio } from "lucide-react";
 import { invokeOpenGalleryDirect } from "@/lib/galleryOpenDirect";
-import { LOBBY_IMMERSIVE_PATH } from "@/lib/lobbyImmersive";
 import {
   getRoomMode,
   type MiMundoEnvironmentId,
 } from "@/data/miMundoEnvironments";
-import { useAulaVirtualCardChoice } from "@/hooks/useAulaVirtualCardChoice";
 import {
   MAX_WEBGL_PIXEL_RATIO,
   VR_STEREO_PIXEL_RATIO,
@@ -704,7 +702,6 @@ const MiMundoVRSection = ({
   onProfilePersist,
 }: MiMundoVRSectionProps) => {
   const navigate = useNavigate();
-  const { requestAulaVirtualEntry, dialog: aulaVirtualCardDialog } = useAulaVirtualCardChoice();
   const [profileSaving, setProfileSaving] = useState(false);
   const vrStereoActive = useVrModeActive();
   const environmentId = useMemo<MiMundoEnvironmentId>(() => "lobby", []);
@@ -745,18 +742,17 @@ const MiMundoVRSection = ({
   }, [navigate]);
 
   const onAulaVirtualClick = useCallback(() => {
-    const youtubeUrl = "https://www.youtube.com";
+    const earthUrl = "https://www.youtube.com";
     if (typeof window.AndroidBridge?.openModelDirect === "function") {
-      window.AndroidBridge.openModelDirect(youtubeUrl, "");
+      window.AndroidBridge.openModelDirect(earthUrl, "");
       return;
     }
     if (typeof window.Android?.openModelDirect === "function") {
-      window.Android.openModelDirect(youtubeUrl, "");
+      window.Android.openModelDirect(earthUrl, "");
       return;
     }
-    if (requestAulaVirtualEntry()) return;
-    navigate(LOBBY_IMMERSIVE_PATH);
-  }, [navigate, requestAulaVirtualEntry]);
+    window.location.assign(earthUrl);
+  }, []);
 
   const onProfileConfirm = async (payload: ProfileCardConfirmPayload) => {
     try {
@@ -778,7 +774,6 @@ const MiMundoVRSection = ({
       id="mi-mundo-vr"
       className="relative h-full w-full max-w-full overflow-x-clip overflow-y-hidden bg-black"
     >
-      {aulaVirtualCardDialog}
       <div className="absolute inset-0 z-[1] overflow-hidden">
         <div className="absolute inset-0 h-full w-full overflow-hidden">
         <Canvas

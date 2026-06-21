@@ -270,6 +270,10 @@ public class MainActivity extends BridgeActivity {
       return;
     }
     String lower = target.toLowerCase(Locale.ROOT);
+    if (lower.contains("youtube.com") || lower.contains("youtu.be")) {
+      launchAulaVirtualStereoDirect(target);
+      return;
+    }
     if (lower.contains("onnivers.com/aula-virtual")) {
       launchAulaVirtualStereoDirect(target);
       return;
