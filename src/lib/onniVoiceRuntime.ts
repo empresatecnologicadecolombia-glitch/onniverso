@@ -1,5 +1,6 @@
 import { isDesktopWebBrowser, isElectronDesktopApp, isOnniAndroidVoice } from "@/lib/deviceDetection";
 import { speakWithAzureVoice, stopAzureVoice } from "@/lib/onniAzureTts";
+import { speakWithElevenLabsVoice, stopElevenLabsVoice } from "@/lib/onniElevenLabsTts";
 import { getElectronVoiceBridge } from "@/lib/onniElectronVoiceBridge";
 import { isOnniVoiceSupported, pickOnniSpanishVoice } from "@/lib/onniVoice";
 
@@ -153,6 +154,7 @@ export function speakWithNativeVoice(text: string): boolean {
 export function stopOnniSpokenVoice(): void {
   stopWebVoice();
   stopAzureVoice();
+  stopElevenLabsVoice();
   try {
     getNativeVoiceBridge()?.stopSpeaking?.();
   } catch {
@@ -181,11 +183,9 @@ export function speakOnniAnswer(
 ): boolean {
   if (mode === "native" && isOnniAndroidVoice() && text.trim()) {
     stopOnniSpokenVoice();
-    if (shouldUseAzureTtsOnAndroid(text, options)) {
-      void speakWithAzureVoice(text);
-    } else {
-      speakWithNativeVoice(text);
-    }
+    void speakWithElevenLabsVoice(text).then((ok) => {
+      if (!ok) speakWithNativeVoice(text);
+    });
     return true;
   }
   if (mode === "web") {

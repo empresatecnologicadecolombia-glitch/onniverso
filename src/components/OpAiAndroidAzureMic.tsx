@@ -15,7 +15,7 @@ type OpAiAndroidAzureMicProps = {
   onStateChange?: (state: OpAiAndroidAzureMicState) => void;
 };
 
-/** Micrófono Azure STT — solo montar en APK Android, nunca en PC/navegador. */
+/** Micrófono STT — APK Android usa ElevenLabs; .exe sigue con Azure streaming. */
 export default function OpAiAndroidAzureMic({
   callbacks,
   processing,

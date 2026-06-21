@@ -1,6 +1,7 @@
 import { onniMicDeniedMessage, requestOnniMicrophoneAccess } from "@/lib/requestOnniMicrophone";
+import { isElectronDesktopApp, isOnniAndroidVoice } from "@/lib/deviceDetection";
 import { stopAzureVoice } from "@/lib/onniAzureTts";
-import { isElectronDesktopApp } from "@/lib/deviceDetection";
+import { stopElevenLabsVoice } from "@/lib/onniElevenLabsTts";
 import {
   cancelAzureStreamingRecognition,
   isAzureStreamingRecording,
@@ -107,6 +108,11 @@ function clearActiveSession() {
   activeSession = null;
 }
 
+function stopCloudTtsPlayback(): void {
+  stopAzureVoice();
+  stopElevenLabsVoice();
+}
+
 export function isAzureMicSupported(): boolean {
   return (
     typeof navigator !== "undefined" &&
@@ -136,7 +142,7 @@ export async function startAzureMicRecording(
     return { ok: false, error: "El micrófono ya está activo." };
   }
 
-  stopAzureVoice();
+  stopCloudTtsPlayback();
 
   const mime = pickRecorderMime();
   if (!mime) {
@@ -194,7 +200,10 @@ export async function transcribeBlobWithAzure(blob: Blob): Promise<string> {
 
   const wav = await recordedBlobToWav(blob);
   const audioBase64 = await blobToBase64(wav);
-  const res = await fetch("/api/azure/speech-stt", {
+  const sttEndpoint = isOnniAndroidVoice()
+    ? "/api/elevenlabs/speech-stt"
+    : "/api/azure/speech-stt";
+  const res = await fetch(sttEndpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ audioBase64 }),
