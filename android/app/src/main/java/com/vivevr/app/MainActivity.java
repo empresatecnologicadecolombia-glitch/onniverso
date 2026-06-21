@@ -649,8 +649,17 @@ public class MainActivity extends BridgeActivity {
             String lower = url.toLowerCase(Locale.ROOT);
             boolean isHls = lower.contains(".m3u8");
             boolean isMp4 = lower.contains(".mp4");
-            if (!StreamUrlResolver.isPlayableHttpUrl(url) || (!isHls && !isMp4)) {
-              Toast.makeText(activity, "URL de sala inválida (.m3u8 o .mp4).", Toast.LENGTH_SHORT).show();
+            if (!StreamUrlResolver.isPlayableHttpUrl(url)) {
+              Toast.makeText(activity, "URL de sala inválida.", Toast.LENGTH_SHORT).show();
+              return;
+            }
+            if (!isHls && !isMp4) {
+              String act = action != null ? action.trim().toUpperCase(Locale.ROOT) : "";
+              if ("OPEN_SALA_MIXTA".equals(act)) {
+                activity.openSocialRedesOverlay(url, true);
+              } else {
+                activity.launchImmersiveStereoDirect(url);
+              }
               return;
             }
             String id = isHls ? StreamUrlResolver.extractMuxPlaybackIdFromHls(url) : "";

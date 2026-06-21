@@ -1,12 +1,27 @@
 import { isNativeAndroid } from "@/lib/nativePlayback";
 
+const SALA_DIVIDIDA: "OPEN_SALA_DIVIDIDA" = "OPEN_SALA_DIVIDIDA";
+
 /** Selector Cine / Cine Cam solo en APK (WebView nativo). En PC se abre el enlace directo. */
 export function shouldShowHomeSocialCinePicker(): boolean {
   if (!isNativeAndroid()) return false;
   return (
-    typeof window.Android?.openVrRedes === "function" &&
+    typeof window.AndroidBridge?.openSalaDirect === "function" &&
     typeof window.Android?.openRedesCamDirect === "function"
   );
+}
+
+/** Abre red social en modo Cine (split nativo vía AndroidBridge.openSalaDirect). */
+export function openHomeSocialRedesCine(url: string): void {
+  const target = url.trim();
+  if (!target) return;
+
+  if (typeof window.AndroidBridge?.openSalaDirect === "function") {
+    window.AndroidBridge.openSalaDirect(target, SALA_DIVIDIDA);
+    return;
+  }
+
+  openHomeSocialRedes(target);
 }
 
 /** Abre red social en modo Redes (VR). */

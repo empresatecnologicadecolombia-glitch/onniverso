@@ -10,6 +10,7 @@ import {
 import {
   openHomeSocialRedes,
   openHomeSocialRedesCam,
+  openHomeSocialRedesCine,
   shouldShowHomeSocialCinePicker,
 } from "@/lib/homeSocialRedesOpen";
 import { cn } from "@/lib/utils";
@@ -155,9 +156,9 @@ export default function HomeSocialRedesRow() {
   const [picked, setPicked] = useState<HomeSocialIconConfig | null>(null);
   const showCinePicker = useMemo(() => shouldShowHomeSocialCinePicker(), []);
 
-  const onPickRedes = useCallback(() => {
+  const onPickCine = useCallback(() => {
     if (!picked) return;
-    openHomeSocialRedes(getHomeSocialUrl(icons, picked.id, "redes"));
+    openHomeSocialRedesCine(getHomeSocialUrl(icons, picked.id, "redes"));
     setPicked(null);
   }, [icons, picked]);
 
@@ -199,7 +200,7 @@ export default function HomeSocialRedesRow() {
           open={picked !== null}
           onOpenChange={(open) => !open && setPicked(null)}
           title={picked?.label ?? ""}
-          onPickCine={onPickRedes}
+          onPickCine={onPickCine}
           onPickCineCam={onPickRedesCam}
         />
       )}
