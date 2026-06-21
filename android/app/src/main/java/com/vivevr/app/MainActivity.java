@@ -1132,7 +1132,7 @@ public class MainActivity extends BridgeActivity {
         || lower.contains("onnivers.com");
   }
 
-  /** YouTube en WebView estéreo funciona mejor con la versión móvil. */
+  /** YouTube en WebView estéreo: misma URL que overlay Redes ({@code www}). */
   static String normalizeStereoWebUrl(String url) {
     if (url == null) {
       return "";
@@ -1143,7 +1143,10 @@ public class MainActivity extends BridgeActivity {
     }
     String lower = trimmed.toLowerCase(Locale.ROOT);
     if (lower.contains("youtube.com") || lower.contains("youtu.be")) {
-      return "https://m.youtube.com/";
+      if (lower.contains("m.youtube.com")) {
+        return "https://www.youtube.com";
+      }
+      return trimmed;
     }
     return trimmed;
   }

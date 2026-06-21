@@ -1,13 +1,13 @@
 import { useCallback, useId, useMemo, useState } from "react";
 import HomeSocialCinePickerDialog from "@/components/HomeSocialCinePickerDialog";
 import { FacebookGlyph, InstagramGlyph } from "@/components/SocialFooterIcons";
-import { getHomeSocialUrl, loadHomeSocialRedesConfig, normalizeHomeSocialCineUrl, type HomeSocialIconConfig, type HomeSocialIconId } from "@/lib/homeSocialRedesConfig";
 import {
   openHomeSocialRedes,
   openHomeSocialRedesCam,
-  openHomeSocialRedesCine,
+  openYouTubeRedesCine,
   shouldShowHomeSocialCinePicker,
 } from "@/lib/homeSocialRedesOpen";
+import { getHomeSocialUrl, loadHomeSocialRedesConfig, type HomeSocialIconConfig, type HomeSocialIconId } from "@/lib/homeSocialRedesConfig";
 import { cn } from "@/lib/utils";
 
 const OnniVersGlyph = () => {
@@ -153,8 +153,12 @@ export default function HomeSocialRedesRow() {
 
   const onPickCine = useCallback(() => {
     if (!picked) return;
-    const url = normalizeHomeSocialCineUrl(picked.id, getHomeSocialUrl(icons, picked.id, "redes"));
-    openHomeSocialRedesCine(url);
+    const url = getHomeSocialUrl(icons, picked.id, "redes");
+    if (picked.id === "youtube") {
+      openYouTubeRedesCine(url);
+    } else {
+      openHomeSocialRedes(url);
+    }
     setPicked(null);
   }, [icons, picked]);
 

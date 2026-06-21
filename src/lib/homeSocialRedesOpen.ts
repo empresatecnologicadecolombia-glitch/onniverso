@@ -1,28 +1,35 @@
 import { isNativeAndroid } from "@/lib/nativePlayback";
 
-const SALA_DIVIDIDA: "OPEN_SALA_DIVIDIDA" = "OPEN_SALA_DIVIDIDA";
+const YOUTUBE_CINE_URL = "https://www.youtube.com";
+
+function normalizeYouTubeCineUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return YOUTUBE_CINE_URL;
+  const lower = trimmed.toLowerCase();
+  if (lower.includes("youtube.com") || lower.includes("youtu.be")) {
+    if (lower.includes("m.youtube.com")) return YOUTUBE_CINE_URL;
+    return trimmed;
+  }
+  return trimmed;
+}
 
 /** Selector Cine / Cine Cam solo en APK. En PC se abre el enlace directo. */
 export function shouldShowHomeSocialCinePicker(): boolean {
   if (!isNativeAndroid()) return false;
-  const hasCine =
-    typeof window.AndroidBridge?.openRedesStereoCine === "function" ||
-    typeof window.AndroidBridge?.openSalaDirect === "function";
-  return hasCine && typeof window.Android?.openRedesCamDirect === "function";
+  return (
+    typeof window.Android?.openRedesCamDirect === "function" &&
+    (typeof window.AndroidBridge?.openRedesStereoCine === "function" ||
+      typeof window.Android?.openVrRedes === "function")
+  );
 }
 
-/** Abre red social en modo Cine (RedesStereoActivity — dos WebView SBS en Android). */
-export function openHomeSocialRedesCine(url: string): void {
-  const target = url.trim();
+/** Solo icono YouTube — botón Cine: estéreo SBS nativo; si no hay APK nueva, overlay que ya funcionaba. */
+export function openYouTubeRedesCine(url: string): void {
+  const target = normalizeYouTubeCineUrl(url);
   if (!target) return;
 
   if (typeof window.AndroidBridge?.openRedesStereoCine === "function") {
     window.AndroidBridge.openRedesStereoCine(target);
-    return;
-  }
-
-  if (typeof window.AndroidBridge?.openSalaDirect === "function") {
-    window.AndroidBridge.openSalaDirect(target, SALA_DIVIDIDA);
     return;
   }
 

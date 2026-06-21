@@ -32,9 +32,6 @@ public class RedesStereoActivity extends AppCompatActivity {
   private static final String STEREO_MOBILE_UA =
       "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1";
 
-  private static final String STEREO_EXTERNAL_DESKTOP_UA =
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
-
   private WebView leftWebView;
   private WebView rightWebView;
 
@@ -115,15 +112,9 @@ public class RedesStereoActivity extends AppCompatActivity {
     settings.setMediaPlaybackRequiresUserGesture(false);
     settings.setAllowFileAccess(true);
     settings.setAllowContentAccess(true);
+    settings.setUserAgentString(STEREO_MOBILE_UA);
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
-    }
-
-    String lower = targetUrl.toLowerCase(Locale.ROOT);
-    if (lower.contains("youtube.com") || lower.contains("youtu.be")) {
-      settings.setUserAgentString(STEREO_MOBILE_UA);
-    } else if (!lower.contains("onnivers.com")) {
-      settings.setUserAgentString(STEREO_EXTERNAL_DESKTOP_UA);
     }
 
     wv.setLayerType(View.LAYER_TYPE_HARDWARE, null);
