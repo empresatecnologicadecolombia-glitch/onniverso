@@ -1,6 +1,7 @@
 node_modules
 dist
 .git
+release
 android
 coverage
 mux-api/node_modules
