@@ -95,8 +95,9 @@ export default function ActiveVirtualClassesPanel() {
             Entra con el link del docente
           </h2>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-            Cuando el docente crea una clase en el panel, aparece aquí. Las que están en vivo se
-            marcan con <span className="text-red-300">EN VIVO</span>.
+            Cuando el docente crea una clase en el panel, aparece aquí. El estado{" "}
+            <span className="text-emerald-300">Onni line</span> /{" "}
+            <span className="text-slate-300">Off line</span> indica si la sesión está en vivo.
           </p>
         </div>
         <Button
@@ -155,11 +156,24 @@ export default function ActiveVirtualClassesPanel() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="truncate text-base font-semibold text-foreground">{row.titulo}</h3>
-                      {row.isLive ? (
-                        <span className="inline-flex items-center rounded-full border border-red-400/50 bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-200">
-                          En vivo
-                        </span>
-                      ) : null}
+                      <span
+                        className={
+                          row.isLive
+                            ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-400/55 bg-emerald-500/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-100"
+                            : "inline-flex items-center gap-1.5 rounded-full border border-slate-400/40 bg-slate-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-300"
+                        }
+                        aria-label={row.isLive ? "Clase en línea" : "Clase fuera de línea"}
+                      >
+                        <span
+                          className={
+                            row.isLive
+                              ? "h-2 w-2 animate-pulse rounded-full bg-emerald-400"
+                              : "h-2 w-2 rounded-full bg-slate-400"
+                          }
+                          aria-hidden
+                        />
+                        {row.isLive ? "Onni line" : "Off line"}
+                      </span>
                     </div>
                     {row.descripcion ? (
                       <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{row.descripcion}</p>
