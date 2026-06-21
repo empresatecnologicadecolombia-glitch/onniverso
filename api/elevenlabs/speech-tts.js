@@ -3,7 +3,7 @@
  * TTS ElevenLabs — clave solo en servidor (Vercel env).
  * Body: { "text": "..." }
  */
-const DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM";
+const DEFAULT_VOICE_ID = "EXAVITQu4vr4xnSDxMaL"; // Sarah — premade, compatible plan free API
 const DEFAULT_MODEL_ID = "eleven_multilingual_v2";
 const MAX_CHARS = 2800;
 
