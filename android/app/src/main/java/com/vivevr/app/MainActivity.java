@@ -658,7 +658,7 @@ public class MainActivity extends BridgeActivity {
               if ("OPEN_SALA_MIXTA".equals(act)) {
                 activity.openSocialRedesOverlay(url, true);
               } else {
-                activity.openSocialRedesOverlay(url, false);
+                activity.launchImmersiveStereoDirect(url);
               }
               return;
             }

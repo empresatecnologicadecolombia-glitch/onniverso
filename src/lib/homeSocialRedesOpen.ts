@@ -2,20 +2,7 @@ import { isNativeAndroid } from "@/lib/nativePlayback";
 
 const SALA_DIVIDIDA: "OPEN_SALA_DIVIDIDA" = "OPEN_SALA_DIVIDIDA";
 
-/** Solo streams directos (.m3u8 / .mp4). Páginas web (YouTube, Caracol web) no son reproducibles en ExoPlayer. */
-function isDirectMediaStreamUrl(url: string): boolean {
-  const trimmed = url.trim();
-  if (!trimmed) return false;
-  try {
-    const path = new URL(trimmed).pathname.toLowerCase();
-    return path.includes(".m3u8") || path.includes(".mp4");
-  } catch {
-    const lower = trimmed.toLowerCase();
-    return lower.includes(".m3u8") || lower.includes(".mp4");
-  }
-}
-
-/** Selector Cine / Cine Cam solo en APK (WebView nativo). En PC se abre el enlace directo. */
+/** Selector Cine / Cine Cam solo en APK. En PC se abre el enlace directo. */
 export function shouldShowHomeSocialCinePicker(): boolean {
   if (!isNativeAndroid()) return false;
   return (
@@ -24,18 +11,13 @@ export function shouldShowHomeSocialCinePicker(): boolean {
   );
 }
 
-/** Abre red social en modo Cine (split nativo vía AndroidBridge.openSalaDirect). */
+/** Abre red social en modo Cine (OPEN_SALA_DIVIDIDA → StereoContainer o PlayerActivity en Android). */
 export function openHomeSocialRedesCine(url: string): void {
   const target = url.trim();
   if (!target) return;
 
-  if (isDirectMediaStreamUrl(target) && typeof window.AndroidBridge?.openSalaDirect === "function") {
+  if (typeof window.AndroidBridge?.openSalaDirect === "function") {
     window.AndroidBridge.openSalaDirect(target, SALA_DIVIDIDA);
-    return;
-  }
-
-  if (typeof window.Android?.openVrRedes === "function") {
-    window.Android.openVrRedes(target);
     return;
   }
 

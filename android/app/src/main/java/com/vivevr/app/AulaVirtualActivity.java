@@ -15,6 +15,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
 
+import java.util.Locale;
+
 /**
  * Visor estéreo nativo ({@link StereoContainer}): Aula Virtual por defecto; la Tierra pasa
  * {@link ImmersiveStereoExtras#EXTRA_URL} con {@value #LOBBY_IMMERSIVE_URL}.
@@ -23,6 +25,10 @@ public class AulaVirtualActivity extends AppCompatActivity {
 
   public static final String AULA_VIRTUAL_URL = "https://onnivers.com/aula-virtual";
   public static final String LOBBY_IMMERSIVE_URL = "https://onnivers.com/lobby-inmersivo";
+
+  /** YouTube y sitios similares cargan mejor con UA de escritorio en WebView estéreo. */
+  private static final String STEREO_EXTERNAL_DESKTOP_UA =
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
   private StereoContainer stereoContainer;
   private WebView webView;
@@ -91,6 +97,12 @@ public class AulaVirtualActivity extends AppCompatActivity {
     settings.setMediaPlaybackRequiresUserGesture(false);
     settings.setAllowFileAccess(true);
     settings.setAllowContentAccess(true);
+    settings.setUseWideViewPort(true);
+    settings.setLoadWithOverviewMode(true);
+    String stereoUrl = resolveStereoUrl().toLowerCase(Locale.ROOT);
+    if (stereoUrl.contains("youtube.com") || stereoUrl.contains("youtu.be")) {
+      settings.setUserAgentString(STEREO_EXTERNAL_DESKTOP_UA);
+    }
     wv.setWebViewClient(new WebViewClient());
     wv.setWebChromeClient(
         new WebChromeClient() {
