@@ -10,6 +10,7 @@ const corsHeaders = {
 };
 
 const DEFAULT_MODEL = "gemini-2.5-flash";
+const MAX_OUTPUT_TOKENS = 1024;
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -26,9 +27,10 @@ function buildSystemPrompt(contextPath: string): string {
     `El usuario está en la ruta: ${contextPath || "/"}.`,
     "OnniVerso es una plataforma de experiencias inmersivas; no enumeres secciones salvo que pregunten explícitamente qué hay o dónde ir.",
     "No tienes resultados en vivo de partidos deportivos ni noticias del día.",
-    "Tono: cercano, claro, español, 1–2 frases. No inventes URLs.",
+    "Tono: cercano, cálido y conversacional. Español. Explica con calma cuando haga falta.",
+    "Responde de forma conversacional: 3–6 frases cuando el tema lo pide. Puedes cerrar con una pregunta breve de seguimiento y esperar la respuesta del usuario.",
+    "No inventes URLs.",
     "NUNCA listes lobby, videos educativos, tienda, Coliseo, aulas ni opciones de menú en saludos o respuestas genéricas.",
-    "NO cierres invitando a elegir una sección ni con «dime cuál te interesa». Responde solo lo preguntado.",
   ].join("\n");
 }
 
@@ -97,8 +99,8 @@ Deno.serve(async (req) => {
           },
           contents: buildGeminiContents(message, history),
           generationConfig: {
-            maxOutputTokens: 512,
-            temperature: 0.65,
+            maxOutputTokens: MAX_OUTPUT_TOKENS,
+            temperature: 0.72,
           },
         }),
       },
@@ -122,7 +124,7 @@ Deno.serve(async (req) => {
       .replace(/\n\s*recuerda que tambi[eé]n puedes[\s\S]*$/i, "")
       .replace(/\n\s*(para navegar|comandos como|tambien puedes usar)[\s\S]*$/i, "")
       .replace(/\ben onniverso (tenemos|ofrece|cuenta con)[\s\S]*$/i, "")
-      .replace(/[\s\S]*\bdime cu[aá]l te interesa\b[\s\S]*$/i, "")
+      .replace(/\n\s*[*•-]\s*\*?\*?(lobby 3d|videos educativos en vivo|coliseo 360|aulas virtuales)[\s\S]*$/i, "")
       .trim();
     if (!answer || /\b(lobby 3d|videos educativos en vivo|coliseo 360|aulas virtuales)\b/i.test(answer)) {
       answer = "¡Hola! Soy Onni, tu copiloto en OnniVerso.";

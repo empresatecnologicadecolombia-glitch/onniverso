@@ -1,15 +1,27 @@
+# Nunca subir builds pesados ni dependencias — Vercel construye desde el repo en GitHub.
 node_modules
+**/node_modules
 dist
+dist-ssr
+dist-lobby-earth
 .git
 release
+release/**
 android
+android/**
 coverage
-mux-api/node_modules
-Proyecto base1
+electron/onni-win-speech
 unity
+Proyecto base1
+ANDROID_LOBBY_TIERRA_LISTO
+mux-api/node_modules
 supabase/.temp
+docs
+.vscode
+_tmp_*
 *.log
 *.tmp
+*.pdf
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

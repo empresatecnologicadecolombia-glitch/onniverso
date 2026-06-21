@@ -1,3 +1,6 @@
+/** Pausa tras terminar de hablar antes de volver a escuchar (APK / ElevenLabs). */
+export const ONNI_POST_SPEAK_PAUSE_MS = 1200;
+
 let activeAudio: HTMLAudioElement | null = null;
 let activeObjectUrl: string | null = null;
 
@@ -42,6 +45,7 @@ export async function speakWithElevenLabsVoice(text: string): Promise<boolean> {
     activeObjectUrl = url;
     const audio = new Audio(url);
     activeAudio = audio;
+    window.dispatchEvent(new CustomEvent("voice:speak-start"));
 
     await new Promise<void>((resolve, reject) => {
       audio.onended = () => resolve();
@@ -50,6 +54,9 @@ export async function speakWithElevenLabsVoice(text: string): Promise<boolean> {
     });
 
     clearActivePlayback();
+    window.dispatchEvent(new CustomEvent("voice:speak-end"));
+    window.dispatchEvent(new CustomEvent("voice:spoke"));
+    await new Promise<void>((resolve) => window.setTimeout(resolve, ONNI_POST_SPEAK_PAUSE_MS));
     return true;
   } catch {
     clearActivePlayback();

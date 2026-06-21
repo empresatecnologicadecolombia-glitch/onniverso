@@ -1,4 +1,4 @@
-import { ONNI_PERSONALITY } from "@/data/onniBrain";
+import { ONNI_CONVERSATION_STYLE, ONNI_PERSONALITY } from "@/data/onniBrain";
 import { isElectronDesktopApp } from "@/lib/deviceDetection";
 import type { OnniChatTurn } from "@/lib/onniChatMemory";
 
@@ -29,9 +29,9 @@ function buildOnniOllamaSystemPrompt(contextPath: string): string {
     "OnniVerso es una plataforma de experiencias inmersivas; no enumeres secciones salvo que pregunten explícitamente qué hay o dónde ir.",
     "No tienes resultados en vivo de partidos deportivos ni noticias del día.",
     ONNI_PERSONALITY.tone,
-    "Responde SIEMPRE en español, breve (1–2 frases). No inventes URLs.",
+    ONNI_CONVERSATION_STYLE,
+    "No inventes URLs.",
     "NUNCA listes lobby, videos educativos, tienda, Coliseo, aulas ni opciones de menú en saludos o respuestas genéricas.",
-    "NO cierres invitando a elegir una sección ni con «dime cuál te interesa». Responde solo lo preguntado.",
   ].join(" ");
 }
 

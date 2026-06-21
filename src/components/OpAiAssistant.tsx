@@ -69,6 +69,7 @@ export default function OpAiAssistant() {
   const [electronMicState, setElectronMicState] = useState({ isRecording: false, isProcessing: false });
   const [text, setText] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [onniSpeaking, setOnniSpeaking] = useState(false);
   const introMessage = useMemo<UiMessage>(
     () => ({ role: "assistant", text: getOnniIntroduction() }),
     [],
@@ -120,6 +121,20 @@ export default function OpAiAssistant() {
     if (!open) return;
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, open, processing]);
+
+  useEffect(() => {
+    if (!isOnniAndroidVoice()) return;
+    const onSpeakStart = () => setOnniSpeaking(true);
+    const onSpeakEnd = () => window.setTimeout(() => setOnniSpeaking(false), 400);
+    window.addEventListener("voice:speak-start", onSpeakStart);
+    window.addEventListener("voice:speak-end", onSpeakEnd);
+    window.addEventListener("voice:spoke", onSpeakEnd);
+    return () => {
+      window.removeEventListener("voice:speak-start", onSpeakStart);
+      window.removeEventListener("voice:speak-end", onSpeakEnd);
+      window.removeEventListener("voice:spoke", onSpeakEnd);
+    };
+  }, []);
 
   const {
     voiceListening,
@@ -774,14 +789,14 @@ export default function OpAiAssistant() {
                 {showAzureMic && (
                   <OpAiAndroidAzureMic
                     callbacks={azureMicCallbacks}
-                    processing={processing}
+                    processing={processing || onniSpeaking}
                     panelOpen={open}
                     onStateChange={setAndroidMicState}
                   />
                 )}
                 {showElectronMic && (
                   <OpAiElectronAzureMic
-                    processing={processing}
+                    processing={processing || onniSpeaking}
                     isRecording={electronMicRecording}
                     isProcessing={electronMicProcessing}
                     beginHold={electronMicBeginHold}

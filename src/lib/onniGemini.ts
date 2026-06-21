@@ -1,4 +1,7 @@
-import { ONNI_PERSONALITY } from "@/data/onniBrain";
+import { ONNI_CONVERSATION_STYLE, ONNI_PERSONALITY } from "@/data/onniBrain";
+
+/** Tokens de salida Gemini — respuestas más largas y conversacionales. */
+export const ONNI_GEMINI_MAX_OUTPUT_TOKENS = 1024;
 import { supabase, supabasePublicUrl, supabasePublishableKey } from "@/integrations/supabase/client";
 
 import type { OnniChatTurn } from "@/lib/onniChatMemory";
@@ -63,9 +66,9 @@ export function buildOnniGeminiSystemPrompt(contextPath: string): string {
     "OnniVerso es una plataforma de experiencias inmersivas; no enumeres secciones salvo que pregunten explícitamente qué hay o dónde ir.",
     "No tienes resultados en vivo de partidos deportivos ni noticias del día.",
     ONNI_PERSONALITY.tone,
-    "Responde en español, breve (1–2 frases). No inventes URLs.",
+    ONNI_CONVERSATION_STYLE,
+    "No inventes URLs.",
     "NUNCA listes lobby, videos educativos, tienda, Coliseo, aulas ni opciones de menú en saludos o respuestas genéricas.",
-    "NO cierres invitando a elegir una sección ni con «dime cuál te interesa». Responde solo lo preguntado.",
   ].join(" ");
 }
 
@@ -79,7 +82,7 @@ export function stripOnniCommandFooter(text: string): string {
     /\n\s*[*•-]\s*\*?\*?(lobby|videos educativos|ayuda)[\s\S]*$/i,
     /\n\s*(para navegar|comandos como|tambien puedes usar)[\s\S]*$/i,
     /\ben onniverso (tenemos|ofrece|cuenta con)[\s\S]*$/i,
-    /[\s\S]*\bdime cu[aá]l te interesa\b[\s\S]*$/i,
+    /\n\s*[*•-]\s*\*?\*?(lobby 3d|videos educativos en vivo|coliseo 360|aulas virtuales)[\s\S]*$/i,
   ];
   for (const pattern of cutPatterns) {
     out = out.replace(pattern, "").trim();
@@ -101,7 +104,7 @@ async function askOnniGeminiDevDirect(body: OnniGeminiRequest, apiKey: string): 
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: buildOnniGeminiSystemPrompt(body.contextPath) }] },
         contents: buildGeminiContents(body.message, body.history ?? []),
-        generationConfig: { maxOutputTokens: 512, temperature: 0.65 },
+        generationConfig: { maxOutputTokens: ONNI_GEMINI_MAX_OUTPUT_TOKENS, temperature: 0.72 },
       }),
     },
   );

@@ -6,7 +6,7 @@ const STORAGE_KEY_PREFIX = "onnivers.onni.chat.v1";
 export const ONNI_CHAT_MAX_STORED = 80;
 
 /** Turnos enviados a Gemini/Ollama (evita exceder tokens). */
-export const ONNI_CHAT_MAX_AI_TURNS = 12;
+export const ONNI_CHAT_MAX_AI_TURNS = 16;
 
 function storageKey(userId: string | null | undefined): string {
   return `${STORAGE_KEY_PREFIX}.${userId ?? "guest"}`;
