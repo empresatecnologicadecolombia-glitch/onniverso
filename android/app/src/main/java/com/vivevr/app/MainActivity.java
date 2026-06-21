@@ -260,10 +260,45 @@ public class MainActivity extends BridgeActivity {
   }
 
   /**
-   * Pantalla dividida estéreo ({@link AulaVirtualActivity} + {@link StereoContainer}).
-   * {@code url} = {@link AulaVirtualActivity#AULA_VIRTUAL_URL} o {@link AulaVirtualActivity#LOBBY_IMMERSIVE_URL}.
+   * Estéreo SBS: redes externas → {@link RedesStereoActivity}; rutas OnniVers aula →
+   * {@link AulaVirtualActivity}.
    */
   private void launchImmersiveStereoDirect(String url) {
+    String target = normalizeStereoWebUrl(url);
+    if (target.isEmpty()) {
+      launchAulaVirtualStereoDirect(AulaVirtualActivity.AULA_VIRTUAL_URL);
+      return;
+    }
+    String lower = target.toLowerCase(Locale.ROOT);
+    if (lower.contains("onnivers.com/aula-virtual")) {
+      launchAulaVirtualStereoDirect(target);
+      return;
+    }
+    launchRedesStereoDirect(target);
+  }
+
+  /** Iconos Redes — Cine: {@link RedesStereoActivity} (dos WebView SBS; YouTube compatible). */
+  private void launchRedesStereoDirect(String url) {
+    String target = normalizeStereoWebUrl(url);
+    if (target.isEmpty()) {
+      Toast.makeText(this, "URL de red social vacía.", Toast.LENGTH_SHORT).show();
+      return;
+    }
+    try {
+      Intent intent = new Intent(this, RedesStereoActivity.class);
+      intent.putExtra(ImmersiveStereoExtras.EXTRA_URL, target);
+      intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+      startActivity(intent);
+    } catch (Exception e) {
+      Toast.makeText(
+              this,
+              "Visor estéreo Redes no disponible en esta compilación.",
+              Toast.LENGTH_LONG)
+          .show();
+    }
+  }
+
+  private void launchAulaVirtualStereoDirect(String url) {
     String target = normalizeStereoWebUrl(url);
     if (target.isEmpty()) {
       target = AulaVirtualActivity.AULA_VIRTUAL_URL;
@@ -637,6 +672,15 @@ public class MainActivity extends BridgeActivity {
     }
 
     /**
+     * Iconos Redes inicio — Cine estéreo SBS ({@link RedesStereoActivity}). Nunca ExoPlayer.
+     * {@code window.AndroidBridge.openRedesStereoCine(url)}.
+     */
+    @JavascriptInterface
+    public void openRedesStereoCine(String url) {
+      activity.runOnUiThread(() -> activity.launchRedesStereoDirect(url));
+    }
+
+    /**
      * Tarjeta de sala: URL .m3u8 o .mp4 + acción → {@link PlayerActivity} sin SelectorActivity.
      * {@code OPEN_SALA_DIVIDIDA} → split. {@code OPEN_SALA_MIXTA} → mix. {@code OPEN_SALA_360} →
      * immersive.
@@ -656,7 +700,7 @@ public class MainActivity extends BridgeActivity {
               if ("OPEN_SALA_MIXTA".equals(act)) {
                 activity.openSocialRedesOverlay(stereoUrl, true);
               } else {
-                activity.launchImmersiveStereoDirect(stereoUrl);
+                activity.launchRedesStereoDirect(stereoUrl);
               }
               return;
             }

@@ -5,16 +5,21 @@ const SALA_DIVIDIDA: "OPEN_SALA_DIVIDIDA" = "OPEN_SALA_DIVIDIDA";
 /** Selector Cine / Cine Cam solo en APK. En PC se abre el enlace directo. */
 export function shouldShowHomeSocialCinePicker(): boolean {
   if (!isNativeAndroid()) return false;
-  return (
-    typeof window.AndroidBridge?.openSalaDirect === "function" &&
-    typeof window.Android?.openRedesCamDirect === "function"
-  );
+  const hasCine =
+    typeof window.AndroidBridge?.openRedesStereoCine === "function" ||
+    typeof window.AndroidBridge?.openSalaDirect === "function";
+  return hasCine && typeof window.Android?.openRedesCamDirect === "function";
 }
 
-/** Abre red social en modo Cine (OPEN_SALA_DIVIDIDA → StereoContainer o PlayerActivity en Android). */
+/** Abre red social en modo Cine (RedesStereoActivity — dos WebView SBS en Android). */
 export function openHomeSocialRedesCine(url: string): void {
   const target = url.trim();
   if (!target) return;
+
+  if (typeof window.AndroidBridge?.openRedesStereoCine === "function") {
+    window.AndroidBridge.openRedesStereoCine(target);
+    return;
+  }
 
   if (typeof window.AndroidBridge?.openSalaDirect === "function") {
     window.AndroidBridge.openSalaDirect(target, SALA_DIVIDIDA);

@@ -17,6 +17,8 @@ declare global {
       openStreamDirect?: (m3u8Url: string, action: string) => void;
       /** URL sala .m3u8 | .mp4 + OPEN_SALA_DIVIDIDA | OPEN_SALA_MIXTA | OPEN_SALA_360 */
       openSalaDirect?: (salaUrl: string, action: string) => void;
+      /** Iconos Redes — Cine estéreo SBS (RedesStereoActivity). */
+      openRedesStereoCine?: (url: string) => void;
       /** Abre AulaVirtualActivity nativa (estéreo); parámetros legacy ignorados. */
       openModelDirect?: (modelUrl: string, action: string) => void;
       /** Tierra / inicio: lobby estéreo ({@link LobbyVrActivity}). */
