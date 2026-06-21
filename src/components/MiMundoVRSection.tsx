@@ -745,6 +745,15 @@ const MiMundoVRSection = ({
   }, [navigate]);
 
   const onAulaVirtualClick = useCallback(() => {
+    const youtubeUrl = "https://www.youtube.com";
+    if (typeof window.AndroidBridge?.openModelDirect === "function") {
+      window.AndroidBridge.openModelDirect(youtubeUrl, "");
+      return;
+    }
+    if (typeof window.Android?.openModelDirect === "function") {
+      window.Android.openModelDirect(youtubeUrl, "");
+      return;
+    }
     if (requestAulaVirtualEntry()) return;
     navigate(LOBBY_IMMERSIVE_PATH);
   }, [navigate, requestAulaVirtualEntry]);
