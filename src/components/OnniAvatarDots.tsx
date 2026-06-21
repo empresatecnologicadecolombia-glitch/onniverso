@@ -487,22 +487,12 @@ function buildSparkleCloud(count: number): Vec3[] {
   return pts;
 }
 
-const GEOMETRIC_SHAPE_COUNT = 8;
-const ARCHAIC_HEBREW_WORD_INDEX = GEOMETRIC_SHAPE_COUNT;
-
 const SHAPES: Vec3[][] = [
-  ...[
-    buildSphere,
-    buildCube,
-    buildTorus,
-    buildHelix,
-    buildPyramid,
-    buildOctahedron,
-    buildCone,
-    buildGalaxy,
-  ].map((fn) => sortBySpherical(fn(PARTICLE_COUNT))),
-  buildArchaicHebrewWord(PARTICLE_COUNT),
-];
+  buildSphere,
+  buildCube,
+  buildPyramid,
+  buildOctahedron,
+].map((fn) => sortBySpherical(fn(PARTICLE_COUNT)));
 
 const SPARKLES = buildSparkleCloud(SPARKLE_COUNT);
 
@@ -579,7 +569,7 @@ function rotateZ(p: Vec3, a: number): Vec3 {
   return { x: p.x * c - p.y * s, y: p.x * s + p.y * c, z: p.z };
 }
 
-/** Morph: Esfera → … → Galaxia → יהוה (paleo) → Esfera… */
+/** Morph: Esfera → Cuadrado → Triángulo → Hexágono → Esfera… */
 export default function OnniAvatarDots({
   size = "md",
   state = "idle",
@@ -618,12 +608,9 @@ export default function OnniAvatarDots({
 
       const base = morphShapes(SHAPES[shapeIndex]!, SHAPES[nextIndex]!, blendT);
 
-      const showingArchaicWord =
-        (shapeIndex === ARCHAIC_HEBREW_WORD_INDEX && blendT < 0.35) ||
-        (nextIndex === ARCHAIC_HEBREW_WORD_INDEX && blendT > 0.65);
-      const rotY = showingArchaicWord ? elapsed * 0.00012 : elapsed * 0.00062 * morphSpeed;
-      const rotX = showingArchaicWord ? 0.05 : 0.52 + Math.sin(elapsed * 0.00041) * 0.28;
-      const rotZ = showingArchaicWord ? 0 : 0.18 + Math.sin(elapsed * 0.00033 + 1.2) * 0.14;
+      const rotY = elapsed * 0.00062 * morphSpeed;
+      const rotX = 0.52 + Math.sin(elapsed * 0.00041) * 0.28;
+      const rotZ = 0.18 + Math.sin(elapsed * 0.00033 + 1.2) * 0.14;
 
       const projected = base.map((p, i) => ({
         ...projectPoint(p, i, elapsed, morphing, rotY, rotX, rotZ),
