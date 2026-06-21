@@ -469,6 +469,11 @@ function buildArchaicHebrewWord(count: number): Vec3[] {
   return scaleToFit(pts.slice(0, count), 0.9);
 }
 
+/** Palabra יהוה (4 letras) fija en el centro del icono. */
+function buildCenterTetragrammaton(count: number): Vec3[] {
+  return scaleToFit(buildArchaicHebrewWord(count), 0.36);
+}
+
 /** Puntitos pequeños alrededor de las figuras (no morphan; efecto brillo). */
 function buildSparkleCloud(count: number): Vec3[] {
   const pts: Vec3[] = [];
@@ -495,6 +500,8 @@ const SHAPES: Vec3[][] = [
 ].map((fn) => sortBySpherical(fn(PARTICLE_COUNT)));
 
 const SPARKLES = buildSparkleCloud(SPARKLE_COUNT);
+const CENTER_NAME_PARTICLE_COUNT = 72;
+const CENTER_TETRAGRAMMATON = buildCenterTetragrammaton(CENTER_NAME_PARTICLE_COUNT);
 
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
@@ -569,7 +576,7 @@ function rotateZ(p: Vec3, a: number): Vec3 {
   return { x: p.x * c - p.y * s, y: p.x * s + p.y * c, z: p.z };
 }
 
-/** Morph: Esfera → Cuadrado → Triángulo → Hexágono → Esfera… */
+/** Morph: Esfera → Cuadrado → Triángulo → Hexágono; יהוה fijo en el centro. */
 export default function OnniAvatarDots({
   size = "md",
   state = "idle",
@@ -681,15 +688,27 @@ export default function OnniAvatarDots({
         ctx.fill();
       }
 
-      const coreR = Math.max(2, 2.1 * pulse * (stateRef.current === "listening" ? 1.15 : 1));
-      ctx.beginPath();
-      ctx.fillStyle = "rgba(34, 211, 238, 0.92)";
-      ctx.arc(cx, cy, coreR, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.fillStyle = "rgba(236, 254, 255, 0.85)";
-      ctx.arc(cx, cy, coreR * 0.45, 0, Math.PI * 2);
-      ctx.fill();
+      const namePulse =
+        stateRef.current === "speaking" ? 1 + Math.sin(elapsed * 0.012) * 0.04 : 1;
+      const nameScale = scale * 0.92 * namePulse;
+      const nameGlow = stateRef.current === "listening" ? 1.14 : 1;
+
+      for (let i = 0; i < CENTER_TETRAGRAMMATON.length; i += 1) {
+        const p = CENTER_TETRAGRAMMATON[i]!;
+        const shimmer = 0.003 + Math.sin(elapsed * 0.0032 + i * 0.61) * 0.002;
+        const px = cx + p.x * nameScale + shimmer * scale;
+        const py = cy + p.y * nameScale + Math.cos(elapsed * 0.0028 + i * 0.47) * shimmer * scale;
+        const radius = Math.max(0.85, 1.05 * nameGlow);
+        const alpha = 0.82 + Math.sin(elapsed * 0.004 + i * 0.38) * 0.1;
+        const g = ctx.createRadialGradient(px, py, 0, px, py, radius * 2.6);
+        g.addColorStop(0, `rgba(255, 252, 235, ${alpha})`);
+        g.addColorStop(0.42, `rgba(250, 204, 21, ${alpha * 0.92})`);
+        g.addColorStop(1, "rgba(34, 211, 238, 0)");
+        ctx.beginPath();
+        ctx.fillStyle = g;
+        ctx.arc(px, py, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
       raf = requestAnimationFrame(draw);
     };
