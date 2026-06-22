@@ -27,6 +27,7 @@ import {
   isMobileCoarseDevice,
 } from "@/lib/webglRendererPrefs";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAulaVirtualCardChoice } from "@/hooks/useAulaVirtualCardChoice";
 import { useVrModeActive } from "@/hooks/useVrModeActive";
 import ProfileCard, { type ProfileCardConfirmPayload } from "@/components/ProfileCard";
 import HomeEarthCornerIcon from "@/components/HomeEarthCornerIcon";
@@ -41,6 +42,7 @@ import {
   LOCKED_PROFILE_CARD_WRAPPER_CLASS,
 } from "@/config/lockedHomeLayout";
 import { SHOW_PROFILE_LIVE_BUTTON, SHOW_STREAM_CONFIG_BUTTON } from "@/config/navVisibility";
+import { LOBBY_IMMERSIVE_PATH } from "@/lib/lobbyImmersive";
 
 /**
  * Texturas Tierra alta resolucion (offline-first, copiadas a /public/assets/textures/earth/).
@@ -702,6 +704,7 @@ const MiMundoVRSection = ({
   onProfilePersist,
 }: MiMundoVRSectionProps) => {
   const navigate = useNavigate();
+  const { requestAulaVirtualEntry, dialog: aulaVirtualCardDialog } = useAulaVirtualCardChoice();
   const [profileSaving, setProfileSaving] = useState(false);
   const vrStereoActive = useVrModeActive();
   const environmentId = useMemo<MiMundoEnvironmentId>(() => "lobby", []);
@@ -742,17 +745,9 @@ const MiMundoVRSection = ({
   }, [navigate]);
 
   const onAulaVirtualClick = useCallback(() => {
-    const earthUrl = "https://www.youtube.com";
-    if (typeof window.AndroidBridge?.openModelDirect === "function") {
-      window.AndroidBridge.openModelDirect(earthUrl, "");
-      return;
-    }
-    if (typeof window.Android?.openModelDirect === "function") {
-      window.Android.openModelDirect(earthUrl, "");
-      return;
-    }
-    window.location.assign(earthUrl);
-  }, []);
+    if (requestAulaVirtualEntry()) return;
+    navigate(LOBBY_IMMERSIVE_PATH);
+  }, [navigate, requestAulaVirtualEntry]);
 
   const onProfileConfirm = async (payload: ProfileCardConfirmPayload) => {
     try {
@@ -774,6 +769,7 @@ const MiMundoVRSection = ({
       id="mi-mundo-vr"
       className="relative h-full w-full max-w-full overflow-x-clip overflow-y-hidden bg-black"
     >
+      {aulaVirtualCardDialog}
       <div className="absolute inset-0 z-[1] overflow-hidden">
         <div className="absolute inset-0 h-full w-full overflow-hidden">
         <Canvas
@@ -853,8 +849,8 @@ const MiMundoVRSection = ({
               embedded
               sizePx={56}
               onOpenLobby={onAulaVirtualClick}
-              ariaLabel="Aula Virtual"
-              title="Aula Virtual"
+              ariaLabel="Lobby inmersivo"
+              title="Lobby inmersivo"
             />
             {SHOW_STREAM_CONFIG_BUTTON && (
               <button
