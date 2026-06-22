@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Check, Copy, Plus, Save, StopCircle, UserCheck2, Users, X } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -124,6 +124,14 @@ export default function DocenteClasesPage() {
   const canManage = useMemo(() => role === "docente" || role === "admin", [role]);
   const pendingOnniDocenteRef = useRef<"start" | "enter" | "end" | null>(null);
   const onniDocenteRunRef = useRef(0);
+
+  const handleBack = useCallback(() => {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+    navigate("/educacion");
+  }, [navigate]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -679,8 +687,8 @@ export default function DocenteClasesPage() {
             <h1 className="font-display text-2xl font-bold md:text-3xl">
               Panel <span className="text-gradient-neon">Docente</span>
             </h1>
-            <Button asChild variant="outline" size="sm">
-              <Link to="/educacion">Volver</Link>
+            <Button type="button" variant="outline" size="sm" onClick={handleBack}>
+              Volver
             </Button>
           </div>
 

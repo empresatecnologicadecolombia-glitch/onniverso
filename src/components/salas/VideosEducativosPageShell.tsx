@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
+import { ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import BackToProfileHomeButton from "@/components/BackToProfileHomeButton";
 import {
-  VIDEOS_EDUCATIVOS_BACK_BTN_CLASS,
   VIDEOS_EDUCATIVOS_CONTAINER_CLASS,
   VIDEOS_EDUCATIVOS_GRID_CLASS,
   VIDEOS_EDUCATIVOS_MAIN_CLASS,
@@ -20,6 +20,16 @@ type VideosEducativosPageShellProps = {
  * No mover padding ni max-width aquí; extender solo vía videosEducativosLayout.ts.
  */
 export default function VideosEducativosPageShell({ children }: VideosEducativosPageShellProps) {
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+    navigate("/");
+  };
+
   return (
     <div className={VIDEOS_EDUCATIVOS_PAGE_ROOT_CLASS} data-camera-page-root>
       <Navbar />
@@ -39,7 +49,14 @@ export default function VideosEducativosPageShell({ children }: VideosEducativos
       <main className={VIDEOS_EDUCATIVOS_MAIN_CLASS}>
         <div className={VIDEOS_EDUCATIVOS_CONTAINER_CLASS}>
           <div className="mb-6">
-            <BackToProfileHomeButton className={VIDEOS_EDUCATIVOS_BACK_BTN_CLASS} />
+            <button
+              type="button"
+              onClick={handleBack}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-slate-950/80 text-white shadow-[0_4px_24px_rgba(0,0,0,0.35)] backdrop-blur-md transition hover:border-white/30 hover:bg-slate-900/90 active:scale-95"
+              aria-label="Volver atrás"
+            >
+              <ArrowLeft className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+            </button>
           </div>
           <section id="podcast" className={VIDEOS_EDUCATIVOS_SECTION_CLASS}>
             <div className={VIDEOS_EDUCATIVOS_GRID_CLASS}>{children}</div>

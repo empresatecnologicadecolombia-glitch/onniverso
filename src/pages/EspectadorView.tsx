@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { Capacitor } from "@capacitor/core";
+import { ArrowLeft } from "lucide-react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import { buildAgoraChannel } from "@/lib/agoraRooms";
 import type { ActiveStreamRow } from "@/lib/salaRoomCards";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { isDesktopPcOrExe } from "@/lib/deviceDetection";
 
 /** `al-universo-{id}` → id de podcast si existe en el directorio (escena inmersiva). */
 function podcastIdFromChannel(channelName: string): string | null {
@@ -68,7 +70,20 @@ const EspectadorView = () => {
   const [activeStreamRow, setActiveStreamRow] = useState<ActiveStreamRow | null>(null);
   const [loadingPlayback, setLoadingPlayback] = useState(!useVodMode);
   const [error, setError] = useState<string | null>(null);
+  const [showDesktopBack, setShowDesktopBack] = useState(false);
   const playerRootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setShowDesktopBack(isDesktopPcOrExe());
+  }, []);
+
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+    navigate("/nuestras-salas");
+  };
 
   const nativeSceneActionsRef = useRef({
     split: () => {},
@@ -236,8 +251,18 @@ const EspectadorView = () => {
         />
       </div>
 
-      <main className="relative z-10 px-3 pb-10 pt-24 md:px-4">
-        <section className="mx-auto w-full max-w-[94rem] space-y-4">
+      <main className="relative z-10 px-3 pb-10 pt-14 md:px-4">
+        <section className="mx-auto w-full max-w-[94rem]">
+          {showDesktopBack ? (
+            <button
+              type="button"
+              onClick={handleBack}
+              className="mb-2 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-slate-950/80 text-white shadow-[0_4px_24px_rgba(0,0,0,0.35)] backdrop-blur-md transition hover:border-white/30 hover:bg-slate-900/90 active:scale-95"
+              aria-label="Volver atrás"
+            >
+              <ArrowLeft className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+            </button>
+          ) : null}
           <div className="rounded-2xl border border-cyan-300/35 bg-card/35 p-2 shadow-[0_0_50px_-18px_rgba(34,211,238,0.9)] backdrop-blur-xl md:p-3">
             <div ref={playerRootRef} className="w-full">
               {useVodMode ? (
