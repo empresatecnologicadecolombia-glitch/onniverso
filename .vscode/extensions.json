@@ -1,0 +1,14 @@
+{
+  "recommendations": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"],
+  "unwantedRecommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-python.debugpy",
+    "vscjava.vscode-java-pack",
+    "golang.go",
+    "rust-lang.rust-analyzer",
+    "ms-dotnettools.csharp",
+    "ms-azuretools.vscode-azurefunctions",
+    "redhat.java"
+  ]
+}
