@@ -1,0 +1,8 @@
+{
+  "name": "onnivers-desktop",
+  "version": "1.0.0",
+  "description": "OnniVers — shell de escritorio para onnivers.com",
+  "main": "main.cjs",
+  "author": "Empresa Tecnológica de Colombia",
+  "private": true
+}

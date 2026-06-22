@@ -23,8 +23,8 @@ import { toast } from "sonner";
 import { useEffect, useMemo, useState } from "react";
 import { APP_APK_DOWNLOAD_URL } from "@/config/appDownload";
 import { LOCKED_NAVBAR_HEIGHT_CLASS, LOCKED_NAVBAR_MENU_OFFSET_CLASS } from "@/config/lockedHomeLayout";
-import { SHOW_TIENDA_NAV, SHOW_VIDEOS_EDUCATIVOS_NAV } from "@/config/navVisibility";
-import { isDesktopWebBrowser } from "@/lib/deviceDetection";
+import { SHOW_TIENDA_NAV } from "@/config/navVisibility";
+import { isDesktopPcOrExe, isDesktopWebBrowser } from "@/lib/deviceDetection";
 import { invokeOpenGalleryDirect } from "@/lib/galleryOpenDirect";
 import { EDUCACION_SECTION_PATH, GALERIA_AULA_SECTION_PATH } from "@/lib/aulaVirtual";
 import { invokeAndroidOnVrClick } from "@/lib/androidLobbyReturn";
@@ -48,6 +48,7 @@ const Navbar = () => {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showAppDownload, setShowAppDownload] = useState(false);
+  const [showDesktopOnlyNav, setShowDesktopOnlyNav] = useState(false);
   const [appRole, setAppRole] = useState<string | null>(null);
 
   useEffect(() => {
@@ -75,15 +76,16 @@ const Navbar = () => {
     () =>
       NAV_ITEMS.filter((item) => {
         if (appRole === "particular" && item.path === GALERIA_AULA_SECTION_PATH) return false;
-        if (!SHOW_VIDEOS_EDUCATIVOS_NAV && item.path === "/nuestras-salas") return false;
+        if (!showDesktopOnlyNav && item.path === "/nuestras-salas") return false;
         if (!SHOW_TIENDA_NAV && item.path === "/tienda") return false;
         return true;
       }),
-    [appRole],
+    [appRole, showDesktopOnlyNav],
   );
 
   useEffect(() => {
     setShowAppDownload(isDesktopWebBrowser());
+    setShowDesktopOnlyNav(isDesktopPcOrExe());
   }, []);
 
   useEffect(() => {

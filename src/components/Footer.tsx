@@ -9,6 +9,7 @@ import {
   TikTokGlyph,
   socialFooterIconClass,
 } from "@/components/SocialFooterIcons";
+import { ONNIVERS_ONLINE_HOME_URL } from "@/config/onniversOnline";
 
 const legalLinkClass =
   "font-medium text-primary underline-offset-4 transition-colors hover:text-primary hover:underline";
@@ -95,6 +96,17 @@ const Footer = () => {
                 className="font-medium text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
               >
                 {CONTACT_PHONE}
+              </a>
+              <span className="mx-2 text-border" aria-hidden>
+                ·
+              </span>
+              <a
+                href={ONNIVERS_ONLINE_HOME_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-primary underline-offset-4 transition-colors hover:text-primary hover:underline"
+              >
+                onnivers.online
               </a>
             </p>
             <p className="text-sm leading-relaxed text-muted-foreground">

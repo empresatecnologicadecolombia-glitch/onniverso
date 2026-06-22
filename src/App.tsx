@@ -40,6 +40,7 @@ import PrivacidadPage from "./pages/PrivacidadPage.tsx";
 import TerminosPage from "./pages/TerminosPage.tsx";
 import QuienesSomosPage from "./pages/QuienesSomosPage.tsx";
 import ContactoPage from "./pages/ContactoPage.tsx";
+import DescargarAppsPage from "./pages/DescargarAppsPage.tsx";
 import WelcomeUniversePage from "./pages/WelcomeUniversePage.tsx";
 import RegisterPage from "./pages/RegisterPage.tsx";
 import UpdatePasswordPage from "./pages/UpdatePasswordPage.tsx";
@@ -87,6 +88,7 @@ const App = () => {
           <OpAiAssistant />
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/descargar" element={<DescargarAppsPage />} />
             <Route path="/inicio-2" element={<Navigate to="/" replace />} />
             <Route
               path="/inicio"

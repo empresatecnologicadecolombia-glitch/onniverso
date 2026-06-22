@@ -1,11 +1,9 @@
-/** Menú superior — VIDEOS EDUCATIVOS (/nuestras-salas). La ruta y Onni siguen activos si es false. */
-export const SHOW_VIDEOS_EDUCATIVOS_NAV = false;
+/** Menú superior — VIDEOS EDUCATIVOS (/nuestras-salas). Visible solo PC/.exe vía `isDesktopPcOrExe()`. */
 
 /** Menú superior — TIENDA (/tienda). La ruta sigue activa si es false. */
 export const SHOW_TIENDA_NAV = false;
 
-/** Panel docente — Tabla de contenido en /docente-clases. La lógica sigue activa si es false. */
-export const SHOW_DOCENTE_CONTENT_LIBRARY = false;
+/** Panel docente — Tabla de contenido en /docente-clases. Visible solo PC/.exe vía `isDesktopPcOrExe()`. */
 
 /** Precios en tarjetas de cursos, tienda, eventos y planes. PayPal sigue activo si es false. */
 export const SHOW_SECTION_PRICES = false;

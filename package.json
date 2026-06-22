@@ -132,12 +132,14 @@
     "copyright": "Copyright © Empresa Tecnológica de Colombia",
     "directories": {
       "output": "release",
-      "buildResources": "electron/icons"
+      "buildResources": "electron/icons",
+      "app": "electron"
     },
     "files": [
-      "electron/**/*",
-      "package.json"
+      "**/*"
     ],
+    "npmRebuild": false,
+    "beforeBuild": "./scripts/electron-before-build.cjs",
     "win": {
       "target": [
         {

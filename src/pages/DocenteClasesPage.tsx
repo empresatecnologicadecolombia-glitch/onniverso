@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import DocenteContentLibraryPanel from "@/components/docente/DocenteContentLibraryPanel";
-import { SHOW_DOCENTE_CONTENT_LIBRARY } from "@/config/navVisibility";
+import { isDesktopPcOrExe } from "@/lib/deviceDetection";
 import { copyToClipboard } from "@/lib/copyToClipboard";
 import { buildStudentClassUrl } from "@/lib/studentClassLink";
 import { onOpCommand } from "@/lib/opCommandBus";
@@ -115,6 +115,11 @@ export default function DocenteClasesPage() {
     glb_url: "",
     video_urls: [],
   });
+  const [showDocenteContentLibrary, setShowDocenteContentLibrary] = useState(false);
+
+  useEffect(() => {
+    setShowDocenteContentLibrary(isDesktopPcOrExe());
+  }, []);
 
   const canManage = useMemo(() => role === "docente" || role === "admin", [role]);
   const pendingOnniDocenteRef = useRef<"start" | "enter" | "end" | null>(null);
@@ -956,7 +961,7 @@ export default function DocenteClasesPage() {
                 })}
               </div>
 
-              {SHOW_DOCENTE_CONTENT_LIBRARY ? <DocenteContentLibraryPanel /> : null}
+              {showDocenteContentLibrary ? <DocenteContentLibraryPanel /> : null}
             </>
           )}
         </div>

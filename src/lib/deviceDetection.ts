@@ -56,3 +56,14 @@ export function isDesktopWebBrowser(): boolean {
   }
   return detectDeviceKind() === "desktop";
 }
+
+/** Videos educativos (nav) y biblioteca docente: solo PC navegador y .exe (no APK/móvil). */
+export function isDesktopPcOrExe(): boolean {
+  if (typeof window === "undefined") return false;
+  if (isAndroidNativeApp()) return false;
+  if (isElectronDesktopApp()) return true;
+  if (typeof window.Android !== "undefined" || typeof window.AndroidBridge !== "undefined") {
+    return false;
+  }
+  return detectDeviceKind() === "desktop";
+}

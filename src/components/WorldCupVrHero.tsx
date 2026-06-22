@@ -206,7 +206,7 @@ const WorldCupVrHero = () => {
   };
 
   return (
-    <section className="relative min-h-[100dvh] overflow-hidden px-6 pt-24 pb-16">
+    <section className="relative min-h-[100dvh] overflow-hidden px-6 pt-8 pb-16">
       <div className="absolute inset-0" data-camera-decorative-bg>
         <img
           src="https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=2200&q=80"
@@ -229,7 +229,7 @@ const WorldCupVrHero = () => {
               ONNIVERS
             </span>
           </h1>
-          <h2 className="mx-auto mt-3 max-w-5xl px-2 font-headline text-[clamp(0.75rem,2.6vw,1.05rem)] font-medium leading-snug tracking-[0.08em] text-primary drop-shadow-[0_0_28px_hsl(175_80%_50%/0.38)] sm:mt-4 sm:tracking-[0.1em] md:leading-relaxed">
+          <h2 className="mx-auto mt-3 max-w-5xl px-3 font-headline text-[clamp(0.82rem,2.8vw,1.15rem)] font-semibold leading-snug tracking-[0.04em] text-cyan-50/95 sm:mt-4 md:leading-relaxed">
             Educación con realidad virtual inmersiva contenido interactivo y experiencias digitales en una sola plataforma
           </h2>
         </motion.div>
