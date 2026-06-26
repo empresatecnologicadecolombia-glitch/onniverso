@@ -28,8 +28,14 @@ const Index = () => {
     <div className="min-h-screen bg-background" data-camera-page-root>
       <section id="perfil" className="relative z-20">
         <Navbar />
-        <div className="relative z-20 mx-auto max-w-7xl px-6 pt-14 pb-1">
-          <div className="relative flex items-center justify-center">
+        <div className="relative z-20 mx-auto max-w-7xl px-4 pt-14 pb-1 sm:px-6">
+          <div
+            className={
+              user
+                ? "relative flex items-center justify-center px-11 sm:px-0"
+                : "relative flex items-center justify-center"
+            }
+          >
             {user ? (
               <BackToProfileHomeButton iconOnly className="absolute left-0 top-1/2 -translate-y-1/2" />
             ) : null}
