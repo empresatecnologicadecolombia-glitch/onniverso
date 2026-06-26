@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, FileText, Film, KeyRound, Layers, Upload } from "lucide-react";
+import { BookOpen, KeyRound, Layers, Upload } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import DocenteCloudinaryConfigPanel from "@/components/docente/DocenteCloudinaryConfigPanel";
+import DocenteConocimientoUploadPanel from "@/components/docente/DocenteConocimientoUploadPanel";
+import DocenteConocimientoRecursosList from "@/components/docente/DocenteConocimientoRecursosList";
+import {
+  countDocenteVideos,
+  fetchDocenteConocimientoRecursos,
+  type DocenteConocimientoRecurso,
+} from "@/lib/docenteConocimientoResources";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,8 +23,33 @@ export default function DocenteConocimientoPage() {
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<string | null>(null);
   const [tab, setTab] = useState<ConocimientoTabId>("subir");
+  const [userId, setUserId] = useState<string | null>(null);
+  const [videoCount, setVideoCount] = useState(0);
+  const [recursos, setRecursos] = useState<DocenteConocimientoRecurso[]>([]);
+  const [recursosLoading, setRecursosLoading] = useState(false);
 
   const canManage = useMemo(() => role === "docente" || role === "admin", [role]);
+
+  const refreshRecursos = useCallback(async (docenteId: string) => {
+    setRecursosLoading(true);
+    try {
+      const [rows, videos] = await Promise.all([
+        fetchDocenteConocimientoRecursos(docenteId),
+        countDocenteVideos(docenteId),
+      ]);
+      setRecursos(rows);
+      setVideoCount(videos);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "No se pudieron cargar tus recursos.");
+    } finally {
+      setRecursosLoading(false);
+    }
+  }, []);
+
+  const handleUploaded = useCallback(() => {
+    if (userId) void refreshRecursos(userId);
+    setTab("recursos");
+  }, [refreshRecursos, userId]);
 
   const handleBackToPanel = useCallback(() => {
     navigate("/docente-clases");
@@ -30,9 +62,12 @@ export default function DocenteConocimientoPage() {
       const user = authData.user;
       if (!user) {
         setRole(null);
+        setUserId(null);
         setLoading(false);
         return;
       }
+
+      setUserId(user.id);
 
       const { data: profile, error } = await supabase
         .from("profiles")
@@ -48,10 +83,15 @@ export default function DocenteConocimientoPage() {
 
       setRole((profile as { app_role?: string } | null)?.app_role ?? "particular");
       setLoading(false);
+
+      const currentRole = (profile as { app_role?: string } | null)?.app_role ?? "particular";
+      if (currentRole === "docente" || currentRole === "admin") {
+        void refreshRecursos(user.id);
+      }
     };
 
     void loadRole();
-  }, []);
+  }, [refreshRecursos]);
 
   return (
     <div className="relative min-h-screen w-full max-w-full overflow-x-clip overflow-y-auto bg-background">
@@ -115,33 +155,25 @@ export default function DocenteConocimientoPage() {
                 </TabsList>
 
                 <TabsContent value="subir" className="mt-0 space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Próximo paso: conexión con Cloudinary (videos, PDF y GLB). Límite: 5 videos por
-                    docente.
-                  </p>
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <div className="rounded-xl border border-dashed border-cyan-400/35 bg-black/20 p-4 text-center">
-                      <Film className="mx-auto mb-2 h-8 w-8 text-cyan-300/80" aria-hidden />
-                      <p className="text-sm font-medium text-cyan-50">Video MP4</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Hasta 5 por cuenta</p>
-                    </div>
-                    <div className="rounded-xl border border-dashed border-cyan-400/35 bg-black/20 p-4 text-center">
-                      <FileText className="mx-auto mb-2 h-8 w-8 text-cyan-300/80" aria-hidden />
-                      <p className="text-sm font-medium text-cyan-50">PDF</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Material de apoyo</p>
-                    </div>
-                    <div className="rounded-xl border border-dashed border-cyan-400/35 bg-black/20 p-4 text-center">
-                      <Layers className="mx-auto mb-2 h-8 w-8 text-cyan-300/80" aria-hidden />
-                      <p className="text-sm font-medium text-cyan-50">Modelo 3D</p>
-                      <p className="mt-1 text-xs text-muted-foreground">Archivo GLB</p>
-                    </div>
-                  </div>
+                  {userId ? (
+                    <DocenteConocimientoUploadPanel
+                      docenteId={userId}
+                      videoCount={videoCount}
+                      onUploaded={handleUploaded}
+                    />
+                  ) : null}
                 </TabsContent>
 
                 <TabsContent value="recursos" className="mt-0">
-                  <p className="rounded-xl border border-border/50 bg-black/20 p-6 text-center text-sm text-muted-foreground">
-                    Aquí aparecerán los archivos que subas a Cloudinary.
-                  </p>
+                  {recursosLoading ? (
+                    <p className="text-sm text-muted-foreground">Cargando recursos…</p>
+                  ) : userId ? (
+                    <DocenteConocimientoRecursosList
+                      docenteId={userId}
+                      recursos={recursos}
+                      onChanged={() => void refreshRecursos(userId)}
+                    />
+                  ) : null}
                 </TabsContent>
 
                 <TabsContent value="tarjetas" className="mt-0">
