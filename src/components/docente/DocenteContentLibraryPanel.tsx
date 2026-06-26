@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Box, FileText, Film } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DocenteCatalogMediaCard from "@/components/docente/DocenteCatalogMediaCard";
@@ -10,10 +10,30 @@ import {
   type DocenteContentTabId,
 } from "@/data/docenteContentCatalog";
 import { copyToClipboard } from "@/lib/copyToClipboard";
+import {
+  fetchPublishedDocenteTarjetas,
+  tarjetaToCatalogVideo,
+} from "@/lib/docenteConocimientoTarjetas";
 import { toast } from "sonner";
 
 export default function DocenteContentLibraryPanel() {
   const [tab, setTab] = useState<DocenteContentTabId>("videos");
+  const [publishedTarjetas, setPublishedTarjetas] = useState<ReturnType<typeof tarjetaToCatalogVideo>[]>(
+    [],
+  );
+
+  useEffect(() => {
+    void fetchPublishedDocenteTarjetas()
+      .then((rows) => setPublishedTarjetas(rows.map(tarjetaToCatalogVideo)))
+      .catch(() => {
+        /* catálogo estático sigue visible */
+      });
+  }, []);
+
+  const panelVideos = useMemo(
+    () => [...DOCENTE_PANEL_VIDEOS, ...publishedTarjetas],
+    [publishedTarjetas],
+  );
 
   const copyResourceLink = async (url: string, fieldHint: "video" | "glb" | "pdf") => {
     const link = url.trim();
@@ -64,7 +84,7 @@ export default function DocenteContentLibraryPanel() {
 
         <TabsContent value="videos" className="mt-0">
           <div className={`${salaRoomGrid3ColClass} max-w-4xl`}>
-            {DOCENTE_PANEL_VIDEOS.map((item, index) => (
+            {panelVideos.map((item, index) => (
               <DocenteCatalogMediaCard
                 key={item.id}
                 index={index}

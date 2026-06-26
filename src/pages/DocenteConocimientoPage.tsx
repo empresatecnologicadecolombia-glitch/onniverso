@@ -6,11 +6,16 @@ import Footer from "@/components/Footer";
 import DocenteCloudinaryConfigPanel from "@/components/docente/DocenteCloudinaryConfigPanel";
 import DocenteConocimientoUploadPanel from "@/components/docente/DocenteConocimientoUploadPanel";
 import DocenteConocimientoRecursosList from "@/components/docente/DocenteConocimientoRecursosList";
+import DocenteConocimientoTarjetaEditor from "@/components/docente/DocenteConocimientoTarjetaEditor";
 import {
   countDocenteVideos,
   fetchDocenteConocimientoRecursos,
   type DocenteConocimientoRecurso,
 } from "@/lib/docenteConocimientoResources";
+import {
+  fetchDocenteOwnTarjetas,
+  type DocenteConocimientoTarjeta,
+} from "@/lib/docenteConocimientoTarjetas";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +31,7 @@ export default function DocenteConocimientoPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [videoCount, setVideoCount] = useState(0);
   const [recursos, setRecursos] = useState<DocenteConocimientoRecurso[]>([]);
+  const [tarjetas, setTarjetas] = useState<DocenteConocimientoTarjeta[]>([]);
   const [recursosLoading, setRecursosLoading] = useState(false);
 
   const canManage = useMemo(() => role === "docente" || role === "admin", [role]);
@@ -33,12 +39,14 @@ export default function DocenteConocimientoPage() {
   const refreshRecursos = useCallback(async (docenteId: string) => {
     setRecursosLoading(true);
     try {
-      const [rows, videos] = await Promise.all([
+      const [rows, videos, ownTarjetas] = await Promise.all([
         fetchDocenteConocimientoRecursos(docenteId),
         countDocenteVideos(docenteId),
+        fetchDocenteOwnTarjetas(docenteId),
       ]);
       setRecursos(rows);
       setVideoCount(videos);
+      setTarjetas(ownTarjetas);
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "No se pudieron cargar tus recursos.");
     } finally {
@@ -177,10 +185,14 @@ export default function DocenteConocimientoPage() {
                 </TabsContent>
 
                 <TabsContent value="tarjetas" className="mt-0">
-                  <p className="rounded-xl border border-border/50 bg-black/20 p-6 text-center text-sm text-muted-foreground">
-                    Crea tarjetas con título, descripción e imagen para publicar en tu tabla de contenido
-                    y en Videos educativos.
-                  </p>
+                  {userId ? (
+                    <DocenteConocimientoTarjetaEditor
+                      docenteId={userId}
+                      recursos={recursos}
+                      tarjetas={tarjetas}
+                      onChanged={() => void refreshRecursos(userId)}
+                    />
+                  ) : null}
                 </TabsContent>
 
                 <TabsContent value="api" className="mt-0">

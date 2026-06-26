@@ -12,6 +12,10 @@ import { muxPlaybackIdFromHlsUrl } from "@/lib/muxPlaybackId";
 import { handoffSalaCardOnAndroid } from "@/lib/salaOpenDirect";
 import { handoffAudienceLiveCardOnAndroid } from "@/lib/liveStreamOpenDirect";
 import { fetchPublishedConciertoCards, isConciertoRoomCard } from "@/lib/conciertoLiveCard";
+import {
+  fetchPublishedDocenteTarjetas,
+  tarjetaToRoomCard,
+} from "@/lib/docenteConocimientoTarjetas";
 import { getRoomActiveStream, type ActiveStreamRow, type RoomCard } from "@/lib/salaRoomCards";
 import { shuffleArray } from "@/lib/shuffleArray";
 import { handleStreamCardPlay } from "@/lib/streamCardNavigation";
@@ -38,6 +42,7 @@ function isExcludedTestConciertoCardInSalasGrid(room: RoomCard): boolean {
 const NuestrasSalasPage = () => {
   const navigate = useNavigate();
   const [userConciertoRooms, setUserConciertoRooms] = useState<RoomCard[]>([]);
+  const [docenteTarjetaRooms, setDocenteTarjetaRooms] = useState<RoomCard[]>([]);
   const [activeStreams, setActiveStreams] = useState<ActiveStreamRow[]>([]);
   const [loadingRoomId, setLoadingRoomId] = useState<string | null>(null);
   const { requestSalaChoice, dialog: salaChoiceDialog } = useSalaChoiceModal();
@@ -45,7 +50,10 @@ const NuestrasSalasPage = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      const conciertoRooms = isUserLiveStreamingEnabled() ? await fetchPublishedConciertoCards() : [];
+      const [conciertoRooms, publishedTarjetas] = await Promise.all([
+        isUserLiveStreamingEnabled() ? fetchPublishedConciertoCards() : Promise.resolve([] as RoomCard[]),
+        fetchPublishedDocenteTarjetas().catch(() => []),
+      ]);
 
       let activeData: ActiveStreamRow[] = [];
       if (isUserLiveStreamingEnabled()) {
@@ -58,6 +66,7 @@ const NuestrasSalasPage = () => {
 
       setActiveStreams(activeData);
       setUserConciertoRooms(conciertoRooms);
+      setDocenteTarjetaRooms(publishedTarjetas.map(tarjetaToRoomCard));
     };
 
     void loadData();
@@ -97,8 +106,8 @@ const NuestrasSalasPage = () => {
     const publishedConciertoRooms = userConciertoRooms.filter(
       (room) => !isExcludedTestConciertoCardInSalasGrid(room),
     );
-    return [...publishedConciertoRooms, ...shuffleArray(streamerRooms)];
-  }, [userConciertoRooms]);
+    return [...docenteTarjetaRooms, ...publishedConciertoRooms, ...shuffleArray(streamerRooms)];
+  }, [docenteTarjetaRooms, userConciertoRooms]);
 
   const beginRoomSession = async (
     room: RoomCard,
