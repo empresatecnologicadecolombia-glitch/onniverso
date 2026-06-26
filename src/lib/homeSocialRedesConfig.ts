@@ -8,12 +8,13 @@ export type HomeSocialIconId =
   | "videos-educativos"
   | "google"
   | "mercadolibre"
-  | "whatsapp";
+  | "onniverso";
 
 const CARACOL_TV_URL = "https://www.caracoltv.com/senal-vivo";
 const YOUTUBE_HOME_URL = "https://www.youtube.com";
 const VIDEOS_EDUCATIVOS_PATH = "/nuestras-salas";
 const DOCENTE_PANEL_PATH = "/docente-clases";
+const ONNIVERSO_LANDING_PATH = "/";
 
 const DESKTOP_GOOGLE_URL = "https://www.google.com/";
 
@@ -25,6 +26,7 @@ export const HOME_INTERNAL_SHORTCUT_PATHS: Partial<Record<HomeSocialIconId, stri
   educacion: EDUCACION_SECTION_PATH,
   "clase-virtual": GALERIA_AULA_SECTION_PATH,
   "videos-educativos": VIDEOS_EDUCATIVOS_PATH,
+  onniverso: ONNIVERSO_LANDING_PATH,
 };
 
 export function isHomeInternalShortcut(id: HomeSocialIconId): boolean {
@@ -44,19 +46,7 @@ export type HomeSocialIconConfig = {
   redesCamUrl: string;
 };
 
-const STORAGE_KEY = "onniverso.homeSocialRedes.v2";
-
-/** Sitio genérico; sin chat a un número concreto (configurable en Redes / Redes Cam). */
-const WHATSAPP_DEFAULT = "https://web.whatsapp.com";
-
-/** wa.me del desarrollador — no debe persistir como destino global del icono en inicio. */
-const LEGACY_HOME_WHATSAPP_PERSONAL = "573117486855";
-
-function normalizeHomeWhatsAppUrl(url: string): string {
-  const trimmed = url.trim();
-  if (!trimmed || trimmed.includes(LEGACY_HOME_WHATSAPP_PERSONAL)) return WHATSAPP_DEFAULT;
-  return trimmed;
-}
+const STORAGE_KEY = "onniverso.homeSocialRedes.v3";
 
 function normalizeCaracolTvUrl(url: string): string {
   const trimmed = url.trim();
@@ -130,10 +120,10 @@ export const DEFAULT_HOME_SOCIAL_ICONS: HomeSocialIconConfig[] = [
     redesCamUrl: CARACOL_TV_URL,
   },
   {
-    id: "whatsapp",
-    label: "WhatsApp",
-    redesUrl: WHATSAPP_DEFAULT,
-    redesCamUrl: WHATSAPP_DEFAULT,
+    id: "onniverso",
+    label: "OnniVerso",
+    redesUrl: ONNIVERSO_LANDING_PATH,
+    redesCamUrl: ONNIVERSO_LANDING_PATH,
   },
 ];
 
@@ -149,16 +139,12 @@ function mergeWithDefaults(parsed: unknown): HomeSocialIconConfig[] {
     const redesCamUrl =
       typeof row?.redesCamUrl === "string" && row.redesCamUrl.trim() ? row.redesCamUrl.trim() : def.redesCamUrl;
 
-    if (def.id === "whatsapp") {
-      return {
-        ...def,
-        redesUrl: normalizeHomeWhatsAppUrl(redesUrl),
-        redesCamUrl: normalizeHomeWhatsAppUrl(redesCamUrl),
-      };
-    }
-
     if (def.id === "onnivers") {
       return { ...def, redesUrl: DOCENTE_PANEL_PATH, redesCamUrl: DOCENTE_PANEL_PATH };
+    }
+
+    if (def.id === "onniverso") {
+      return { ...def, redesUrl: ONNIVERSO_LANDING_PATH, redesCamUrl: ONNIVERSO_LANDING_PATH };
     }
 
     if (def.id === "mercadolibre") {

@@ -388,7 +388,7 @@ function matchBack(text: string): OpResolveResult | null {
 function matchHomeSocial(text: string): OpResolveResult | null {
   const asksOpen =
     /\b(abre|abrir|llevame|lleva|ir|entra|entrar|ve|vamos|muestrame|mostrar|quiero ver)\b/.test(text) ||
-    /\b(youtube|google|mercado play|mercadolibre|whatsapp|onnivers|onni vers)\b/.test(
+    /\b(youtube|google|mercado play|mercadolibre|onnivers|onni vers|onniverso)\b/.test(
       text,
     );
   if (!asksOpen) return null;
@@ -405,11 +405,11 @@ function matchHomeSocial(text: string): OpResolveResult | null {
       answer: sayOnni("Abro Mercado Play igual que el icono del inicio."),
     };
   }
-  if (/\b(whatsapp)\b/.test(text)) {
-    return { navigateTo: "home-social:whatsapp", answer: sayOnni("Abro WhatsApp igual que el icono del inicio.") };
-  }
-  if (/\b(onnivers|onni vers|onniverso)\b/.test(text) && /\b(abr|abre|abrir|ir|entra|lleva|llevame)\b/.test(text)) {
+  if (/\b(onnivers|onni vers)\b/.test(text) && /\b(abr|abre|abrir|ir|entra|lleva|llevame|panel)\b/.test(text)) {
     return { navigateTo: "home-social:onnivers", answer: sayOnni("Te llevo al panel docente.") };
+  }
+  if (/\b(onniverso)\b/.test(text) && /\b(abr|abre|abrir|ir|entra|lleva|llevame)\b/.test(text)) {
+    return { navigateTo: "home-social:onniverso", answer: sayOnni("Te llevo a OnniVerso.") };
   }
 
   return null;
@@ -583,7 +583,7 @@ function matchStreamer(text: string): OpResolveResult | null {
 }
 
 function matchInicio(text: string): OpResolveResult | null {
-  if (/\b(icono|youtube|google|whatsapp|mercado)\b/.test(text) && /\binicio\b/.test(text)) {
+  if (/\b(icono|youtube|google|mercado|onniverso)\b/.test(text) && /\binicio\b/.test(text)) {
     return null;
   }
 
