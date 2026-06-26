@@ -11,6 +11,7 @@ import { isPayPalConfigured, paypalScriptOptions } from "@/config/payments";
 import GuestRoute from "@/components/auth/GuestRoute";
 import PrivateRoute from "@/components/auth/PrivateRoute";
 import OpAiAssistant from "@/components/OpAiAssistant";
+import LiveStreamingRouteGuard from "@/components/LiveStreamingRouteGuard";
 import Index from "./pages/Index.tsx";
 import EventPage from "./pages/EventPage.tsx";
 import AuthPage from "./pages/AuthPage.tsx";
@@ -144,7 +145,9 @@ const App = () => {
               path="/pc"
               element={
                 <PrivateRoute>
-                  <PcScenePage />
+                  <LiveStreamingRouteGuard>
+                    <PcScenePage />
+                  </LiveStreamingRouteGuard>
                 </PrivateRoute>
               }
             />
@@ -152,7 +155,9 @@ const App = () => {
               path="/sala/emisor"
               element={
                 <PrivateRoute>
-                  <EmisorView />
+                  <LiveStreamingRouteGuard>
+                    <EmisorView />
+                  </LiveStreamingRouteGuard>
                 </PrivateRoute>
               }
             />
@@ -176,7 +181,9 @@ const App = () => {
               path="/conciertos-live/config"
               element={
                 <PrivateRoute>
-                  <ConciertosLiveConfigPage />
+                  <LiveStreamingRouteGuard>
+                    <ConciertosLiveConfigPage />
+                  </LiveStreamingRouteGuard>
                 </PrivateRoute>
               }
             />
@@ -184,7 +191,9 @@ const App = () => {
               path="/conciertos-live/emitir"
               element={
                 <PrivateRoute>
-                  <ConciertosLiveEmitirPage />
+                  <LiveStreamingRouteGuard>
+                    <ConciertosLiveEmitirPage />
+                  </LiveStreamingRouteGuard>
                 </PrivateRoute>
               }
             />
@@ -200,7 +209,9 @@ const App = () => {
               path="/live-stream"
               element={
                 <PrivateRoute>
-                  <LiveStreamPage />
+                  <LiveStreamingRouteGuard>
+                    <LiveStreamPage />
+                  </LiveStreamingRouteGuard>
                 </PrivateRoute>
               }
             />
@@ -208,7 +219,9 @@ const App = () => {
               path="/live-stream/:channel"
               element={
                 <PrivateRoute>
-                  <LiveStreamPage />
+                  <LiveStreamingRouteGuard>
+                    <LiveStreamPage />
+                  </LiveStreamingRouteGuard>
                 </PrivateRoute>
               }
             />

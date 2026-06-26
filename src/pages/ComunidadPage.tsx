@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import PayPalSmartButton from "@/components/PayPalSmartButton";
 import { SHOW_SECTION_PRICES } from "@/config/navVisibility";
 import { toast } from "sonner";
+import { isUserLiveStreamingEnabled } from "@/config/liveStreaming";
 import { useAuth } from "@/hooks/useAuth";
 import { useLiveStreamChoiceModal } from "@/hooks/useLiveStreamChoiceModal";
 import {
@@ -47,13 +48,19 @@ const ComunidadPage = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      const [{ data: profilesData }, { data: activeData }] = await Promise.all([
-        supabase.from("profiles").select("id,full_name,avatar_url,live_status").order("updated_at", { ascending: false }),
-        supabase
-          .from("active_streams")
-          .select("user_id,is_live,title,stream_url,playback_url,playback_id,privacy_mode,ticket_price,updated_at")
-          .eq("is_live", true),
-      ]);
+      const profilesPromise = supabase
+        .from("profiles")
+        .select("id,full_name,avatar_url,live_status")
+        .order("updated_at", { ascending: false });
+
+      const activePromise = isUserLiveStreamingEnabled()
+        ? supabase
+            .from("active_streams")
+            .select("user_id,is_live,title,stream_url,playback_url,playback_id,privacy_mode,ticket_price,updated_at")
+            .eq("is_live", true)
+        : Promise.resolve({ data: [] as ActiveStreamRow[] });
+
+      const [{ data: profilesData }, { data: activeData }] = await Promise.all([profilesPromise, activePromise]);
 
       const normalized = ((profilesData ?? []) as Array<{
         id: string;
@@ -71,6 +78,19 @@ const ComunidadPage = () => {
     };
 
     void loadData();
+
+    if (!isUserLiveStreamingEnabled()) {
+      const channel = supabase
+        .channel("public:comunidad")
+        .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
+          void loadData();
+        })
+        .subscribe();
+
+      return () => {
+        void supabase.removeChannel(channel);
+      };
+    }
 
     const channel = supabase
       .channel("public:comunidad")

@@ -18,6 +18,7 @@ import type { MuxStreamSignalState } from "@/lib/muxStreamStatus";
 import { updateProfileLiveState } from "@/lib/profile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { isUserLiveStreamingEnabled } from "@/config/liveStreaming";
 
 type StreamConfig = {
   title: string;
@@ -76,6 +77,12 @@ const MuxLiveStreaming = ({
   const persistLiveState = useCallback(
     async (config: StreamConfig, isLive: boolean) => {
       if (!user?.id) return;
+      if (!isUserLiveStreamingEnabled()) {
+        if (isLive) {
+          throw new Error("La transmisión en vivo está deshabilitada en la plataforma.");
+        }
+        return;
+      }
 
       const privacyMode = config.isFree ? "publico" : "privado_ticket";
       const ticketPrice = config.isFree ? null : Number(config.ticketPrice.toFixed(2));
@@ -293,6 +300,18 @@ const MuxLiveStreaming = ({
         rtmpServer: streamConfig.rtmpServer,
       }
     : null;
+
+  if (!isUserLiveStreamingEnabled()) {
+    return (
+      <section className="relative mx-auto w-full max-w-2xl rounded-2xl border border-border/60 bg-card/40 p-8 text-center backdrop-blur-xl">
+        <h2 className="font-display text-lg font-semibold text-foreground">Transmisión en vivo no disponible</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          La emisión por usuarios está desactivada en OnniVers. Puedes seguir viendo videos educativos y contenido
+          grabado.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section className="relative mx-auto w-full max-w-6xl overflow-hidden rounded-3xl border border-cyan-300/30 bg-card/35 p-4 shadow-[0_0_60px_-18px_rgba(34,211,238,0.9)] backdrop-blur-xl md:p-6">

@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { buildAgoraChannel } from "@/lib/agoraRooms";
 import type { RoomCard } from "@/lib/salaRoomCards";
+import { isUserLiveStreamingEnabled } from "@/config/liveStreaming";
 
 const LIVE_EVENT_IMAGES_BUCKET = "live-event-images";
 
@@ -68,6 +69,7 @@ export type ConciertoEmitDraft = ConciertoLiveCardConfig & { userId: string };
  * aunque el build no traiga VITE_SITE_URL correcto.
  */
 export function isConciertoLiveTestMode(): boolean {
+  if (!isUserLiveStreamingEnabled()) return false;
   if (import.meta.env.VITE_CONCIERTO_LIVE_DEV_ACCESS === "false") return false;
   if (import.meta.env.VITE_CONCIERTO_LIVE_DEV_ACCESS === "true") return true;
   if (import.meta.env.DEV) return true;
@@ -108,6 +110,7 @@ export function canOpenConciertoEmitPanel(params: {
   eventLocal: string;
   emitStatus: ConciertoEmitStatus | null;
 }): boolean {
+  if (!isUserLiveStreamingEnabled()) return false;
   if (!params.userId) return false;
   if (params.emitStatus?.isLiveNow) return true;
   if (params.emitStatus?.canEmit) return true;
@@ -122,6 +125,7 @@ export function displayNameFromProfile(row: Pick<ConciertoLiveProfileRow, "full_
 }
 
 export function hasConciertoLiveAccess(row: ConciertoLiveProfileRow): boolean {
+  if (!isUserLiveStreamingEnabled()) return false;
   if (row.concierto_live_access === true) return true;
   if (isConciertoLiveTestMode()) return true;
   return false;
@@ -282,6 +286,8 @@ function isMissingConciertoColumnError(error: { message?: string; details?: stri
 }
 
 export async function fetchPublishedConciertoCards(): Promise<RoomCard[]> {
+  if (!isUserLiveStreamingEnabled()) return [];
+
   let query = supabase
     .from("profiles")
     .select(CONCIERTO_LIVE_CARD_SELECT)
@@ -399,6 +405,10 @@ export async function uploadConciertoCardImage(userId: string, file: File): Prom
 }
 
 export async function saveConciertoLiveCard(userId: string, config: ConciertoLiveCardConfig): Promise<void> {
+  if (!isUserLiveStreamingEnabled()) {
+    throw new Error("La transmisión en vivo está deshabilitada en la plataforma.");
+  }
+
   const state = await fetchConciertoLiveState(userId);
   const testMode = isConciertoLiveTestMode();
   const hasAccess = Boolean(state?.hasAccess) || testMode;

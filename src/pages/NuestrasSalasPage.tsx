@@ -17,6 +17,7 @@ import { shuffleArray } from "@/lib/shuffleArray";
 import { handleStreamCardPlay } from "@/lib/streamCardNavigation";
 import { buildAgoraChannel } from "@/lib/agoraRooms";
 import { toast } from "sonner";
+import { isUserLiveStreamingEnabled } from "@/config/liveStreaming";
 import { SALA_MP4_URL_BY_ID } from "@/data/salaVideoUrls";
 import { useSalaChoiceModal } from "@/hooks/useSalaChoiceModal";
 import { useLiveStreamChoiceModal } from "@/hooks/useLiveStreamChoiceModal";
@@ -44,19 +45,26 @@ const NuestrasSalasPage = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      const [{ data: activeData }, conciertoRooms] = await Promise.all([
-        supabase
+      const conciertoRooms = isUserLiveStreamingEnabled() ? await fetchPublishedConciertoCards() : [];
+
+      let activeData: ActiveStreamRow[] = [];
+      if (isUserLiveStreamingEnabled()) {
+        const { data } = await supabase
           .from("active_streams")
           .select("user_id,is_live,title,stream_url,playback_url,playback_id,privacy_mode,ticket_price,updated_at")
-          .eq("is_live", true),
-        fetchPublishedConciertoCards(),
-      ]);
+          .eq("is_live", true);
+        activeData = (data ?? []) as ActiveStreamRow[];
+      }
 
-      setActiveStreams((activeData ?? []) as ActiveStreamRow[]);
+      setActiveStreams(activeData);
       setUserConciertoRooms(conciertoRooms);
     };
 
     void loadData();
+
+    if (!isUserLiveStreamingEnabled()) {
+      return;
+    }
 
     const channel = supabase
       .channel("public:nuestras-salas")
@@ -118,6 +126,13 @@ const NuestrasSalasPage = () => {
       }
 
       if (activeStream?.is_live) {
+        if (!isUserLiveStreamingEnabled()) {
+          toast.info("La transmisión en vivo por usuarios no está disponible.");
+          if (room.mp4Url) {
+            beginRoomSession(room, null, { fromSalaCard: true });
+          }
+          return;
+        }
         const muxPlaybackId =
           resolvePlaybackIdFromActiveStreamRow(activeStream) ??
           muxPlaybackIdFromHlsUrl(playbackUrlCandidate) ??
