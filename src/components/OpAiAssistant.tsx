@@ -16,6 +16,7 @@ import { invokeOpenColiceoDirect } from "@/lib/coliseoOpenDirect";
 import { publishOnniAulaKnowledge } from "@/lib/onniAulaKnowledgeBoard";
 import { extractWikipediaTopic, fetchWikipediaSummary } from "@/lib/wikipediaSummary";
 import {
+  getHomeInternalShortcutPath,
   getHomeSocialUrl,
   loadHomeSocialRedesConfig,
   type HomeSocialIconId,
@@ -211,8 +212,13 @@ export default function OpAiAssistant() {
               // Mantener exactamente la misma experiencia del icono Coliseo en Android.
             } else if (result.navigateTo.startsWith("home-social:")) {
               const iconId = result.navigateTo.replace("home-social:", "").trim() as HomeSocialIconId;
-              const icons = loadHomeSocialRedesConfig();
-              openHomeSocialRedes(getHomeSocialUrl(icons, iconId, "redes"));
+              const internalPath = getHomeInternalShortcutPath(iconId);
+              if (internalPath) {
+                navigate(internalPath);
+              } else {
+                const icons = loadHomeSocialRedesConfig();
+                openHomeSocialRedes(getHomeSocialUrl(icons, iconId, "redes"));
+              }
             } else {
               const [path, hash] = result.navigateTo.split("#");
               if (hash) {

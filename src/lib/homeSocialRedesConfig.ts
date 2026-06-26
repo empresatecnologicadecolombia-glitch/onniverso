@@ -1,27 +1,39 @@
-import { SOCIAL_LINKS } from "@/components/SocialFooterIcons";
+import { EDUCACION_SECTION_PATH, GALERIA_AULA_SECTION_PATH } from "@/lib/aulaVirtual";
 
 export type HomeSocialIconId =
   | "onnivers"
   | "youtube"
-  | "facebook"
-  | "instagram"
-  | "tiktok"
+  | "educacion"
+  | "clase-virtual"
+  | "videos-educativos"
   | "google"
   | "mercadolibre"
   | "whatsapp";
 
-const ONNIVERS_SITE_URL = "https://onnivers.com/";
-const LEGACY_ONNIVERS_LOBBY_PATH = "/lobby-inmersivo";
 const CARACOL_TV_URL = "https://www.caracoltv.com/senal-vivo";
 const YOUTUBE_HOME_URL = "https://www.youtube.com";
+const VIDEOS_EDUCATIVOS_PATH = "/nuestras-salas";
+const DOCENTE_PANEL_PATH = "/docente-clases";
 
-/** URLs escritorio (www) para Facebook, Instagram, TikTok y Google en iconos de inicio. */
-const DESKTOP_FACEBOOK_URL = SOCIAL_LINKS.facebook;
-const DESKTOP_INSTAGRAM_URL = SOCIAL_LINKS.instagram;
-const DESKTOP_TIKTOK_URL = "https://www.tiktok.com/";
 const DESKTOP_GOOGLE_URL = "https://www.google.com/";
 
-const DESKTOP_SOCIAL_ICON_IDS = new Set<HomeSocialIconId>(["facebook", "instagram", "tiktok", "google"]);
+const DESKTOP_SOCIAL_ICON_IDS = new Set<HomeSocialIconId>(["google"]);
+
+/** Iconos de inicio que navegan dentro de la app (sin modal Redes / túnel nativo). */
+export const HOME_INTERNAL_SHORTCUT_PATHS: Partial<Record<HomeSocialIconId, string>> = {
+  onnivers: DOCENTE_PANEL_PATH,
+  educacion: EDUCACION_SECTION_PATH,
+  "clase-virtual": GALERIA_AULA_SECTION_PATH,
+  "videos-educativos": VIDEOS_EDUCATIVOS_PATH,
+};
+
+export function isHomeInternalShortcut(id: HomeSocialIconId): boolean {
+  return id in HOME_INTERNAL_SHORTCUT_PATHS;
+}
+
+export function getHomeInternalShortcutPath(id: HomeSocialIconId): string | null {
+  return HOME_INTERNAL_SHORTCUT_PATHS[id] ?? null;
+}
 
 export type HomeSocialRedesMode = "redes" | "redesCam";
 
@@ -32,7 +44,7 @@ export type HomeSocialIconConfig = {
   redesCamUrl: string;
 };
 
-const STORAGE_KEY = "onniverso.homeSocialRedes.v1";
+const STORAGE_KEY = "onniverso.homeSocialRedes.v2";
 
 /** Sitio genérico; sin chat a un número concreto (configurable en Redes / Redes Cam). */
 const WHATSAPP_DEFAULT = "https://web.whatsapp.com";
@@ -43,12 +55,6 @@ const LEGACY_HOME_WHATSAPP_PERSONAL = "573117486855";
 function normalizeHomeWhatsAppUrl(url: string): string {
   const trimmed = url.trim();
   if (!trimmed || trimmed.includes(LEGACY_HOME_WHATSAPP_PERSONAL)) return WHATSAPP_DEFAULT;
-  return trimmed;
-}
-
-function normalizeOnniversHomeUrl(url: string): string {
-  const trimmed = url.trim();
-  if (!trimmed || trimmed.includes(LEGACY_ONNIVERS_LOBBY_PATH)) return ONNIVERS_SITE_URL;
   return trimmed;
 }
 
@@ -72,22 +78,6 @@ function normalizeDesktopSocialUrl(id: HomeSocialIconId, url: string): string {
   const trimmed = url.trim();
   const lower = trimmed.toLowerCase();
 
-  if (id === "facebook") {
-    if (!trimmed) return DESKTOP_FACEBOOK_URL;
-    if (lower.includes("m.facebook.com")) return trimmed.replace(/m\.facebook\.com/gi, "www.facebook.com");
-    return trimmed;
-  }
-  if (id === "instagram") {
-    if (!trimmed) return DESKTOP_INSTAGRAM_URL;
-    if (lower.includes("m.instagram.com")) return trimmed.replace(/m\.instagram\.com/gi, "www.instagram.com");
-    return trimmed;
-  }
-  if (id === "tiktok") {
-    if (!trimmed || lower.includes("vm.tiktok.com") || lower.includes("m.tiktok.com")) {
-      return DESKTOP_TIKTOK_URL;
-    }
-    return trimmed;
-  }
   if (id === "google") {
     if (!trimmed) return DESKTOP_GOOGLE_URL;
     if (lower.includes("m.google.")) return trimmed.replace(/m\.google\./gi, "www.google.");
@@ -99,9 +89,9 @@ function normalizeDesktopSocialUrl(id: HomeSocialIconId, url: string): string {
 export const DEFAULT_HOME_SOCIAL_ICONS: HomeSocialIconConfig[] = [
   {
     id: "onnivers",
-    label: "OnniVers",
-    redesUrl: ONNIVERS_SITE_URL,
-    redesCamUrl: ONNIVERS_SITE_URL,
+    label: "Panel docente",
+    redesUrl: DOCENTE_PANEL_PATH,
+    redesCamUrl: DOCENTE_PANEL_PATH,
   },
   {
     id: "youtube",
@@ -110,22 +100,22 @@ export const DEFAULT_HOME_SOCIAL_ICONS: HomeSocialIconConfig[] = [
     redesCamUrl: YOUTUBE_HOME_URL,
   },
   {
-    id: "facebook",
-    label: "Facebook",
-    redesUrl: SOCIAL_LINKS.facebook,
-    redesCamUrl: SOCIAL_LINKS.facebook,
+    id: "educacion",
+    label: "Educación",
+    redesUrl: EDUCACION_SECTION_PATH,
+    redesCamUrl: EDUCACION_SECTION_PATH,
   },
   {
-    id: "instagram",
-    label: "Instagram",
-    redesUrl: SOCIAL_LINKS.instagram,
-    redesCamUrl: SOCIAL_LINKS.instagram,
+    id: "clase-virtual",
+    label: "Clase Virtual",
+    redesUrl: GALERIA_AULA_SECTION_PATH,
+    redesCamUrl: GALERIA_AULA_SECTION_PATH,
   },
   {
-    id: "tiktok",
-    label: "TikTok",
-    redesUrl: DESKTOP_TIKTOK_URL,
-    redesCamUrl: DESKTOP_TIKTOK_URL,
+    id: "videos-educativos",
+    label: "Videos educativos",
+    redesUrl: VIDEOS_EDUCATIVOS_PATH,
+    redesCamUrl: VIDEOS_EDUCATIVOS_PATH,
   },
   {
     id: "google",
@@ -168,11 +158,7 @@ function mergeWithDefaults(parsed: unknown): HomeSocialIconConfig[] {
     }
 
     if (def.id === "onnivers") {
-      return {
-        ...def,
-        redesUrl: normalizeOnniversHomeUrl(redesUrl),
-        redesCamUrl: normalizeOnniversHomeUrl(redesCamUrl),
-      };
+      return { ...def, redesUrl: DOCENTE_PANEL_PATH, redesCamUrl: DOCENTE_PANEL_PATH };
     }
 
     if (def.id === "mercadolibre") {

@@ -22,7 +22,7 @@ export const ONNI_PERSONALITY = {
     "Si no sabe ejecutar algo, lo dice sin inventar.",
     "Puede usar: listo, dale, mira, tranquilo — sin pasarse.",
     "Recuerda que OnniVerso es VR, salas, videos educativos y experiencias inmersivas.",
-    "Si el usuario pide una red social, abre exactamente el mismo destino del icono del inicio.",
+    "Si el usuario pide una red externa del inicio (YouTube, Google, WhatsApp…), abre el mismo destino del icono correspondiente.",
   ],
 } as const;
 
@@ -41,7 +41,7 @@ export const ONNI_FAQ: FaqEntry[] = [
     id: "quien-eres",
     patterns: [/\b(quien eres|que eres|que es onni|quien es onni)\b/],
     answer:
-      "Soy Onni: el asistente de texto de OnniVerso. Te ubico en la app y ejecuto comandos. Si dices YouTube/Facebook/Instagram/TikTok/Google, abro el mismo icono del inicio.",
+      "Soy Onni: el asistente de texto de OnniVerso. Te ubico en la app y ejecuto comandos. Si dices YouTube o Google, abro el mismo icono del inicio.",
   },
   {
     id: "como-voz",

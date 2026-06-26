@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  isHomeInternalShortcut,
   type HomeSocialIconConfig,
   type HomeSocialRedesMode,
   updateHomeSocialUrl,
@@ -57,11 +58,18 @@ export default function HomeSocialRedesConfigDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-1">
-          {draft.map((row) => (
+          {draft.map((row) => {
+            const internal = isHomeInternalShortcut(row.id);
+            return (
             <div key={row.id} className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3">
               <Label htmlFor={`${mode}-${row.id}`} className="text-sm font-semibold">
                 {row.label}
               </Label>
+              {internal ? (
+                <p className="rounded-md border border-border/50 bg-background/50 px-2 py-1.5 font-mono text-xs text-muted-foreground">
+                  Sección interna: {row[urlKey]}
+                </p>
+              ) : (
               <Input
                 id={`${mode}-${row.id}`}
                 type="url"
@@ -72,6 +80,8 @@ export default function HomeSocialRedesConfigDialog({
                 placeholder="https://"
                 className="font-mono text-xs"
               />
+              )}
+              {!internal ? (
               <Button
                 type="button"
                 variant="outline"
@@ -85,8 +95,10 @@ export default function HomeSocialRedesConfigDialog({
               >
                 Probar {row.label}
               </Button>
+              ) : null}
             </div>
-          ))}
+            );
+          })}
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">

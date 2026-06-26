@@ -388,22 +388,13 @@ function matchBack(text: string): OpResolveResult | null {
 function matchHomeSocial(text: string): OpResolveResult | null {
   const asksOpen =
     /\b(abre|abrir|llevame|lleva|ir|entra|entrar|ve|vamos|muestrame|mostrar|quiero ver)\b/.test(text) ||
-    /\b(youtube|facebook|instagram|tiktok|tik tok|google|mercado play|mercadolibre|whatsapp|onnivers|onni vers)\b/.test(
+    /\b(youtube|google|mercado play|mercadolibre|whatsapp|onnivers|onni vers)\b/.test(
       text,
     );
   if (!asksOpen) return null;
 
   if (/\b(youtube|you tube)\b/.test(text)) {
     return { navigateTo: "home-social:youtube", answer: sayOnni("Abro YouTube igual que el icono del inicio.") };
-  }
-  if (/\b(facebook)\b/.test(text)) {
-    return { navigateTo: "home-social:facebook", answer: sayOnni("Abro Facebook igual que el icono del inicio.") };
-  }
-  if (/\b(instagram)\b/.test(text)) {
-    return { navigateTo: "home-social:instagram", answer: sayOnni("Abro Instagram igual que el icono del inicio.") };
-  }
-  if (/\b(tiktok|tik tok)\b/.test(text)) {
-    return { navigateTo: "home-social:tiktok", answer: sayOnni("Abro TikTok igual que el icono del inicio.") };
   }
   if (/\b(google)\b/.test(text)) {
     return { navigateTo: "home-social:google", answer: sayOnni("Abro Google igual que el icono del inicio.") };
@@ -418,7 +409,7 @@ function matchHomeSocial(text: string): OpResolveResult | null {
     return { navigateTo: "home-social:whatsapp", answer: sayOnni("Abro WhatsApp igual que el icono del inicio.") };
   }
   if (/\b(onnivers|onni vers|onniverso)\b/.test(text) && /\b(abr|abre|abrir|ir|entra|lleva|llevame)\b/.test(text)) {
-    return { navigateTo: "home-social:onnivers", answer: sayOnni("Abro OnniVers igual que el icono del inicio.") };
+    return { navigateTo: "home-social:onnivers", answer: sayOnni("Te llevo al panel docente.") };
   }
 
   return null;
@@ -592,7 +583,7 @@ function matchStreamer(text: string): OpResolveResult | null {
 }
 
 function matchInicio(text: string): OpResolveResult | null {
-  if (/\b(icono|youtube|facebook|instagram|tiktok|google|whatsapp|mercado)\b/.test(text) && /\binicio\b/.test(text)) {
+  if (/\b(icono|youtube|google|whatsapp|mercado)\b/.test(text) && /\binicio\b/.test(text)) {
     return null;
   }
 

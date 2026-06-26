@@ -1,13 +1,21 @@
 import { useCallback, useId, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Box, GraduationCap, Radio } from "lucide-react";
 import HomeSocialCinePickerDialog from "@/components/HomeSocialCinePickerDialog";
-import { FacebookGlyph, InstagramGlyph } from "@/components/SocialFooterIcons";
 import {
   openHomeSocialRedes,
   openHomeSocialRedesCam,
   openYouTubeRedesCine,
   shouldShowHomeSocialCinePicker,
 } from "@/lib/homeSocialRedesOpen";
-import { getHomeSocialUrl, loadHomeSocialRedesConfig, type HomeSocialIconConfig, type HomeSocialIconId } from "@/lib/homeSocialRedesConfig";
+import {
+  getHomeInternalShortcutPath,
+  getHomeSocialUrl,
+  isHomeInternalShortcut,
+  loadHomeSocialRedesConfig,
+  type HomeSocialIconConfig,
+  type HomeSocialIconId,
+} from "@/lib/homeSocialRedesConfig";
 import { cn } from "@/lib/utils";
 
 const OnniVersGlyph = () => {
@@ -66,23 +74,11 @@ const WhatsAppGlyph = () => (
   </svg>
 );
 
-const TikTokBrandGlyph = () => (
-  <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" aria-hidden xmlns="http://www.w3.org/2000/svg">
-    <path
-      fill="#25F4EE"
-      d="M13.1 4.4v8.2c0 .4-.1.7-.3 1-.4.9-1.2 1.5-2.2 1.5-1.4 0-2.5-1.1-2.5-2.5S9.2 10 10.6 10c.3 0 .6.1.9.2V7.8c-.3-.1-.6-.1-.9-.1-2.7 0-4.9 2.2-4.9 4.9s2.2 4.9 4.9 4.9c2 0 3.7-1.2 4.5-2.9.3-.6.4-1.3.4-2V8.9c1 .7 2.2 1.1 3.5 1.1V7.6c-.8 0-1.6-.2-2.3-.6-.8-.4-1.5-1-1.9-1.8-.3-.5-.4-1.1-.4-1.8h-2.3z"
-    />
-    <path
-      fill="#FE2C55"
-      d="M14 3.6v8.2c0 .4-.1.7-.3 1-.4.9-1.2 1.5-2.2 1.5-.5 0-1-.1-1.4-.4.4.8 1.2 1.3 2.1 1.3 1 0 1.8-.6 2.2-1.5.2-.3.3-.6.3-1V4.5c0 .7.1 1.3.4 1.8.4.8 1.1 1.4 1.9 1.8.7.3 1.5.5 2.3.6V6.3c-1.2 0-2.3-.4-3.2-1.1V3.6H14z"
-      opacity="0.95"
-    />
-    <path
-      fill="#fff"
-      d="M13.6 4v8.4c0 .4-.1.8-.3 1.1-.4.9-1.3 1.5-2.3 1.5-1.5 0-2.6-1.2-2.6-2.6s1.2-2.6 2.6-2.6c.3 0 .7.1 1 .2V8c-.3-.1-.7-.1-1-.1-2.5 0-4.5 2-4.5 4.5S8.5 17 11 17c1.8 0 3.4-1.1 4.1-2.7.2-.5.4-1.1.4-1.7V9.2c1 .7 2.3 1.1 3.5 1.1V8.2c-.8 0-1.5-.2-2.2-.6-.8-.4-1.4-.9-1.8-1.7-.3-.5-.4-1.2-.4-1.9h-1z"
-    />
-  </svg>
-);
+const EducacionGlyph = () => <GraduationCap className="h-[18px] w-[18px]" strokeWidth={2.2} aria-hidden />;
+
+const ClaseVirtualGlyph = () => <Box className="h-[18px] w-[18px]" strokeWidth={2.2} aria-hidden />;
+
+const VideosEducativosGlyph = () => <Radio className="h-[18px] w-[18px]" strokeWidth={2.2} aria-hidden />;
 
 const ICON_BUTTONS: {
   id: HomeSocialIconId;
@@ -92,7 +88,7 @@ const ICON_BUTTONS: {
 }[] = [
   {
     id: "onnivers",
-    label: "OnniVers",
+    label: "Panel docente",
     className:
       "border-cyan-400/70 bg-slate-950 text-cyan-100 shadow-[0_0_20px_-6px_rgba(34,211,238,0.9)]",
     Glyph: OnniVersGlyph,
@@ -105,24 +101,25 @@ const ICON_BUTTONS: {
     Glyph: YouTubeGlyph,
   },
   {
-    id: "facebook",
-    label: "Facebook",
+    id: "educacion",
+    label: "Educación",
     className:
-      "border-blue-500/65 bg-[#1877f2] text-white shadow-[0_0_20px_-6px_rgba(24,119,242,0.95)]",
-    Glyph: FacebookGlyph,
+      "border-violet-400/65 bg-violet-950 text-violet-100 shadow-[0_0_20px_-6px_rgba(139,92,246,0.9)]",
+    Glyph: EducacionGlyph,
   },
   {
-    id: "instagram",
-    label: "Instagram",
+    id: "clase-virtual",
+    label: "Clase Virtual",
     className:
-      "border-fuchsia-500/65 bg-[linear-gradient(135deg,#f58529_0%,#feda77_18%,#dd2a7b_45%,#8134af_72%,#515bd4_100%)] text-white shadow-[0_0_20px_-6px_rgba(221,42,123,0.95)]",
-    Glyph: InstagramGlyph,
+      "border-cyan-400/65 bg-cyan-950 text-cyan-100 shadow-[0_0_20px_-6px_rgba(34,211,238,0.85)]",
+    Glyph: ClaseVirtualGlyph,
   },
   {
-    id: "tiktok",
-    label: "TikTok",
-    className: "border-white/65 bg-black text-white shadow-[0_0_20px_-6px_rgba(255,255,255,0.6)]",
-    Glyph: TikTokBrandGlyph,
+    id: "videos-educativos",
+    label: "Videos educativos",
+    className:
+      "border-amber-400/65 bg-amber-950 text-amber-100 shadow-[0_0_20px_-6px_rgba(251,191,36,0.85)]",
+    Glyph: VideosEducativosGlyph,
   },
   {
     id: "google",
@@ -147,12 +144,13 @@ const ICON_BUTTONS: {
 ];
 
 export default function HomeSocialRedesRow() {
+  const navigate = useNavigate();
   const [icons] = useState(loadHomeSocialRedesConfig);
   const [picked, setPicked] = useState<HomeSocialIconConfig | null>(null);
   const showCinePicker = useMemo(() => shouldShowHomeSocialCinePicker(), []);
 
   const onPickCine = useCallback(() => {
-    if (!picked) return;
+    if (!picked || isHomeInternalShortcut(picked.id)) return;
     const url = getHomeSocialUrl(icons, picked.id, "redes");
     if (picked.id === "youtube") {
       openYouTubeRedesCine(url);
@@ -163,15 +161,34 @@ export default function HomeSocialRedesRow() {
   }, [icons, picked]);
 
   const onPickRedesCam = useCallback(() => {
-    if (!picked) return;
+    if (!picked || isHomeInternalShortcut(picked.id)) return;
     openHomeSocialRedesCam(getHomeSocialUrl(icons, picked.id, "redesCam"));
     setPicked(null);
   }, [icons, picked]);
 
+  const handleIconClick = useCallback(
+    (id: HomeSocialIconId) => {
+      const internalPath = getHomeInternalShortcutPath(id);
+      if (internalPath) {
+        navigate(internalPath);
+        return;
+      }
+
+      const icon = icons.find((i) => i.id === id);
+      if (!icon) return;
+      if (showCinePicker) {
+        setPicked(icon);
+        return;
+      }
+      openHomeSocialRedes(getHomeSocialUrl(icons, id, "redes"));
+    },
+    [icons, navigate, showCinePicker],
+  );
+
   return (
     <>
       <div className="pointer-events-none order-2 z-[81] flex max-w-[calc(100vw-1.5rem)] items-center gap-1.5 overflow-x-auto max-sm:relative max-sm:bottom-auto max-sm:left-auto max-sm:ml-2 max-sm:pl-0 sm:fixed sm:bottom-8 sm:left-1/2 sm:order-none sm:ml-0 sm:max-w-none sm:-translate-x-1/2 sm:gap-2 sm:overflow-visible sm:pl-0">
-        {ICON_BUTTONS.filter((btn) => btn.id !== "coliseo").map(({ id, label, className, Glyph }) => (
+        {ICON_BUTTONS.map(({ id, label, className, Glyph }) => (
           <button
             key={id}
             type="button"
@@ -180,22 +197,14 @@ export default function HomeSocialRedesRow() {
               className,
             )}
             aria-label={label}
-            onClick={() => {
-              const icon = icons.find((i) => i.id === id);
-              if (!icon) return;
-              if (showCinePicker) {
-                setPicked(icon);
-                return;
-              }
-              openHomeSocialRedes(getHomeSocialUrl(icons, id, "redes"));
-            }}
+            onClick={() => handleIconClick(id)}
           >
             <Glyph />
           </button>
         ))}
       </div>
 
-      {showCinePicker && (
+      {showCinePicker && picked && !isHomeInternalShortcut(picked.id) ? (
         <HomeSocialCinePickerDialog
           open={picked !== null}
           onOpenChange={(open) => !open && setPicked(null)}
@@ -203,7 +212,7 @@ export default function HomeSocialRedesRow() {
           onPickCine={onPickCine}
           onPickCineCam={onPickRedesCam}
         />
-      )}
+      ) : null}
     </>
   );
 }

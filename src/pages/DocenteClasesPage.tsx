@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import DocenteContentLibraryPanel from "@/components/docente/DocenteContentLibraryPanel";
+import BackToProfileHomeButton from "@/components/BackToProfileHomeButton";
 import { isDesktopPcOrExe } from "@/lib/deviceDetection";
 import { copyToClipboard } from "@/lib/copyToClipboard";
 import { buildStudentClassUrl } from "@/lib/studentClassLink";
@@ -124,14 +125,6 @@ export default function DocenteClasesPage() {
   const canManage = useMemo(() => role === "docente" || role === "admin", [role]);
   const pendingOnniDocenteRef = useRef<"start" | "enter" | "end" | null>(null);
   const onniDocenteRunRef = useRef(0);
-
-  const handleBack = useCallback(() => {
-    if (window.history.length > 1) {
-      navigate(-1);
-      return;
-    }
-    navigate("/educacion");
-  }, [navigate]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -684,9 +677,12 @@ export default function DocenteClasesPage() {
       <main className="relative z-20 px-4 pb-20 pt-20 md:px-6">
         <div className="container mx-auto max-w-5xl">
           <div className="mb-6 flex items-center justify-between gap-3">
-            <h1 className="font-display text-2xl font-bold md:text-3xl">
-              Panel <span className="text-gradient-neon">Docente</span>
-            </h1>
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <BackToProfileHomeButton iconOnly />
+              <h1 className="font-display text-2xl font-bold md:text-3xl">
+                Panel <span className="text-gradient-neon">Docente</span>
+              </h1>
+            </div>
             <div className="flex shrink-0 items-center gap-2">
               <Button
                 type="button"
@@ -697,9 +693,6 @@ export default function DocenteClasesPage() {
               >
                 <BookOpen className="h-3.5 w-3.5" aria-hidden />
                 Conocimiento
-              </Button>
-              <Button type="button" variant="outline" size="sm" onClick={handleBack}>
-                Volver
               </Button>
             </div>
           </div>
