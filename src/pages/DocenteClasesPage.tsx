@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, Copy, Plus, Save, StopCircle, UserCheck2, Users, X } from "lucide-react";
+import { Check, Copy, Plus, Save, StopCircle, UserCheck2, Users, X, BookOpen } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -687,9 +687,21 @@ export default function DocenteClasesPage() {
             <h1 className="font-display text-2xl font-bold md:text-3xl">
               Panel <span className="text-gradient-neon">Docente</span>
             </h1>
-            <Button type="button" variant="outline" size="sm" onClick={handleBack}>
-              Volver
-            </Button>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                type="button"
+                variant="heroOutline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => navigate("/docente-conocimiento")}
+              >
+                <BookOpen className="h-3.5 w-3.5" aria-hidden />
+                Conocimiento
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={handleBack}>
+                Volver
+              </Button>
+            </div>
           </div>
 
           {loading ? (

@@ -23,6 +23,7 @@ import SalaTeatro from "./pages/SalaTeatro.tsx";
 import LobbyGlobalPage from "./pages/LobbyGlobalPage.tsx";
 import ColiseoPage from "./pages/ColiseoPage.tsx";
 import DocenteClasesPage from "./pages/DocenteClasesPage.tsx";
+import DocenteConocimientoPage from "./pages/DocenteConocimientoPage.tsx";
 import ClaseVirtualEntryPage from "./pages/ClaseVirtualEntryPage.tsx";
 import LobbyImmersivePage from "./pages/LobbyImmersivePage.tsx";
 import AulaVirtualPage from "./pages/AulaVirtualPage.tsx";
@@ -326,6 +327,14 @@ const App = () => {
               element={
                 <PrivateRoute>
                   <DocenteClasesPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/docente-conocimiento"
+              element={
+                <PrivateRoute>
+                  <DocenteConocimientoPage />
                 </PrivateRoute>
               }
             />
