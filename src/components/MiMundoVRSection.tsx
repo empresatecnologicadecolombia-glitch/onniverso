@@ -68,15 +68,6 @@ const EARTH_TAP_MAX_MOVE_PX = 14;
 const EARTH_TAP_MAX_MOVE_PX_MOBILE = 22;
 const EARTH_TAP_MAX_MS = 650;
 const EARTH_TAP_MAX_MS_MOBILE = 900;
-const PROFILE_NAME_STORAGE_KEY = "onniverso.profile.name";
-function readStoredProfileName(): string | undefined {
-  try {
-    const raw = localStorage.getItem(PROFILE_NAME_STORAGE_KEY)?.trim();
-    return raw || undefined;
-  } catch {
-    return undefined;
-  }
-}
 const EARTH_DRAG_YAW = 0.0052;
 const EARTH_DRAG_PITCH = 0.0032;
 const EARTH_DRAG_PITCH_MAX = 0.42;
@@ -708,13 +699,7 @@ const MiMundoVRSection = ({
   const [profileSaving, setProfileSaving] = useState(false);
   const vrStereoActive = useVrModeActive();
   const environmentId = useMemo<MiMundoEnvironmentId>(() => "lobby", []);
-  const storedProfileName = useMemo(
-    () => (typeof window === "undefined" ? undefined : readStoredProfileName()),
-    [],
-  );
-
-  const cardDisplayName =
-    profileDisplayName?.trim() || storedProfileName || "Explorador VR";
+  const cardDisplayName = profileDisplayName?.trim() || "Explorador VR";
   const cardAvatarSrc = profileAvatarUrl?.trim() || "/placeholder.svg";
 
   const roomMode = useMemo(() => getRoomMode(environmentId), [environmentId]);
@@ -750,11 +735,6 @@ const MiMundoVRSection = ({
   }, [navigate, requestAulaVirtualEntry]);
 
   const onProfileConfirm = async (payload: ProfileCardConfirmPayload) => {
-    try {
-      localStorage.setItem(PROFILE_NAME_STORAGE_KEY, payload.name);
-    } catch {
-      /* ignore */
-    }
     if (!onProfilePersist) return;
     setProfileSaving(true);
     try {

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import { ensureProfileRowForUser } from "@/lib/profile";
 import { clearLocalUser, isLocalUser, readLocalUser } from "@/lib/localAuth";
+import { clearStoredProfileName } from "@/lib/profileNameStorage";
 
 /**
  * Cap maximo de espera para `supabase.auth.getSession()` durante el arranque.
@@ -130,14 +131,16 @@ export const useAuth = () => {
    * Sin red, `supabase.auth.signOut()` puede fallar — capturamos para no bloquear el flujo.
    */
   const signOut = useCallback(async () => {
+    const userId = user?.id;
     clearLocalUser();
+    if (userId) clearStoredProfileName(userId);
     try {
       await supabase.auth.signOut();
     } catch (err) {
       console.warn("[auth] supabase.signOut falló (probablemente offline):", err);
     }
     setUser(null);
-  }, []);
+  }, [user?.id]);
 
   return { user, loading, isLocalUser: isLocalUser(user), signOut };
 };

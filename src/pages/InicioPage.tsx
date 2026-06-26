@@ -5,9 +5,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { compressProfileImage } from "@/lib/compressProfileImage";
 import { upsertProfile, uploadAvatar } from "@/lib/profile";
-import { isLocalUser } from "@/lib/localAuth";
+import { isLocalUser, persistLocalUser, type LocalUser } from "@/lib/localAuth";
+import {
+  resolveProfileDisplayName,
+  writeStoredProfileName,
+} from "@/lib/profileNameStorage";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import MiMundoTopActionsPortal from "@/components/MiMundoTopActionsPortal";
 import SocialMenu from "@/components/SocialMenu";
 
@@ -34,19 +39,38 @@ const InicioPage = () => {
   const { user } = useAuth();
   const { profile, refresh } = useProfile(user?.id);
   const [socialMenuOpen, setSocialMenuOpen] = useState(false);
+  const [savedNameOverride, setSavedNameOverride] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSavedNameOverride(null);
+  }, [user?.id]);
 
   const displayName =
-    profile?.full_name?.trim() ||
-    (typeof user?.user_metadata?.full_name === "string" ? user.user_metadata.full_name.trim() : "") ||
-    user?.email?.split("@")[0] ||
-    "Explorador VR";
+    savedNameOverride?.trim() ||
+    resolveProfileDisplayName({
+      profileFullName: profile?.full_name,
+      userId: user?.id,
+      metadataFullName:
+        typeof user?.user_metadata?.full_name === "string" ? user.user_metadata.full_name : null,
+      email: user?.email ?? null,
+    });
 
   const handleProfilePersist = async (payload: ProfileCardConfirmPayload) => {
     if (!user) return;
 
-    // Usuario local (offline-first): no hay servidor donde subir. El nombre ya quedó
-    // guardado por ProfileCard en `localStorage[onniverso.profile.name]`. Confirmamos.
+    const nameToSave = payload.name.trim() || displayName;
+    writeStoredProfileName(user.id, nameToSave);
+
     if (isLocalUser(user)) {
+      const localUser = user as LocalUser;
+      persistLocalUser({
+        ...localUser,
+        user_metadata: {
+          ...localUser.user_metadata,
+          full_name: nameToSave,
+        },
+      });
+      setSavedNameOverride(nameToSave);
       toast.success("Guardado en este dispositivo");
       return;
     }
@@ -62,10 +86,12 @@ const InicioPage = () => {
       }
       await upsertProfile({
         userId: user.id,
-        fullName: payload.name.trim() || displayName,
+        fullName: nameToSave,
         avatarUrl: avatarUrlToPersist,
       });
+      await supabase.auth.updateUser({ data: { full_name: nameToSave } });
       await refresh();
+      setSavedNameOverride(nameToSave);
       toast.success("Perfil guardado");
     } catch (e: unknown) {
       toast.error(getProfileSaveErrorMessage(e));

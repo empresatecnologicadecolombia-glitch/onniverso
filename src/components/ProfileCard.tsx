@@ -54,8 +54,10 @@ const ProfileCard = ({
     avatarFile !== null || name.trim() !== (initialName.trim() || "Explorador VR");
 
   useEffect(() => {
-    setName(initialName);
-  }, [initialName]);
+    if (!editingName) {
+      setName(initialName);
+    }
+  }, [initialName, editingName]);
 
   useEffect(() => {
     setAvatarPreviewUrl((prev) => {
@@ -157,7 +159,13 @@ const ProfileCard = ({
             onBlur={() => setEditingName(false)}
             disabled={isSaving}
             onKeyDown={(e) => {
-              if (e.key === "Enter") setEditingName(false);
+              if (e.key === "Enter") {
+                e.preventDefault();
+                setEditingName(false);
+                if (name.trim() !== (initialName.trim() || "Explorador VR") || avatarFile !== null) {
+                  void handleConfirm();
+                }
+              }
             }}
             className="h-9 border-primary/30 bg-black/25 text-center font-display text-base font-semibold text-foreground backdrop-blur-sm"
           />
