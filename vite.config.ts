@@ -55,6 +55,10 @@ export default defineConfig(({ mode }) => {
         target: "https://onnivers.com",
         changeOrigin: true,
       },
+      "/api/elevenlabs": {
+        target: "https://onnivers.com",
+        changeOrigin: true,
+      },
       "/api/cloudinary": {
         target: "https://onnivers.com",
         changeOrigin: true,

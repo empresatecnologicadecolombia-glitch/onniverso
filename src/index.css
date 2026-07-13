@@ -187,17 +187,21 @@
     justify-content: center;
   }
 
-  .onni-dots-avatar__canvas {
-    filter: drop-shadow(0 0 10px hsl(190 95% 55% / 0.45));
+  .onni-dots-avatar__canvas,
+  .onni-galaxy-avatar__canvas {
+    filter: drop-shadow(0 0 14px hsl(190 95% 55% / 0.55))
+      drop-shadow(0 0 28px hsl(280 75% 58% / 0.32));
     transition: filter 0.25s ease, transform 0.25s ease;
   }
 
-  .onni-dots-avatar[data-state="listening"] .onni-dots-avatar__canvas {
+  .onni-dots-avatar[data-state="listening"] .onni-dots-avatar__canvas,
+  .onni-dots-avatar[data-state="listening"] .onni-galaxy-avatar__canvas {
     filter: drop-shadow(0 0 16px hsl(185 100% 58% / 0.9));
     transform: scale(1.08);
   }
 
-  .onni-dots-avatar[data-state="speaking"] .onni-dots-avatar__canvas {
+  .onni-dots-avatar[data-state="speaking"] .onni-dots-avatar__canvas,
+  .onni-dots-avatar[data-state="speaking"] .onni-galaxy-avatar__canvas {
     filter: drop-shadow(0 0 14px hsl(195 85% 62% / 0.85));
   }
 

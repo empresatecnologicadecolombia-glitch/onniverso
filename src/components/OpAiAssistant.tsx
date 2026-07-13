@@ -29,7 +29,7 @@ import OpAiElectronAzureMic from "@/components/OpAiElectronAzureMic";
 import { useOnniAzureMic } from "@/hooks/useOnniAzureMic";
 import { useOnniVoice } from "@/hooks/useOnniVoice";
 import { useAuth } from "@/hooks/useAuth";
-import { isDesktopWebBrowser, isElectronDesktopApp, isOnniAndroidVoice } from "@/lib/deviceDetection";
+import { isDesktopWebBrowser, isElectronDesktopApp, isMobileWebBrowser, isOnniAndroidVoice } from "@/lib/deviceDetection";
 import { isAzureMicSupported } from "@/lib/onniAzureStt";
 import type { OnniSpeakOptions } from "@/lib/onniVoiceRuntime";
 import { supabase } from "@/integrations/supabase/client";
@@ -156,7 +156,7 @@ export default function OpAiAssistant() {
     canSpeak,
   } = useOnniChatVoice();
 
-  const showAzureMic = isOnniAndroidVoice() && isAzureMicSupported();
+  const showAzureMic = (isOnniAndroidVoice() || isMobileWebBrowser()) && isAzureMicSupported();
   const showElectronMic = isElectronDesktopApp() && isAzureMicSupported();
   /** Chrome/Edge escritorio: mic Web Speech mantener pulsado + Espacio (sin Azure). */
   const showChromeWebPushToTalk = isDesktopWebBrowser() && canListen;
@@ -685,7 +685,7 @@ export default function OpAiAssistant() {
           type="button"
           className={`pointer-events-auto relative z-[90] order-1 group flex flex-col items-center gap-3 rounded-2xl border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 ${
             isHomePortada
-              ? "fixed left-1/2 top-[56%] -translate-x-1/2 -translate-y-1/2 max-sm:top-[58%]"
+              ? "fixed left-1/2 bottom-24 -translate-x-1/2 max-sm:bottom-28"
               : ""
           }`}
           onClick={() => setOpen(true)}
@@ -700,7 +700,7 @@ export default function OpAiAssistant() {
           <OnniAvatarDots
             size={isHomePortada ? "hero" : "lg"}
             state={avatarState}
-            className={isHomePortada ? "max-sm:h-32 max-sm:w-32" : "max-sm:h-16 max-sm:w-16"}
+            className={isHomePortada ? "max-sm:h-64 max-sm:w-64" : "max-sm:h-16 max-sm:w-16"}
           />
         </button>
       ) : (
@@ -744,7 +744,7 @@ export default function OpAiAssistant() {
               </p>
             )}
             {showAzureMic && androidMicState.isProcessing && (
-              <p className="text-[10px] font-medium text-emerald-300/90">Transcribiendo con Azure…</p>
+              <p className="text-[10px] font-medium text-emerald-300/90">Transcribiendo con ElevenLabs…</p>
             )}
             {showElectronMic && electronMicState.isRecording && (
               <p className="text-[10px] font-medium text-emerald-300/90">

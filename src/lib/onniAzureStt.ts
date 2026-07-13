@@ -1,5 +1,5 @@
 import { onniMicDeniedMessage, requestOnniMicrophoneAccess } from "@/lib/requestOnniMicrophone";
-import { isElectronDesktopApp, isOnniAndroidVoice } from "@/lib/deviceDetection";
+import { isElectronDesktopApp, usesOnniElevenLabsVoice } from "@/lib/deviceDetection";
 import { stopAzureVoice } from "@/lib/onniAzureTts";
 import { stopElevenLabsVoice } from "@/lib/onniElevenLabsTts";
 import {
@@ -200,7 +200,7 @@ export async function transcribeBlobWithAzure(blob: Blob): Promise<string> {
 
   const wav = await recordedBlobToWav(blob);
   const audioBase64 = await blobToBase64(wav);
-  const sttEndpoint = isOnniAndroidVoice()
+  const sttEndpoint = usesOnniElevenLabsVoice()
     ? "/api/elevenlabs/speech-stt"
     : "/api/azure/speech-stt";
   const res = await fetch(sttEndpoint, {
