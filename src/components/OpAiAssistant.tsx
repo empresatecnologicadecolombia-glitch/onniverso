@@ -49,12 +49,6 @@ function isEditableKeyboardTarget(target: EventTarget | null): boolean {
   return target.isContentEditable;
 }
 
-/** Input del chat de Onni: Espacio debe activar el mic, no escribir un espacio. */
-function isOnniChatTextField(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  return Boolean(target.closest("[data-onni-chat-root]"));
-}
-
 function appendAssistantAnswer(
   setMessages: Dispatch<SetStateAction<UiMessage[]>>,
   sessionRef: MutableRefObject<{ lastAnswer?: string; lastAnswerFromGemini?: boolean }>,
@@ -430,14 +424,12 @@ export default function OpAiAssistant() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.code !== "Space" && event.key !== " ") return;
       if (event.repeat) return;
-      // En otros inputs de la página, dejar escribir espacios.
-      if (isEditableKeyboardTarget(event.target) && !isOnniChatTextField(event.target)) return;
+      // Si el foco está en un campo de texto (incluido el chat de Onni), Espacio
+      // escribe un espacio normal. El mic solo se activa cuando NO se está escribiendo.
+      if (isEditableKeyboardTarget(event.target)) return;
       if (processing || electronMicProcessing || onniSpeaking) return;
       event.preventDefault();
       event.stopPropagation();
-      if (isOnniChatTextField(event.target) && event.target instanceof HTMLElement) {
-        event.target.blur();
-      }
       electronSpaceHoldRef.current = true;
       void electronMicBeginHold();
     };
