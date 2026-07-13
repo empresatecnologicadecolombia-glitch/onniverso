@@ -49,6 +49,12 @@ function isEditableKeyboardTarget(target: EventTarget | null): boolean {
   return target.isContentEditable;
 }
 
+/** Input del chat de Onni: Espacio debe activar el mic, no escribir un espacio. */
+function isOnniChatTextField(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return Boolean(target.closest("[data-onni-chat-root]"));
+}
+
 function appendAssistantAnswer(
   setMessages: Dispatch<SetStateAction<UiMessage[]>>,
   sessionRef: MutableRefObject<{ lastAnswer?: string; lastAnswerFromGemini?: boolean }>,
@@ -414,9 +420,9 @@ export default function OpAiAssistant() {
   }, [showElectronMic, electronMicRecording, electronMicProcessing]);
 
   useEffect(() => {
-    // Espacio solo con el chat cerrado (comportamiento validado del .exe).
-    if (!showElectronMic || open || electronSpaceHoldRef.current) return;
-    electronMicCancel();
+    if (!showElectronMic || electronSpaceHoldRef.current) return;
+    // Al cerrar el chat, corta una grabación huérfana (no cancelar solo por abrir).
+    if (!open) electronMicCancel();
   }, [open, showElectronMic, electronMicCancel]);
 
   useEffect(() => {
@@ -425,10 +431,14 @@ export default function OpAiAssistant() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.code !== "Space" && event.key !== " ") return;
       if (event.repeat) return;
-      if (openRef.current) return;
-      if (isEditableKeyboardTarget(event.target)) return;
-      if (processing || electronMicProcessing) return;
+      // En otros inputs de la página, dejar escribir espacios.
+      if (isEditableKeyboardTarget(event.target) && !isOnniChatTextField(event.target)) return;
+      if (processing || electronMicProcessing || onniSpeaking) return;
       event.preventDefault();
+      event.stopPropagation();
+      if (isOnniChatTextField(event.target) && event.target instanceof HTMLElement) {
+        event.target.blur();
+      }
       electronSpaceHoldRef.current = true;
       void electronMicBeginHold();
     };
@@ -438,6 +448,7 @@ export default function OpAiAssistant() {
       if (!electronSpaceHoldRef.current) return;
       electronSpaceHoldRef.current = false;
       event.preventDefault();
+      event.stopPropagation();
       void electronMicEndHold();
     };
 
@@ -447,18 +458,19 @@ export default function OpAiAssistant() {
       void electronMicEndHold();
     };
 
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("keydown", onKeyDown, true);
+    window.addEventListener("keyup", onKeyUp, true);
     window.addEventListener("blur", onBlur);
     return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("keydown", onKeyDown, true);
+      window.removeEventListener("keyup", onKeyUp, true);
       window.removeEventListener("blur", onBlur);
     };
   }, [
     showElectronMic,
     processing,
     electronMicProcessing,
+    onniSpeaking,
     electronMicBeginHold,
     electronMicEndHold,
   ]);
@@ -715,7 +727,10 @@ export default function OpAiAssistant() {
           />
         </button>
       ) : (
-        <div className="pointer-events-auto rounded-2xl border border-cyan-300/35 bg-card/90 backdrop-blur-xl shadow-[0_0_45px_-16px_rgba(34,211,238,0.8)]">
+        <div
+          data-onni-chat-root
+          className="pointer-events-auto rounded-2xl border border-cyan-300/35 bg-card/90 backdrop-blur-xl shadow-[0_0_45px_-16px_rgba(34,211,238,0.8)]"
+        >
           <div className="flex items-start gap-3 border-b border-white/10 px-3 py-3">
             <OnniAvatarDots size="md" state={avatarState} className="mt-0.5 shrink-0" />
             <div className="min-w-0 flex-1">
