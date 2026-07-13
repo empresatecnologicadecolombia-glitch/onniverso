@@ -58,12 +58,11 @@ export function isMobileWebBrowser(): boolean {
 }
 
 /**
- * STT/TTS ElevenLabs en toda la web (PC, preview, celular, APK).
- * Solo el .exe real (onniversDesktop) queda fuera y sigue con Azure.
+ * STT/TTS ElevenLabs en toda la app: web, APK y .exe OnniVers.
+ * (Azure queda solo como legado / fallback si se desactiva esto.)
  */
 export function usesOnniElevenLabsVoice(): boolean {
   if (typeof window === "undefined") return false;
-  if (isElectronDesktopApp()) return false;
   return true;
 }
 

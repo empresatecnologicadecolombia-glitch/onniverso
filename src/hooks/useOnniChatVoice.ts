@@ -622,7 +622,13 @@ export function useOnniChatVoice() {
   );
 
   const voiceLabel =
-    voiceMode === "web"
+    usesOnniElevenLabsVoice()
+      ? isElectronDesktopApp()
+        ? "Voz ElevenLabs (OnniVers PC)"
+        : isOnniAndroidVoice()
+          ? "Voz ElevenLabs (Android)"
+          : "Voz ElevenLabs"
+      : voiceMode === "web"
       ? "Voz del navegador"
       : voiceMode === "native"
         ? isElectronDesktopApp()

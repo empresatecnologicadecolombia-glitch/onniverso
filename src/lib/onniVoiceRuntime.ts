@@ -197,8 +197,10 @@ export function speakOnniAnswer(
   if (usesOnniElevenLabsVoice() && text.trim()) {
     stopOnniSpokenVoice();
     void speakWithElevenLabsVoice(text).then((ok) => {
-      if (!ok && isOnniAndroidVoice()) speakWithNativeVoice(text);
-      if (!ok && isMobileWebBrowser()) speakWithWebVoice(text);
+      if (ok) return;
+      if (isOnniAndroidVoice()) speakWithNativeVoice(text);
+      else if (isElectronDesktopApp()) speakWithNativeVoice(text);
+      else if (isMobileWebBrowser() || isDesktopWebBrowser()) speakWithWebVoice(text);
     });
     return true;
   }

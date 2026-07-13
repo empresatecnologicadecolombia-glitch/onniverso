@@ -157,9 +157,8 @@ export async function startAzureMicRecording(
     return { ok: false, error: "Micrófono no disponible en este dispositivo." };
   }
 
-  // Solo .exe: STT streaming (transcribe mientras hablas, respuesta casi
-  // instantánea al soltar). Si falla, sigue el flujo clásico de abajo.
-  if (isElectronDesktopApp()) {
+  // Azure streaming solo en .exe si ElevenLabs no está activo.
+  if (isElectronDesktopApp() && !usesOnniElevenLabsVoice()) {
     const streamingStarted = await startAzureStreamingRecognition();
     if (streamingStarted) return { ok: true };
   }

@@ -752,7 +752,7 @@ export default function OpAiAssistant() {
               </p>
             )}
             {showElectronMic && electronMicState.isProcessing && (
-              <p className="text-[10px] font-medium text-emerald-300/90">Transcribiendo con Azure…</p>
+              <p className="text-[10px] font-medium text-emerald-300/90">Transcribiendo con ElevenLabs…</p>
             )}
             {showChromeWebPushToTalk && captureMicActive && (
               <p className="text-[10px] font-medium text-emerald-300/90">
