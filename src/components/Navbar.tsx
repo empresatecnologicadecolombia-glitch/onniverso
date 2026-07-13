@@ -5,7 +5,6 @@ import {
   Box,
   GraduationCap,
   Download,
-  FolderOpen,
   LogIn,
   LogOut,
   Menu,
@@ -17,29 +16,28 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useEffect, useMemo, useState } from "react";
 import { APP_APK_DOWNLOAD_URL } from "@/config/appDownload";
 import { LOCKED_NAVBAR_HEIGHT_CLASS, LOCKED_NAVBAR_MENU_OFFSET_CLASS } from "@/config/lockedHomeLayout";
 import { SHOW_TIENDA_NAV } from "@/config/navVisibility";
-import { isDesktopPcOrExe, isDesktopWebBrowser } from "@/lib/deviceDetection";
+import { isDesktopWebBrowser, isMobileUserAgent } from "@/lib/deviceDetection";
 import { invokeOpenGalleryDirect } from "@/lib/galleryOpenDirect";
 import { EDUCACION_SECTION_PATH, GALERIA_AULA_SECTION_PATH } from "@/lib/aulaVirtual";
 import { invokeAndroidOnVrClick } from "@/lib/androidLobbyReturn";
-import { isMobileUserAgent } from "@/lib/deviceDetection";
 import { onOpCommand } from "@/lib/opCommandBus";
 
-const NAV_ITEMS: { label: string; path: string; icon: LucideIcon }[] = [
+/** Sin sesión solo Onniverso; el resto requiere login (cualquier rol). */
+const NAV_ITEMS: { label: string; path: string; icon: LucideIcon; requiresAuth?: boolean }[] = [
   { label: "ONNIVERSO", path: "/", icon: Sparkles },
   /** Clase Virtual 360 (Coliseo); solo tarjeta de aula en vivo. */
-  { label: "CLASE VIRTUAL", path: GALERIA_AULA_SECTION_PATH, icon: Box },
-  { label: "EDUCACIÓN", path: EDUCACION_SECTION_PATH, icon: GraduationCap },
-  { label: "VIDEOS EDUCATIVOS", path: "/nuestras-salas", icon: Radio },
-  { label: "CONTACTOS", path: "/comunidad", icon: MessageCircle },
-  { label: "TIENDA", path: "/tienda", icon: ShoppingBag },
-  { label: "QUIENES SOMOS", path: "/quienes-somos", icon: Building2 },
+  { label: "CLASE VIRTUAL", path: GALERIA_AULA_SECTION_PATH, icon: Box, requiresAuth: true },
+  { label: "EDUCACIÓN", path: EDUCACION_SECTION_PATH, icon: GraduationCap, requiresAuth: true },
+  { label: "VIDEOS EDUCATIVOS", path: "/nuestras-salas", icon: Radio, requiresAuth: true },
+  { label: "CONTACTOS", path: "/comunidad", icon: MessageCircle, requiresAuth: true },
+  { label: "TIENDA", path: "/tienda", icon: ShoppingBag, requiresAuth: true },
+  { label: "QUIENES SOMOS", path: "/quienes-somos", icon: Building2, requiresAuth: true },
 ];
 
 const Navbar = () => {
@@ -48,44 +46,19 @@ const Navbar = () => {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showAppDownload, setShowAppDownload] = useState(false);
-  const [showDesktopOnlyNav, setShowDesktopOnlyNav] = useState(false);
-  const [appRole, setAppRole] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!user?.id) {
-      setAppRole(null);
-      return;
-    }
-    let cancelled = false;
-    void (async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("app_role")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (!cancelled) {
-        setAppRole((data as { app_role?: string } | null)?.app_role ?? "particular");
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id]);
 
   const navItems = useMemo(
     () =>
       NAV_ITEMS.filter((item) => {
-        if (appRole === "particular" && item.path === GALERIA_AULA_SECTION_PATH) return false;
-        if (!showDesktopOnlyNav && item.path === "/nuestras-salas") return false;
+        if (item.requiresAuth && !user) return false;
         if (!SHOW_TIENDA_NAV && item.path === "/tienda") return false;
         return true;
       }),
-    [appRole, showDesktopOnlyNav],
+    [user],
   );
 
   useEffect(() => {
     setShowAppDownload(isDesktopWebBrowser());
-    setShowDesktopOnlyNav(isDesktopPcOrExe());
   }, []);
 
   useEffect(() => {

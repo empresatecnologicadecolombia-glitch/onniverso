@@ -1,5 +1,3 @@
-/** Menú superior — VIDEOS EDUCATIVOS (/nuestras-salas). Visible solo PC/.exe vía `isDesktopPcOrExe()`. */
-
 /** Menú superior — TIENDA (/tienda). La ruta sigue activa si es false. */
 export const SHOW_TIENDA_NAV = false;
 

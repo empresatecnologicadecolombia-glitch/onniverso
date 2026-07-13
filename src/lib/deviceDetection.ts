@@ -57,7 +57,7 @@ export function isDesktopWebBrowser(): boolean {
   return detectDeviceKind() === "desktop";
 }
 
-/** Videos educativos (nav) y biblioteca docente: solo PC navegador y .exe (no APK/móvil). */
+/** PC navegador y .exe (no APK/móvil). Usado p. ej. en panel docente / biblioteca. */
 export function isDesktopPcOrExe(): boolean {
   if (typeof window === "undefined") return false;
   if (isAndroidNativeApp()) return false;
