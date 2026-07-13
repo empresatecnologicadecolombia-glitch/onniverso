@@ -29,7 +29,7 @@ import OpAiElectronAzureMic from "@/components/OpAiElectronAzureMic";
 import { useOnniAzureMic } from "@/hooks/useOnniAzureMic";
 import { useOnniVoice } from "@/hooks/useOnniVoice";
 import { useAuth } from "@/hooks/useAuth";
-import { isDesktopWebBrowser, isElectronDesktopApp, isOnniAndroidVoice, usesOnniElevenLabsVoice } from "@/lib/deviceDetection";
+import { isDesktopWebBrowser, isElectronDesktopApp, isMobileUserAgent, isOnniAndroidVoice, usesOnniElevenLabsVoice } from "@/lib/deviceDetection";
 import { isAzureMicSupported } from "@/lib/onniAzureStt";
 import type { OnniSpeakOptions } from "@/lib/onniVoiceRuntime";
 import { supabase } from "@/integrations/supabase/client";
@@ -156,10 +156,19 @@ export default function OpAiAssistant() {
     canSpeak,
   } = useOnniChatVoice();
 
-  const showAzureMic = usesOnniElevenLabsVoice() && isAzureMicSupported();
-  const showElectronMic = isElectronDesktopApp() && isAzureMicSupported();
-  /** Chrome/Edge escritorio: mic Web Speech solo si no hay mic ElevenLabs. */
-  const showChromeWebPushToTalk = isDesktopWebBrowser() && canListen && !showAzureMic;
+  /** Mic hold + Espacio (ElevenLabs): .exe y PC/navegador de escritorio (no celular). */
+  const showElectronMic =
+    usesOnniElevenLabsVoice() &&
+    isAzureMicSupported() &&
+    !isOnniAndroidVoice() &&
+    !isMobileUserAgent();
+  /** Mic por toque (ElevenLabs): APK / navegador celular. */
+  const showAzureMic =
+    usesOnniElevenLabsVoice() &&
+    isAzureMicSupported() &&
+    (isOnniAndroidVoice() || isMobileUserAgent());
+  /** Legacy Web Speech en Chrome — desactivado si ya hay mic ElevenLabs hold. */
+  const showChromeWebPushToTalk = isDesktopWebBrowser() && canListen && !showElectronMic && !showAzureMic;
 
   const runCommandRef = useRef<(raw: string) => Promise<string | undefined>>(async () => undefined);
   const openRef = useRef(open);
@@ -405,6 +414,7 @@ export default function OpAiAssistant() {
   }, [showElectronMic, electronMicRecording, electronMicProcessing]);
 
   useEffect(() => {
+    // Espacio solo con el chat cerrado (comportamiento validado del .exe).
     if (!showElectronMic || open || electronSpaceHoldRef.current) return;
     electronMicCancel();
   }, [open, showElectronMic, electronMicCancel]);
@@ -415,6 +425,7 @@ export default function OpAiAssistant() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.code !== "Space" && event.key !== " ") return;
       if (event.repeat) return;
+      if (openRef.current) return;
       if (isEditableKeyboardTarget(event.target)) return;
       if (processing || electronMicProcessing) return;
       event.preventDefault();
