@@ -259,9 +259,8 @@ export default function OpAiAssistant() {
           return result.answer;
         }
 
-        // En el .exe con Ollama corriendo, la conversación libre la responde primero
-        // la IA local (los comandos/navegación ya se resolvieron arriba). Sin Ollama,
-        // o fuera del .exe, la respuesta local enlatada se mantiene como siempre.
+        // En el .exe con cerebro local, la conversación libre la responde primero
+        // la IA embebida (los comandos/navegación ya se resolvieron arriba).
         const ollamaTakesOver = isElectronDesktopApp() && (await isOnniOllamaAvailable());
 
         if (!shouldAskOnniGemini(result) && !ollamaTakesOver) {
@@ -272,8 +271,8 @@ export default function OpAiAssistant() {
 
         const conversationHistory = buildOnniAiHistory(messagesRef.current);
 
-        // Solo .exe: intenta primero la IA local (Ollama) con streaming en pantalla.
-        // Si Ollama no está corriendo o falla, sigue el flujo Gemini de siempre.
+        // Solo .exe: intenta primero el cerebro local (llama.cpp) con streaming.
+        // Si falla, sigue el flujo Gemini de siempre.
         if (ollamaTakesOver) {
           let streamStarted = false;
           const ollamaAnswer = await askOnniOllama(

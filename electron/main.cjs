@@ -1,8 +1,10 @@
-const { app, BrowserWindow, shell, session, systemPreferences, nativeImage } = require("electron");
+const { app, BrowserWindow, shell, session, systemPreferences, nativeImage, ipcMain } = require("electron");
 const fs = require("node:fs");
 const path = require("node:path");
-
-const START_URL = process.env.ONNIVERS_URL || "https://onnivers.com";
+const { WhisperEngine } = require("./whisperEngine.cjs");
+const { PiperEngine } = require("./piperEngine.cjs");
+const { LlamaEngine } = require("./llamaEngine.cjs");
+const { startLocalWebServer } = require("./localWebServer.cjs");
 
 if (process.platform === "win32") {
   app.setAppUserModelId("com.empresatecnologica.onnivers");
@@ -21,6 +23,16 @@ function loadAppIcon() {
   if (!fs.existsSync(iconPath)) return null;
   const image = nativeImage.createFromPath(iconPath);
   return image.isEmpty() ? null : image;
+}
+
+function getBundledWebRoot() {
+  if (app.isPackaged) {
+    const packaged = path.join(process.resourcesPath, "web");
+    if (fs.existsSync(path.join(packaged, "index.html"))) return packaged;
+  }
+  const devDist = path.resolve(path.join(__dirname, "..", "dist"));
+  if (fs.existsSync(path.join(devDist, "index.html"))) return devDist;
+  return null;
 }
 
 const ALLOWED_PERMISSIONS = new Set([
@@ -43,6 +55,92 @@ const ALLOWED_PERMISSIONS = new Set([
 
 /** @type {import("electron").BrowserWindow | null} */
 let mainWindow = null;
+/** @type {WhisperEngine | null} */
+let whisperEngine = null;
+/** @type {PiperEngine | null} */
+let piperEngine = null;
+/** @type {LlamaEngine | null} */
+let llamaEngine = null;
+/** @type {{ url: string, close: () => Promise<void> } | null} */
+let localWeb = null;
+
+function getWhisperEngine() {
+  if (process.platform !== "win32") return null;
+  if (!whisperEngine) whisperEngine = new WhisperEngine();
+  return whisperEngine;
+}
+
+function getPiperEngine() {
+  if (process.platform !== "win32") return null;
+  if (!piperEngine) piperEngine = new PiperEngine();
+  return piperEngine;
+}
+
+function getLlamaEngine() {
+  if (process.platform !== "win32") return null;
+  if (!llamaEngine) llamaEngine = new LlamaEngine();
+  return llamaEngine;
+}
+
+function registerLlamaIpc() {
+  ipcMain.handle("onnivers:llama:isAvailable", () => {
+    try {
+      return Boolean(getLlamaEngine()?.isReady());
+    } catch {
+      return false;
+    }
+  });
+
+  ipcMain.handle("onnivers:llama:chat", async (event, payload) => {
+    const engine = getLlamaEngine();
+    if (!engine) {
+      throw new Error("Cerebro de Onni solo está disponible en Windows.");
+    }
+    const requestId = String(payload?.requestId ?? "").trim();
+    const messages = Array.isArray(payload?.messages) ? payload.messages : [];
+    const text = await engine.chat(messages, (partial) => {
+      if (!requestId) return;
+      event.sender.send("onnivers:llama:partial", { requestId, text: partial });
+    });
+    return { text };
+  });
+}
+
+function registerWhisperIpc() {
+  ipcMain.handle("onnivers:whisper:isAvailable", () => {
+    try {
+      return Boolean(getWhisperEngine()?.isReady());
+    } catch {
+      return false;
+    }
+  });
+
+  ipcMain.handle("onnivers:whisper:transcribe", async (_event, payload) => {
+    const engine = getWhisperEngine();
+    if (!engine) {
+      throw new Error("Whisper solo está disponible en Windows.");
+    }
+    return engine.transcribePayload(payload);
+  });
+}
+
+function registerPiperIpc() {
+  ipcMain.handle("onnivers:piper:isAvailable", () => {
+    try {
+      return Boolean(getPiperEngine()?.isReady());
+    } catch {
+      return false;
+    }
+  });
+
+  ipcMain.handle("onnivers:piper:synthesize", async (_event, payload) => {
+    const engine = getPiperEngine();
+    if (!engine) {
+      throw new Error("Piper solo está disponible en Windows.");
+    }
+    return engine.synthesize(String(payload?.text ?? ""));
+  });
+}
 
 function isMediaPermission(permission, details) {
   if (ALLOWED_PERMISSIONS.has(permission)) return true;
@@ -87,7 +185,20 @@ async function ensureOsMediaAccess() {
   }
 }
 
-function createWindow() {
+async function resolveStartUrl() {
+  const override = String(process.env.ONNIVERS_URL || "").trim();
+  if (override) return override;
+
+  const webRoot = getBundledWebRoot();
+  if (webRoot) {
+    localWeb = await startLocalWebServer(webRoot);
+    return localWeb.url;
+  }
+
+  return "https://onnivers.com";
+}
+
+async function createWindow() {
   const iconPath = getAppIconPath();
   const icon = loadAppIcon();
   const windowIcon =
@@ -121,7 +232,8 @@ function createWindow() {
     mainWindow?.show();
   });
 
-  void mainWindow.loadURL(START_URL);
+  const startUrl = await resolveStartUrl();
+  void mainWindow.loadURL(startUrl);
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith("http://") || url.startsWith("https://")) {
@@ -139,13 +251,23 @@ app.commandLine.appendSwitch("enable-features", "WebRtcAllowInputVolumeAdjustmen
 app.commandLine.appendSwitch("enable-usermedia-screen-capturing");
 
 app.whenReady().then(async () => {
+  registerWhisperIpc();
+  registerPiperIpc();
+  registerLlamaIpc();
   configureMediaPermissions(session.defaultSession);
   await ensureOsMediaAccess();
-  createWindow();
+  await createWindow();
+
+  const brain = getLlamaEngine();
+  if (brain?.isReady()) {
+    void brain.ensureServerRunning().catch((error) => {
+      console.warn("[Onni cerebro] precarga falló:", error instanceof Error ? error.message : error);
+    });
+  }
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+      void createWindow();
     }
   });
 });
@@ -153,5 +275,13 @@ app.whenReady().then(async () => {
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
+  }
+});
+
+app.on("before-quit", () => {
+  getLlamaEngine()?.stopServer();
+  if (localWeb) {
+    void localWeb.close();
+    localWeb = null;
   }
 });

@@ -55,5 +55,27 @@ interface Window {
     clipboard?: {
       writeText?: (text: string) => Promise<void>;
     };
+    whisper?: {
+      isAvailable?: () => Promise<boolean>;
+      transcribe?: (payload: {
+        audioBase64: string;
+        mimeType?: string;
+      }) => Promise<{ text?: string }>;
+    };
+    piper?: {
+      isAvailable?: () => Promise<boolean>;
+      synthesize?: (payload: { text: string }) => Promise<{
+        audioBase64?: string;
+        mimeType?: string;
+      }>;
+    };
+    brain?: {
+      isAvailable?: () => Promise<boolean>;
+      chat?: (payload: {
+        requestId: string;
+        messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
+      }) => Promise<{ text?: string }>;
+      onPartial?: (callback: (requestId: string, text: string) => void) => () => void;
+    };
   };
 }

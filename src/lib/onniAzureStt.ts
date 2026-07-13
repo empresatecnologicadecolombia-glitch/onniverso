@@ -3,6 +3,10 @@ import { isElectronDesktopApp, usesOnniElevenLabsVoice } from "@/lib/deviceDetec
 import { stopAzureVoice } from "@/lib/onniAzureTts";
 import { stopElevenLabsVoice } from "@/lib/onniElevenLabsTts";
 import {
+  isOnniElectronWhisperAvailable,
+  transcribeOnniElectronWhisper,
+} from "@/lib/onniElectronWhisperStt";
+import {
   cancelAzureStreamingRecognition,
   isAzureStreamingRecording,
   startAzureStreamingRecognition,
@@ -243,7 +247,33 @@ export async function stopAzureMicRecordingAndTranscribe(): Promise<string> {
 
   if (!recorded.size) return "";
 
-  return transcribeBlobWithAzure(recorded);
+  // OnniVers PC (.exe): Whisper tiny local primero (sin cuota de internet).
+  if (isElectronDesktopApp()) {
+    if (await isOnniElectronWhisperAvailable()) {
+      try {
+        const localText = await transcribeOnniElectronWhisper(recorded);
+        if (localText) {
+          console.info("[Onni STT] whisper-local", localText.slice(0, 80));
+          return localText;
+        }
+        console.warn("[Onni STT] whisper-local vacío");
+        return "";
+      } catch (error) {
+        console.warn("[Onni STT] whisper-local falló", error);
+        throw error instanceof Error ? error : new Error("Whisper no pudo transcribir.");
+      }
+    }
+    console.warn("[Onni STT] Whisper no disponible en este .exe");
+    throw new Error("Whisper no está listo en este OnniVers. Reinstala el .exe.");
+  }
+
+  const cloudText = await transcribeBlobWithAzure(recorded);
+  console.info(
+    "[Onni STT] cloud",
+    usesOnniElevenLabsVoice() ? "elevenlabs" : "azure",
+    cloudText.slice(0, 80),
+  );
+  return cloudText;
 }
 
 export function cancelAzureMicRecording(): void {

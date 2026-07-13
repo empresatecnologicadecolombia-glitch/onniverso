@@ -21,9 +21,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "desktop:icon": "node scripts/generate-desktop-icon.mjs",
-    "desktop:dev": "npm run desktop:icon && electron .",
-    "desktop:pack": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win --dir && node scripts/apply-desktop-icon.mjs",
-    "desktop:dist": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false node scripts/apply-desktop-icon.mjs && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win nsis --prepackaged release/win-unpacked",
+    "desktop:whisper-build": "node scripts/setup-whisper.mjs",
+    "desktop:piper-build": "node scripts/setup-piper.mjs",
+    "desktop:llama-build": "node scripts/setup-llama.mjs",
+    "desktop:web-build": "vite build",
+    "desktop:dev": "npm run desktop:icon && npm run desktop:whisper-build && npm run desktop:piper-build && npm run desktop:llama-build && electron .",
+    "desktop:pack": "npm run desktop:web-build && npm run desktop:whisper-build && npm run desktop:piper-build && npm run desktop:llama-build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win --dir && node scripts/apply-desktop-icon.mjs",
+    "desktop:dist": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false node scripts/apply-desktop-icon.mjs && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win nsis portable --prepackaged release/win-unpacked",
     "desktop:build": "npm run desktop:icon && npm run desktop:pack && npm run desktop:dist"
   },
   "dependencies": {
@@ -147,6 +151,12 @@
           "arch": [
             "x64"
           ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "electron/icons/icon.ico",
@@ -175,6 +185,35 @@
       {
         "from": "electron/icons/icon.png",
         "to": "icon.png"
+      },
+      {
+        "from": "electron/whisper/publish",
+        "to": "whisper",
+        "filter": [
+          "**/*",
+          "!whisper-bin-x64.zip"
+        ]
+      },
+      {
+        "from": "electron/piper/publish",
+        "to": "piper",
+        "filter": [
+          "**/*",
+          "!piper_windows_amd64.zip"
+        ]
+      },
+      {
+        "from": "electron/llama/publish",
+        "to": "llama",
+        "filter": [
+          "**/*",
+          "!llama-bin-win-cpu-x64.zip",
+          "!*.download"
+        ]
+      },
+      {
+        "from": "dist",
+        "to": "web"
       }
     ]
   }

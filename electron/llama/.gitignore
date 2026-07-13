@@ -1,0 +1,4 @@
+publish/*.gguf
+publish/*.zip
+publish/*.exe
+publish/*.dll

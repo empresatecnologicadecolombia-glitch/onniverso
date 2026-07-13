@@ -624,7 +624,7 @@ export function useOnniChatVoice() {
   const voiceLabel =
     usesOnniElevenLabsVoice()
       ? isElectronDesktopApp()
-        ? "Voz ElevenLabs (OnniVers PC)"
+        ? "Voz local Whisper + Piper (OnniVers PC)"
         : isOnniAndroidVoice()
           ? "Voz ElevenLabs (Android)"
           : "Voz ElevenLabs"

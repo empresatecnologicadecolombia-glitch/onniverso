@@ -7,6 +7,11 @@ import {
 } from "@/lib/deviceDetection";
 import { stopAzureVoice } from "@/lib/onniAzureTts";
 import { speakWithElevenLabsVoice, stopElevenLabsVoice } from "@/lib/onniElevenLabsTts";
+import {
+  isOnniElectronPiperAvailable,
+  speakWithElectronPiperVoice,
+  stopElectronPiperVoice,
+} from "@/lib/onniElectronPiperTts";
 import { getElectronVoiceBridge } from "@/lib/onniElectronVoiceBridge";
 import { isOnniVoiceSupported, pickOnniSpanishVoice } from "@/lib/onniVoice";
 
@@ -168,6 +173,7 @@ export function stopOnniSpokenVoice(): void {
   stopWebVoice();
   stopAzureVoice();
   stopElevenLabsVoice();
+  stopElectronPiperVoice();
   try {
     getNativeVoiceBridge()?.stopSpeaking?.();
   } catch {
@@ -194,12 +200,24 @@ export function speakOnniAnswer(
   onPreferNative?: () => void,
   options?: OnniSpeakOptions,
 ): boolean {
+  // OnniVers PC (.exe): solo Piper local → Windows. Sin ElevenLabs (evita demora/cuota).
+  if (isElectronDesktopApp() && text.trim()) {
+    stopOnniSpokenVoice();
+    void (async () => {
+      if (await isOnniElectronPiperAvailable()) {
+        const ok = await speakWithElectronPiperVoice(text);
+        if (ok) return;
+      }
+      speakWithNativeVoice(text);
+    })();
+    return true;
+  }
+
   if (usesOnniElevenLabsVoice() && text.trim()) {
     stopOnniSpokenVoice();
     void speakWithElevenLabsVoice(text).then((ok) => {
       if (ok) return;
       if (isOnniAndroidVoice()) speakWithNativeVoice(text);
-      else if (isElectronDesktopApp()) speakWithNativeVoice(text);
       else if (isMobileWebBrowser() || isDesktopWebBrowser()) speakWithWebVoice(text);
     });
     return true;
