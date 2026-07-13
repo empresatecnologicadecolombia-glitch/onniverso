@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { isDesktopWebBrowser, isElectronDesktopApp, isMobileWebBrowser, isOnniAndroidVoice } from "@/lib/deviceDetection";
+import { isDesktopWebBrowser, isElectronDesktopApp, isOnniAndroidVoice, usesOnniElevenLabsVoice } from "@/lib/deviceDetection";
 import { warmUpElectronVoiceBridge } from "@/lib/onniElectronVoiceBridge";
 import {
   parseNativeVoiceErrorDetail,
@@ -648,8 +648,8 @@ export function useOnniChatVoice() {
     usesContinuousMic: false,
     usesOneShotNativeMic,
     supportsNativeWakeSwitch,
-    canListen: voiceMode !== "none" && !isOnniAndroidVoice() && !isElectronDesktopApp() && !isMobileWebBrowser(),
-    canSpeak: voiceMode !== "none",
+    canListen: voiceMode !== "none" && !isElectronDesktopApp() && !usesOnniElevenLabsVoice(),
+    canSpeak: voiceMode !== "none" || usesOnniElevenLabsVoice(),
     voiceLabel,
   };
 };

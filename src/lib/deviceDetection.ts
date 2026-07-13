@@ -39,11 +39,11 @@ export function isOnniAndroidVoice(): boolean {
   return hasVoiceBridge && isMobileUserAgent();
 }
 
-/** OnniVers .exe (Electron), no Chrome/Edge sueltos. */
+/** OnniVers PC (.exe) real — requiere el bridge de preload, no solo UA "Electron"
+ *  (Cursor/VS Code también llevan Electron en el user-agent y no son el .exe). */
 export function isElectronDesktopApp(): boolean {
   if (typeof window === "undefined") return false;
-  if (window.onniversDesktop?.isDesktopApp) return true;
-  return /Electron/i.test(navigator.userAgent ?? "");
+  return Boolean(window.onniversDesktop?.isDesktopApp);
 }
 
 /** Celular/tablet en navegador (Chrome/Safari), no APK ni .exe. */
@@ -58,11 +58,13 @@ export function isMobileWebBrowser(): boolean {
 }
 
 /**
- * Onni usa ElevenLabs (STT/TTS) en APK Android y en navegador móvil.
- * Escritorio Chrome y .exe no entran aquí.
+ * STT/TTS ElevenLabs en toda la web (PC, preview, celular, APK).
+ * Solo el .exe real (onniversDesktop) queda fuera y sigue con Azure.
  */
 export function usesOnniElevenLabsVoice(): boolean {
-  return isOnniAndroidVoice() || isMobileWebBrowser();
+  if (typeof window === "undefined") return false;
+  if (isElectronDesktopApp()) return false;
+  return true;
 }
 
 /** Botón «Descargar app» en navbar: solo PC con navegador (no APK ni móvil). */

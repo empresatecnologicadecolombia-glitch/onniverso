@@ -67,13 +67,16 @@ export function markPreferNativeVoice(): void {
 }
 
 export function getOnniVoiceMode(): OnniVoiceMode {
+  // ElevenLabs en web: siempre hay voz aunque Web Speech no exista (p. ej. preview Cursor).
+  if (usesOnniElevenLabsVoice()) {
+    return "web";
+  }
   if (isDesktopWebBrowser()) {
     return isOnniVoiceSupported() ? "web" : "none";
   }
   if (isElectronDesktopApp() && getElectronVoiceBridge()) {
     return "native";
   }
-  // Navegador móvil: STT/TTS por ElevenLabs (no depende de Web Speech).
   if (isMobileWebBrowser()) {
     return "web";
   }

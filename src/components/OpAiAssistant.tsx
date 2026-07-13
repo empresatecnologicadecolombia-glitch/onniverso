@@ -29,7 +29,7 @@ import OpAiElectronAzureMic from "@/components/OpAiElectronAzureMic";
 import { useOnniAzureMic } from "@/hooks/useOnniAzureMic";
 import { useOnniVoice } from "@/hooks/useOnniVoice";
 import { useAuth } from "@/hooks/useAuth";
-import { isDesktopWebBrowser, isElectronDesktopApp, isMobileWebBrowser, isOnniAndroidVoice } from "@/lib/deviceDetection";
+import { isDesktopWebBrowser, isElectronDesktopApp, isOnniAndroidVoice, usesOnniElevenLabsVoice } from "@/lib/deviceDetection";
 import { isAzureMicSupported } from "@/lib/onniAzureStt";
 import type { OnniSpeakOptions } from "@/lib/onniVoiceRuntime";
 import { supabase } from "@/integrations/supabase/client";
@@ -156,10 +156,10 @@ export default function OpAiAssistant() {
     canSpeak,
   } = useOnniChatVoice();
 
-  const showAzureMic = (isOnniAndroidVoice() || isMobileWebBrowser()) && isAzureMicSupported();
+  const showAzureMic = usesOnniElevenLabsVoice() && isAzureMicSupported();
   const showElectronMic = isElectronDesktopApp() && isAzureMicSupported();
-  /** Chrome/Edge escritorio: mic Web Speech mantener pulsado + Espacio (sin Azure). */
-  const showChromeWebPushToTalk = isDesktopWebBrowser() && canListen;
+  /** Chrome/Edge escritorio: mic Web Speech solo si no hay mic ElevenLabs. */
+  const showChromeWebPushToTalk = isDesktopWebBrowser() && canListen && !showAzureMic;
 
   const runCommandRef = useRef<(raw: string) => Promise<string | undefined>>(async () => undefined);
   const openRef = useRef(open);
