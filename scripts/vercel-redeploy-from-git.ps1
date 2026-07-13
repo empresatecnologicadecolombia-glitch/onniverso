@@ -1,18 +1,36 @@
 # Redeploy de producción desde GitHub (sin subir la carpeta local).
-# Uso: $env:VERCEL_TOKEN = "vcp_..." ; .\scripts\vercel-redeploy-from-git.ps1
+# Lee VERCEL_TOKEN de .env si no está en el entorno.
 
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 Set-Location $Root
 
+function Import-DotEnvToken {
+  param([string]$Key)
+  if ([Environment]::GetEnvironmentVariable($Key)) { return }
+  $envFile = Join-Path $Root ".env"
+  if (-not (Test-Path $envFile)) { return }
+  foreach ($line in Get-Content $envFile) {
+    if ($line -match '^\s*#') { continue }
+    if ($line -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$') {
+      if ($Matches[1] -eq $Key) {
+        [Environment]::SetEnvironmentVariable($Key, $Matches[2].Trim())
+        return
+      }
+    }
+  }
+}
+
+Import-DotEnvToken -Key "VERCEL_TOKEN"
+
 if (-not $env:VERCEL_TOKEN) {
-  Write-Host "Falta VERCEL_TOKEN. Crea uno en vercel.com/account/tokens" -ForegroundColor Red
+  Write-Host "Falta VERCEL_TOKEN en .env o en el entorno." -ForegroundColor Red
   exit 1
 }
 
 $projectJson = Join-Path $Root ".vercel\project.json"
 if (-not (Test-Path $projectJson)) {
-  Write-Host "No hay .vercel\project.json — enlaza el proyecto con: npx vercel link" -ForegroundColor Red
+  Write-Host "No hay .vercel\project.json - enlaza el proyecto con: npx vercel link" -ForegroundColor Red
   exit 1
 }
 
@@ -20,7 +38,8 @@ $project = Get-Content $projectJson | ConvertFrom-Json
 $projectId = $project.projectId
 $headers = @{ Authorization = "Bearer $env:VERCEL_TOKEN" }
 
-$deps = Invoke-RestMethod -Uri "https://api.vercel.com/v6/deployments?projectId=$projectId&limit=1&target=production" -Headers $headers
+$depsUrl = "https://api.vercel.com/v6/deployments?projectId=$projectId" + "&limit=1&target=production"
+$deps = Invoke-RestMethod -Uri $depsUrl -Headers $headers
 $lastId = $deps.deployments[0].uid
 Write-Host "Redeploy desde GitHub (ultimo prod: $lastId)..."
 
