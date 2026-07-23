@@ -9,13 +9,7 @@ import WorldCupVrHero from "@/components/WorldCupVrHero";
 import BackToProfileHomeButton from "@/components/BackToProfileHomeButton";
 import OnniVersDownloadAppButton from "@/components/OnniVersDownloadAppButton";
 import { useAuth } from "@/hooks/useAuth";
-
-declare global {
-  interface Window {
-    OniPinWidget?: { open: () => void; close: () => void; toggle: () => void };
-    openOnniPinChat?: () => void;
-  }
-}
+import { ensureOnniPinWidget, openOnniPinChat } from "@/lib/onniPinWidget";
 
 const Index = () => {
   const location = useLocation();
@@ -30,6 +24,30 @@ const Index = () => {
       }, 300);
     }
   }, [location.state]);
+
+  useEffect(() => {
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    const preload = () => {
+      void ensureOnniPinWidget().catch(() => {
+        /* Contáctanos reintentará al clic */
+      });
+    };
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      idleId = window.requestIdleCallback(preload, { timeout: 4000 });
+    } else {
+      timeoutId = setTimeout(preload, 2500);
+    }
+
+    return () => {
+      if (idleId !== undefined && "cancelIdleCallback" in window) {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-background" data-camera-page-root>
@@ -66,7 +84,7 @@ const Index = () => {
                 className="shrink-0 gap-1.5 border border-cyan-400/35 bg-cyan-500/15 text-cyan-50 hover:bg-cyan-500/25"
                 aria-label="Contáctanos — chateemos"
                 onClick={() => {
-                  window.OniPinWidget?.open();
+                  openOnniPinChat();
                 }}
               >
                 <span

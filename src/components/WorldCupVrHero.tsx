@@ -209,9 +209,14 @@ const WorldCupVrHero = () => {
     <section className="relative min-h-[100dvh] overflow-hidden px-6 pt-8 pb-16">
       <div className="absolute inset-0" data-camera-decorative-bg>
         <img
-          src="https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=2200&q=80"
+          src="https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=1400&q=70"
           alt={ALT_HERO_BACKDROP}
           className="h-full w-full object-cover"
+          width={1400}
+          height={900}
+          sizes="100vw"
+          fetchPriority="high"
+          decoding="async"
           loading="eager"
         />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,hsl(190_70%_48%/.14),transparent_42%),radial-gradient(circle_at_85%_22%,hsl(270_55%_52%/.12),transparent_38%),linear-gradient(to_bottom,hsl(230_45%_8%/.45),hsl(235_40%_4%/.82))]" />
@@ -334,10 +339,13 @@ const WorldCupVrHero = () => {
             <Card className="overflow-hidden border border-primary/35 bg-card/60 backdrop-blur-xl shadow-[0_0_45px_-14px_hsl(var(--primary)/0.8)]">
               <div className="relative h-44 overflow-hidden">
                 <img
-                  src="https://images.unsplash.com/photo-1570498839593-e565b39455fc?auto=format&fit=crop&w=1600&q=80"
+                  src="https://images.unsplash.com/photo-1570498839593-e565b39455fc?auto=format&fit=crop&w=1200&q=70"
                   alt={ALT_CARD_MUNDIAL_STREAMING}
                   className="h-full w-full object-cover"
+                  width={1200}
+                  height={675}
                   loading="lazy"
+                  decoding="async"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-card via-card/25 to-transparent" />
               </div>
