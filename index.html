@@ -21,6 +21,65 @@
   <meta name="twitter:title" content="OnniVers · Educación Inmersiva 360°">
   <meta name="twitter:description" content="OnniVers es la plataforma de educación inmersiva: aulas virtuales 360°, Coliseo inmersivo y clases en vivo donde el docente conduce la sesión y los estudiantes aprenden en tiempo real desde web o app.">
   <meta name="twitter:image" content="https://onnivers.com/educacion-inmersiva.jpeg">
+  <!-- FCP: pintar marca antes del bundle React -->
+  <style>
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: #070a14;
+      color: #e8f7ff;
+    }
+    #boot-fcp {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.25rem;
+      text-align: center;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background:
+        radial-gradient(circle at 50% 18%, rgba(34, 211, 238, 0.14), transparent 42%),
+        radial-gradient(circle at 85% 22%, rgba(139, 92, 246, 0.12), transparent 38%),
+        #070a14;
+    }
+    #boot-fcp strong {
+      display: block;
+      font-size: clamp(1.85rem, 6.5vw, 3.25rem);
+      letter-spacing: 0.18em;
+      font-weight: 600;
+      background: linear-gradient(135deg, #ecfeff, #fff, #e2e8f0);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    #boot-fcp span {
+      margin-top: 0.75rem;
+      max-width: 36rem;
+      font-size: clamp(0.82rem, 2.8vw, 1.05rem);
+      line-height: 1.45;
+      color: rgba(207, 250, 254, 0.9);
+    }
+  </style>
+  <script>
+    (function preloadHomeLcp() {
+      try {
+        var path = (location.pathname || "/").replace(/\\/g, "/");
+        var isHome =
+          path === "/" ||
+          path === "" ||
+          /\/index\.html$/i.test(path);
+        if (!isHome) return;
+        var link = document.createElement("link");
+        link.rel = "preload";
+        link.as = "image";
+        link.href =
+          "https://images.unsplash.com/photo-1577223625816-7546f13df25d?auto=format&fit=crop&w=1400&q=70";
+        link.fetchPriority = "high";
+        document.head.appendChild(link);
+      } catch (_) {}
+    })();
+  </script>
 </head>
 
 <body>
@@ -59,7 +118,12 @@
       });
     })();
   </script>
-  <div id="root"></div>
+  <div id="root">
+    <div id="boot-fcp" aria-hidden="true">
+      <strong>ONNIVERS</strong>
+      <span>Educación con realidad virtual inmersiva</span>
+    </div>
+  </div>
   <script type="module" src="/src/main.tsx"></script>
   <script>
     (function injectSeoForWebHost(){

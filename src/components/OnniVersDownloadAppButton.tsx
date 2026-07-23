@@ -1,5 +1,4 @@
 import { Download, Sparkles } from "lucide-react";
-import { motion } from "framer-motion";
 
 type OnniVersDownloadAppButtonProps = {
   className?: string;
@@ -8,18 +7,14 @@ type OnniVersDownloadAppButtonProps = {
 
 /**
  * CTA descarga app — UI lista; la acción se conecta desde el padre cuando corresponda.
+ * Sin framer-motion: mantiene el first paint liviano en la home.
  */
 export default function OnniVersDownloadAppButton({
   className,
   onClick,
 }: OnniVersDownloadAppButtonProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.55, delay: 0.08 }}
-      className={className}
-    >
+    <div className={className}>
       <button
         type="button"
         onClick={onClick}
@@ -85,6 +80,6 @@ export default function OnniVersDownloadAppButton({
           55% { transform: translateX(220%) skewX(-12deg); opacity: 0; }
         }
       `}</style>
-    </motion.div>
+    </div>
   );
 }

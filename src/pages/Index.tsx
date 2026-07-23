@@ -1,15 +1,36 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { LogIn, MessageCircle } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import HomeOnniVersSeoSection from "@/components/HomeOnniVersSeoSection";
-import WorldCupVrHero from "@/components/WorldCupVrHero";
 import BackToProfileHomeButton from "@/components/BackToProfileHomeButton";
 import OnniVersDownloadAppButton from "@/components/OnniVersDownloadAppButton";
 import { useAuth } from "@/hooks/useAuth";
 import { ensureOnniPinWidget, openOnniPinChat } from "@/lib/onniPinWidget";
+
+const WorldCupVrHero = lazy(() => import("@/components/WorldCupVrHero"));
+const HomeOnniVersSeoSection = lazy(() => import("@/components/HomeOnniVersSeoSection"));
+const Footer = lazy(() => import("@/components/Footer"));
+
+function HomeHeroFallback() {
+  return (
+    <section
+      className="relative flex min-h-[70dvh] items-center justify-center overflow-hidden px-6 pt-8 pb-16"
+      aria-hidden
+    >
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,hsl(190_70%_48%/.14),transparent_42%),radial-gradient(circle_at_85%_22%,hsl(270_55%_52%/.12),transparent_38%),hsl(230_45%_8%)]" />
+      <div className="relative z-10 text-center">
+        <p className="bg-gradient-to-br from-cyan-50 via-white to-slate-200 bg-clip-text font-headline text-[clamp(1.85rem,6.5vw,3.25rem)] font-semibold tracking-[0.18em] text-transparent">
+          ONNIVERS
+        </p>
+        <p className="mx-auto mt-3 max-w-3xl font-headline text-[clamp(0.82rem,2.8vw,1.15rem)] font-semibold tracking-[0.04em] text-cyan-50/95">
+          Educación con realidad virtual inmersiva contenido interactivo y experiencias digitales en una sola
+          plataforma
+        </p>
+      </div>
+    </section>
+  );
+}
 
 const Index = () => {
   const location = useLocation();
@@ -99,9 +120,13 @@ const Index = () => {
             <OnniVersDownloadAppButton onClick={() => navigate("/descargar")} />
           </div>
         </div>
-        <WorldCupVrHero />
-        <HomeOnniVersSeoSection />
-        <Footer />
+        <Suspense fallback={<HomeHeroFallback />}>
+          <WorldCupVrHero />
+        </Suspense>
+        <Suspense fallback={null}>
+          <HomeOnniVersSeoSection />
+          <Footer />
+        </Suspense>
       </section>
     </div>
   );

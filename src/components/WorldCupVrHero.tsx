@@ -223,12 +223,7 @@ const WorldCupVrHero = () => {
       </div>
 
       <div className="relative z-20 container mx-auto max-w-7xl">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.75 }}
-          className="relative z-20 mb-14 px-2 text-center md:mb-16"
-        >
+        <div className="relative z-20 mb-14 px-2 text-center md:mb-16">
           <h1 className="mx-auto max-w-5xl font-headline font-semibold leading-[1.12]">
             <span className="block bg-gradient-to-br from-cyan-50 via-white to-slate-200 bg-clip-text text-transparent text-[clamp(1.85rem,6.5vw,3.25rem)] tracking-[0.18em] sm:tracking-[0.22em]">
               ONNIVERS
@@ -237,7 +232,7 @@ const WorldCupVrHero = () => {
           <h2 className="mx-auto mt-3 max-w-5xl px-3 font-headline text-[clamp(0.82rem,2.8vw,1.15rem)] font-semibold leading-snug tracking-[0.04em] text-cyan-50/95 sm:mt-4 md:leading-relaxed">
             Educación con realidad virtual inmersiva contenido interactivo y experiencias digitales en una sola plataforma
           </h2>
-        </motion.div>
+        </div>
 
         <div className="mx-auto mb-6 max-w-4xl space-y-6">
           <motion.div
