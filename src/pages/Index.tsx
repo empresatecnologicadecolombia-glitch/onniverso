@@ -85,38 +85,37 @@ const Index = () => {
             {user ? (
               <BackToProfileHomeButton iconOnly className="absolute left-0 top-1/2 -translate-y-1/2" />
             ) : null}
-            <div className="absolute right-0 top-1/2 z-10 flex -translate-y-1/2 flex-col items-end gap-1.5">
-              {!user ? (
-                <Button
-                  type="button"
-                  variant="hero"
-                  size="sm"
-                  className="shrink-0 gap-1.5"
-                  onClick={() => navigate("/entrar")}
-                >
-                  <LogIn className="h-4 w-4" aria-hidden />
-                  Entrar
-                </Button>
-              ) : null}
+            {!user ? (
               <Button
                 type="button"
                 variant="hero"
                 size="sm"
-                className="shrink-0 gap-1.5 border border-cyan-400/35 bg-cyan-500/15 text-cyan-50 hover:bg-cyan-500/25"
-                aria-label="Contáctanos — chateemos"
-                onClick={() => {
-                  openOnniPinChat();
-                }}
+                className="absolute right-0 top-1/2 z-10 -translate-y-1/2 shrink-0 gap-1.5"
+                onClick={() => navigate("/entrar")}
               >
-                <span
-                  aria-hidden
-                  className="relative flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-cyan-300/50 bg-gradient-to-br from-cyan-400/40 to-violet-500/35 shadow-[0_0_10px_hsl(175_80%_50%/0.35)]"
-                >
-                  <MessageCircle className="h-3 w-3 text-cyan-50" strokeWidth={2.4} />
-                </span>
-                Contáctanos
+                <LogIn className="h-4 w-4" aria-hidden />
+                Entrar
               </Button>
-            </div>
+            ) : null}
+            {/* Móvil: más abajo del CTA/Entrar para no solaparse; desktop: justo debajo */}
+            <Button
+              type="button"
+              variant="hero"
+              size="sm"
+              className="absolute right-0 top-[calc(100%+3.25rem)] z-20 shrink-0 gap-1.5 border border-cyan-400/35 bg-cyan-500/15 text-cyan-50 hover:bg-cyan-500/25 sm:top-[calc(100%+0.75rem)]"
+              aria-label="Contáctanos — chateemos"
+              onClick={() => {
+                openOnniPinChat();
+              }}
+            >
+              <span
+                aria-hidden
+                className="relative flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-cyan-300/50 bg-gradient-to-br from-cyan-400/40 to-violet-500/35 shadow-[0_0_10px_hsl(175_80%_50%/0.35)]"
+              >
+                <MessageCircle className="h-3 w-3 text-cyan-50" strokeWidth={2.4} />
+              </span>
+              Contáctanos
+            </Button>
             <OnniVersDownloadAppButton onClick={() => navigate("/descargar")} />
           </div>
         </div>

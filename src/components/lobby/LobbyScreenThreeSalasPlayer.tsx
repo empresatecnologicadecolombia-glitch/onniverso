@@ -1,18 +1,6 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { getLobbySalaVideoPlaylist } from "@/lib/lobbySalaVideoPlaylist";
-import {
-  ANDROID_VIDEO_CALLBACK,
-  buildVideoItemsFromAndroid,
-  buildVideoItemsFromFileList,
-  collectVideoFiles,
-  displayNameFromItem,
-  hasAndroidMusicBridge,
-  loadStoredVideoDirectoryHandle,
-  resolveLocalVideoUrl,
-  saveVideoDirectoryHandle,
-  type LocalVideoItem,
-  verifyDirReadPermission,
-} from "@/lib/lobbyLocalVideoPicker";
+import { resolveLocalVideoUrl, type LocalVideoItem } from "@/lib/lobbyLocalVideoPicker";
 
 declare global {
   interface Window {
@@ -23,33 +11,6 @@ declare global {
 
 const LOBBY_NATIVE_WEBVIEW_SLOT_ID = "lobby-screen-2";
 const LOBBY_NATIVE_WEBVIEW_SLOT_LEGACY_ID = "onni-native-webview-lobby-screen-2";
-
-const lobbyBtnStyle: CSSProperties = {
-  flex: 1,
-  minWidth: 0,
-  padding: "8px 4px",
-  fontSize: "13px",
-  fontWeight: 800,
-  letterSpacing: "0.04em",
-  borderRadius: "12px",
-  border: "2px solid rgba(34,211,238,0.6)",
-  background: "rgba(2,8,18,0.95)",
-  color: "#e0fbff",
-  cursor: "pointer",
-  boxShadow: "0 0 16px rgba(34,211,238,0.4), inset 0 0 16px rgba(34,211,238,0.06)",
-  textTransform: "uppercase",
-  touchAction: "manipulation",
-  WebkitTapHighlightColor: "rgba(34,211,238,0.5)",
-  WebkitUserSelect: "none",
-  userSelect: "none",
-};
-
-const openBtnStyle: CSSProperties = {
-  ...lobbyBtnStyle,
-  flex: "1 1 100%",
-  borderColor: "rgba(167,139,250,0.65)",
-  color: "#ede9fe",
-};
 
 function defaultPlaylistItems(): LocalVideoItem[] {
   return getLobbySalaVideoPlaylist().map((item) => ({
@@ -154,13 +115,10 @@ export const LobbyScreenThreeSalasPlayer = memo(function LobbyScreenThreeSalasPl
     );
   }
 
-  const [playlist, setPlaylist] = useState<LocalVideoItem[]>(() => defaultPlaylistItems());
+  const [playlist] = useState<LocalVideoItem[]>(() => defaultPlaylistItems());
   const [index, setIndex] = useState(0);
-  const [status, setStatus] = useState("");
-  const [sourceLabel, setSourceLabel] = useState("Salas en línea");
   const videoRef = useRef<HTMLVideoElement>(null);
   const objectUrlRef = useRef<string | null>(null);
-  const folderInputRef = useRef<HTMLInputElement | null>(null);
 
   const current = playlist.length > 0 ? playlist[index % playlist.length] : null;
 
@@ -192,16 +150,11 @@ export const LobbyScreenThreeSalasPlayer = memo(function LobbyScreenThreeSalasPl
           }
         }
       } catch {
-        setStatus("No se pudo cargar el video.");
+        /* ignore load errors */
       }
     },
     [playlist, revokeObjectUrl],
   );
-
-  useEffect(() => {
-    folderInputRef.current?.setAttribute("webkitdirectory", "");
-    folderInputRef.current?.setAttribute("directory", "");
-  }, []);
 
   useEffect(() => {
     if (!playlist.length) return;
@@ -210,121 +163,12 @@ export const LobbyScreenThreeSalasPlayer = memo(function LobbyScreenThreeSalasPl
 
   useEffect(() => () => revokeObjectUrl(), [revokeObjectUrl]);
 
-  const applyLocalPlaylist = useCallback(
-    (items: LocalVideoItem[], label: string) => {
-      if (!items.length) {
-        setStatus("Sin videos en la carpeta elegida.");
-        return false;
-      }
-      setPlaylist(items);
-      setIndex(0);
-      setSourceLabel(label);
-      setStatus(`${items.length} video(s) listos`);
-      return true;
-    },
-    [],
-  );
-
-  const pickFolderViaAndroidBridge = useCallback(() => {
-    const bridge = window.AndroidMusic;
-    if (!bridge) return false;
-    setStatus("Abriendo almacenamiento…");
-    window[ANDROID_VIDEO_CALLBACK] = (items, error) => {
-      window[ANDROID_VIDEO_CALLBACK] = undefined;
-      if (error === "cancelled") {
-        setStatus("");
-        return;
-      }
-      if (error || !items?.length) {
-        setStatus("Sin videos en la carpeta elegida.");
-        return;
-      }
-      const videoItems = buildVideoItemsFromAndroid(items);
-      applyLocalPlaylist(videoItems, "Almacenamiento");
-    };
-    try {
-      bridge.pickMusicFolder(ANDROID_VIDEO_CALLBACK);
-      return true;
-    } catch {
-      window[ANDROID_VIDEO_CALLBACK] = undefined;
-      setStatus("No se pudo abrir el selector.");
-      return false;
-    }
-  }, [applyLocalPlaylist]);
-
-  const bootstrapFromDirectory = useCallback(
-    async (dir: FileSystemDirectoryHandle) => {
-      const ok = await verifyDirReadPermission(dir);
-      if (!ok) return false;
-      const list = await collectVideoFiles(dir);
-      if (!list.length) return false;
-      await saveVideoDirectoryHandle(dir);
-      applyLocalPlaylist(list, "Carpeta local");
-      return true;
-    },
-    [applyLocalPlaylist],
-  );
-
-  const onOpenStorage = useCallback(async () => {
-    setStatus("Buscando videos…");
-    if (hasAndroidMusicBridge()) {
-      pickFolderViaAndroidBridge();
-      return;
-    }
-    if (typeof window.showDirectoryPicker === "function") {
-      try {
-        const dir = await window.showDirectoryPicker();
-        const ok = await bootstrapFromDirectory(dir);
-        if (!ok) setStatus("Sin videos MP4/WebM en la carpeta.");
-      } catch {
-        setStatus("");
-      }
-      return;
-    }
-    const dir = await loadStoredVideoDirectoryHandle();
-    if (dir) {
-      const canRead = await verifyDirReadPermission(dir);
-      const list = canRead ? await collectVideoFiles(dir) : [];
-      if (list.length > 0) {
-        await bootstrapFromDirectory(dir);
-        return;
-      }
-    }
-    folderInputRef.current?.click();
-  }, [bootstrapFromDirectory, pickFolderViaAndroidBridge]);
-
-  const onFolderInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const items = buildVideoItemsFromFileList(e.target.files);
-      e.target.value = "";
-      if (applyLocalPlaylist(items, "Archivos del dispositivo")) {
-        setStatus(`${items.length} video(s) listos`);
-      }
-    },
-    [applyLocalPlaylist],
-  );
-
-  const onPlay = useCallback(() => {
-    void videoRef.current?.play();
-  }, []);
-
-  const onPause = useCallback(() => {
-    videoRef.current?.pause();
-  }, []);
-
   const onNext = useCallback(() => {
     if (!playlist.length) return;
     const next = (index + 1) % playlist.length;
     setIndex(next);
     void loadItemAt(next, true);
   }, [index, playlist.length, loadItemAt]);
-
-  const currentLabel = useMemo(() => {
-    if (!current) return "Sin videos";
-    return displayNameFromItem(current);
-  }, [current]);
-
-  const controlsH = 118;
 
   return (
     <div
@@ -339,14 +183,6 @@ export const LobbyScreenThreeSalasPlayer = memo(function LobbyScreenThreeSalasPl
         contain: "strict",
       }}
     >
-      <input
-        ref={folderInputRef}
-        type="file"
-        multiple
-        accept="video/*,.mp4,.webm,.mov,.m4v,.mkv"
-        style={{ display: "none" }}
-        onChange={onFolderInputChange}
-      />
       <video
         ref={videoRef}
         playsInline
@@ -356,59 +192,14 @@ export const LobbyScreenThreeSalasPlayer = memo(function LobbyScreenThreeSalasPl
         onEnded={() => void onNext()}
         style={{
           width: "100%",
-          height: height - controlsH,
+          height: "100%",
           objectFit: "contain",
           background: "#000",
-          borderRadius: "8px 8px 0 0",
+          borderRadius: 8,
           border: "1px solid rgba(34,211,238,0.35)",
           display: "block",
         }}
       />
-      <div
-        style={{
-          height: controlsH,
-          boxSizing: "border-box",
-          padding: "6px 8px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 6,
-          borderTop: "1px solid rgba(34,211,238,0.35)",
-        }}
-      >
-        <div
-          style={{
-            fontSize: "10px",
-            color: "#7dd3fc",
-            textAlign: "center",
-            lineHeight: 1.2,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            textShadow: "0 0 6px rgba(34,211,238,0.45)",
-          }}
-        >
-          {playlist.length > 0
-            ? `${index + 1}/${playlist.length} · ${sourceLabel} · ${currentLabel}`
-            : "Sin videos"}
-        </div>
-        {status ? (
-          <div style={{ fontSize: "9px", color: "#a5f3fc", textAlign: "center", lineHeight: 1.2 }}>{status}</div>
-        ) : null}
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          <button type="button" style={lobbyBtnStyle} onClick={() => void onPlay()}>
-            Play
-          </button>
-          <button type="button" style={lobbyBtnStyle} onClick={onPause}>
-            Pausa
-          </button>
-          <button type="button" style={lobbyBtnStyle} onClick={() => void onNext()}>
-            Siguiente
-          </button>
-          <button type="button" style={openBtnStyle} onClick={() => void onOpenStorage()}>
-            Abrir almacenamiento
-          </button>
-        </div>
-      </div>
     </div>
   );
 });

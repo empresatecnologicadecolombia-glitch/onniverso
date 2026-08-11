@@ -438,15 +438,11 @@ function SideWallScreen3({
   const y = WALL_HEIGHT / 2;
   const off = 0.03;
   const interactionMode = focusedScreen !== null;
-  const isMobileCoarse = isMobileCoarseDevice();
-  const [iframeRemountKey] = useState(() => (isMobileCoarse ? Date.now() : undefined));
 
   return (
     <HoloScreen
-      kind="webpage"
+      kind="salas"
       label={3}
-      embedUrl={LOBBY_WEB_EMBED_HOME_URL}
-      iframeRemountKey={iframeRemountKey}
       position={[0, y, -ROOM_SIZE / 2 + off]}
       rotation={[0, 0, 0]}
       width={SIDE_WALL_SCREEN3_WIDTH}
