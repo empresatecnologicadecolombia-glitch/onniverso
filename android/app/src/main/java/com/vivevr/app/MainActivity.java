@@ -77,7 +77,9 @@ public class MainActivity extends BridgeActivity {
   private static final String LOBBY_IMMERSIVE_URL = "https://localhost/lobby-inmersivo";
 
   /** Lobby Pantalla 2 — YouTube móvil en WebView nativo sobre el slot 3D. */
-  private static final String LOBBY_SCREEN2_DEFAULT_URL = "https://m.youtube.com";
+  /** Player liviano de videos educativos (public/lobby-salas-player.html) sobre el slot 3D. */
+  private static final String LOBBY_SCREEN2_DEFAULT_URL =
+      "https://localhost/lobby-salas-player.html";
 
   /** Coliseo — YouTube escritorio en WebView nativo (UA de PC para evitar bloqueos móviles). */
   private static final String COLOSSEO_BROWSER_DEFAULT_URL = "https://www.youtube.com/";
@@ -948,8 +950,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     /**
-     * Lobby Pantalla 2 — WebView nativo (YouTube). Implementación original que ya funcionaba en el
-     * APK; no usar el posicionamiento por slot que dejaba el overlay arriba o en 1×1 px.
+     * Lobby Pantalla 2 — WebView nativo sobre el slot 3D (videos educativos / player liviano).
      */
     @JavascriptInterface
     public void showLobbyPantalla2WebView() {
@@ -959,6 +960,12 @@ public class MainActivity extends BridgeActivity {
     @JavascriptInterface
     public void hideLobbyPantalla2WebView() {
       activity.runOnUiThread(() -> activity.hideLobbyPantalla2WebViewInternal());
+    }
+
+    /** Carga URL en el WebView nativo de la pantalla del lobby (p. ej. player + playlist en hash). */
+    @JavascriptInterface
+    public void loadLobbyPantalla2Url(String url) {
+      activity.runOnUiThread(() -> activity.loadLobbyPantalla2UrlInternal(url));
     }
 
     /** Actualiza posición/tamaño del WebView nativo al slot {@code lobby-screen-2} en la pared 3D. */
@@ -1338,6 +1345,28 @@ public class MainActivity extends BridgeActivity {
     }
     updateLobbyPantalla2Bounds();
     scheduleLobbyPantalla2BoundsRetries();
+    lobbyPantalla2WebView.setVisibility(View.VISIBLE);
+    lobbyPantalla2WebView.bringToFront();
+    ViewGroup parent = resolveLobbyOverlayParent();
+    if (parent != null) {
+      parent.requestLayout();
+    }
+  }
+
+  private void loadLobbyPantalla2UrlInternal(String url) {
+    ensureLobbyPantalla2WebViewCreated();
+    if (lobbyPantalla2WebView == null) {
+      return;
+    }
+    String target = url != null ? url.trim() : "";
+    if (target.isEmpty()) {
+      target = LOBBY_SCREEN2_DEFAULT_URL;
+    }
+    lobbyPantalla2WebView.loadUrl(target);
+    lobbyPantalla2WebViewUrlLoaded = true;
+    updateLobbyPantalla2Bounds();
+    scheduleLobbyPantalla2BoundsRetries();
+    lobbyPantalla2WebView.setVisibility(View.VISIBLE);
     lobbyPantalla2WebView.bringToFront();
     ViewGroup parent = resolveLobbyOverlayParent();
     if (parent != null) {

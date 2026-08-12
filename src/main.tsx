@@ -69,9 +69,10 @@ declare global {
       openLobbyStereoSplit?: () => void;
       openLobbyImmersiveStereo?: () => void;
       openModelDirect?: (modelUrl: string, action: string) => void;
-      /** Lobby Pantalla 2 — WebView nativo YouTube sobre el slot 3D. */
+      /** Lobby Pantalla 2 — WebView nativo sobre el slot 3D (videos educativos). */
       showLobbyPantalla2WebView?(): void;
       hideLobbyPantalla2WebView?(): void;
+      loadLobbyPantalla2Url?(url: string): void;
       updateLobbyBounds?(): void;
       /** Coliseo — WebView nativo YouTube (UA escritorio) sobre slot 2D en Android. */
       showColiseoBrowserWebView?(): void;
