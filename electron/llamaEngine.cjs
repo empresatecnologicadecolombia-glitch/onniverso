@@ -1,4 +1,4 @@
-const { spawn } = require("node:child_process");
+const { spawn, execSync } = require("node:child_process");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
@@ -9,6 +9,8 @@ const SERVER_HOST = "127.0.0.1";
 const SERVER_PORT = 8765;
 const SERVER_START_TIMEOUT_MS = 120_000;
 const GENERATION_TIMEOUT_MS = 90_000;
+const CHAT_MAX_TOKENS = 128;
+const CHAT_RETRIES = 3;
 
 class LlamaEngine {
   /** @type {boolean | null} */
@@ -44,7 +46,7 @@ class LlamaEngine {
 
   getThreadCount() {
     const cpus = os.cpus()?.length ?? 4;
-    return Math.max(2, Math.min(8, cpus - 1));
+    return Math.max(2, Math.min(6, cpus - 1));
   }
 
   isReady() {
@@ -67,6 +69,37 @@ class LlamaEngine {
     return this.availableCache;
   }
 
+  /** Mata procesos ajenos en el puerto del cerebro (causa típica de "no respondió"). */
+  freeServerPort() {
+    if (process.platform !== "win32") return;
+    try {
+      const out = execSync(`netstat -ano | findstr :${SERVER_PORT}`, {
+        encoding: "utf8",
+        windowsHide: true,
+        stdio: ["ignore", "pipe", "ignore"],
+      });
+      const pids = new Set();
+      for (const line of out.split(/\r?\n/)) {
+        if (!/LISTENING/i.test(line)) continue;
+        const parts = line.trim().split(/\s+/);
+        const pid = Number(parts[parts.length - 1]);
+        if (Number.isFinite(pid) && pid > 0) pids.add(pid);
+      }
+      for (const pid of pids) {
+        try {
+          execSync(`taskkill /PID ${pid} /F`, {
+            windowsHide: true,
+            stdio: "ignore",
+          });
+        } catch {
+          /* ignore */
+        }
+      }
+    } catch {
+      /* nada escuchando */
+    }
+  }
+
   async waitForHealth(timeoutMs = SERVER_START_TIMEOUT_MS) {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
@@ -83,18 +116,26 @@ class LlamaEngine {
     throw new Error("El cerebro de Onni tardó demasiado en iniciar.");
   }
 
-  async ensureServerRunning() {
+  async ensureServerRunning({ forceRestart = false } = {}) {
     if (!this.isReady()) {
       throw new Error("Cerebro de Onni no instalado. Reinstala OnniVers.");
     }
-    if (this.serverProcess && !this.serverProcess.killed) {
+
+    if (forceRestart) {
+      this.stopServer();
+      this.freeServerPort();
+    }
+
+    if (this.serverProcess && !this.serverProcess.killed && !forceRestart) {
       try {
         await this.waitForHealth(3_000);
         return;
       } catch {
         this.stopServer();
+        this.freeServerPort();
       }
     }
+
     if (this.startingPromise) {
       await this.startingPromise;
       return;
@@ -117,6 +158,8 @@ class LlamaEngine {
         return;
       }
 
+      this.freeServerPort();
+
       const args = [
         "-m",
         model,
@@ -125,12 +168,11 @@ class LlamaEngine {
         "--port",
         String(SERVER_PORT),
         "-c",
-        "4096",
+        "2048",
         "-t",
         String(this.getThreadCount()),
         "-ngl",
         "0",
-        // Gemma / plantillas chat: sin --jinja el stream suele devolver vacío.
         "--jinja",
       ];
 
@@ -156,7 +198,7 @@ class LlamaEngine {
           this.serverProcess = null;
         }
         if (code !== 0 && code !== null) {
-          console.warn("[Onni cerebro] llama-server salió:", code, stderr.slice(-400));
+          console.warn("[Onni cerebro] llama-server salió:", code, stderr.slice(-500));
         }
       });
 
@@ -164,7 +206,13 @@ class LlamaEngine {
         .then(resolve)
         .catch((error) => {
           this.stopServer();
-          reject(error);
+          this.freeServerPort();
+          const detail = stderr.trim().slice(-300);
+          reject(
+            detail
+              ? new Error(`${error.message} Detalle: ${detail}`)
+              : error,
+          );
         });
     });
   }
@@ -184,35 +232,62 @@ class LlamaEngine {
    * @param {(text: string) => void} [onPartial]
    */
   async chat(messages, onPartial) {
-    await this.ensureServerRunning();
+    let lastError = null;
 
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), GENERATION_TIMEOUT_MS);
-
-    try {
-      let answer = "";
+    for (let attempt = 1; attempt <= CHAT_RETRIES; attempt += 1) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), GENERATION_TIMEOUT_MS);
       try {
-        answer = await this.chatStreaming(messages, onPartial, controller.signal);
-      } catch (streamError) {
+        await this.ensureServerRunning({ forceRestart: attempt > 1 });
+
+        // Plain primero: más estable que SSE en Electron/Windows.
+        let answer = "";
+        try {
+          answer = await this.chatPlain(messages, controller.signal);
+        } catch (plainError) {
+          lastError = plainError;
+          console.warn(
+            `[Onni cerebro] plain intento ${attempt} falló:`,
+            plainError instanceof Error ? plainError.message : plainError,
+          );
+        }
+
+        if (!answer.trim()) {
+          try {
+            answer = await this.chatStreaming(messages, onPartial, controller.signal);
+          } catch (streamError) {
+            lastError = streamError;
+            console.warn(
+              `[Onni cerebro] stream intento ${attempt} falló:`,
+              streamError instanceof Error ? streamError.message : streamError,
+            );
+          }
+        } else if (onPartial) {
+          onPartial(answer.trim());
+        }
+
+        const finalAnswer = answer.trim();
+        if (finalAnswer) return finalAnswer;
+
+        lastError = new Error("El cerebro de Onni no generó respuesta.");
+      } catch (error) {
+        lastError = error;
         console.warn(
-          "[Onni cerebro] stream falló, reintento sin stream:",
-          streamError instanceof Error ? streamError.message : streamError,
+          `[Onni cerebro] intento ${attempt}/${CHAT_RETRIES} falló:`,
+          error instanceof Error ? error.message : error,
         );
+      } finally {
+        clearTimeout(timer);
       }
 
-      if (!answer.trim()) {
-        answer = await this.chatPlain(messages, controller.signal);
-        if (answer.trim()) onPartial?.(answer.trim());
-      }
-
-      const finalAnswer = answer.trim();
-      if (!finalAnswer) {
-        throw new Error("El cerebro de Onni no generó respuesta.");
-      }
-      return finalAnswer;
-    } finally {
-      clearTimeout(timer);
+      this.stopServer();
+      this.freeServerPort();
+      await new Promise((r) => setTimeout(r, 400));
     }
+
+    throw lastError instanceof Error
+      ? lastError
+      : new Error("El cerebro de Onni no respondió tras varios intentos.");
   }
 
   /**
@@ -228,8 +303,8 @@ class LlamaEngine {
         model: "onni-cerebro",
         messages,
         stream: true,
-        temperature: 0.65,
-        max_tokens: 256,
+        temperature: 0.55,
+        max_tokens: CHAT_MAX_TOKENS,
       }),
       signal,
     });
@@ -283,8 +358,8 @@ class LlamaEngine {
         model: "onni-cerebro",
         messages,
         stream: false,
-        temperature: 0.65,
-        max_tokens: 256,
+        temperature: 0.55,
+        max_tokens: CHAT_MAX_TOKENS,
       }),
       signal,
     });

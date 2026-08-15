@@ -48,8 +48,13 @@ export async function askOnniElectronBrain(
       messages: payload.messages,
     });
     const text = String(result?.text ?? "").trim();
-    console.info("[Onni cerebro] local", text.slice(0, 80));
-    return text || null;
+    if (text) {
+      console.info("[Onni cerebro] local", text.slice(0, 80));
+      return text;
+    }
+    const err = String(result?.error ?? "").trim();
+    if (err) console.warn("[Onni cerebro] falló", err);
+    return null;
   } catch (error) {
     console.warn("[Onni cerebro] falló", error);
     return null;

@@ -94,15 +94,21 @@ function registerLlamaIpc() {
   ipcMain.handle("onnivers:llama:chat", async (event, payload) => {
     const engine = getLlamaEngine();
     if (!engine) {
-      throw new Error("Cerebro de Onni solo está disponible en Windows.");
+      return { text: "", error: "Cerebro de Onni solo está disponible en Windows." };
     }
     const requestId = String(payload?.requestId ?? "").trim();
     const messages = Array.isArray(payload?.messages) ? payload.messages : [];
-    const text = await engine.chat(messages, (partial) => {
-      if (!requestId) return;
-      event.sender.send("onnivers:llama:partial", { requestId, text: partial });
-    });
-    return { text };
+    try {
+      const text = await engine.chat(messages, (partial) => {
+        if (!requestId) return;
+        event.sender.send("onnivers:llama:partial", { requestId, text: partial });
+      });
+      return { text: String(text ?? ""), error: "" };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn("[Onni cerebro] IPC chat falló:", message);
+      return { text: "", error: message };
+    }
   });
 }
 
