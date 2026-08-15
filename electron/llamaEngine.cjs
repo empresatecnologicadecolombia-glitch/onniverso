@@ -130,6 +130,8 @@ class LlamaEngine {
         String(this.getThreadCount()),
         "-ngl",
         "0",
+        // Gemma / plantillas chat: sin --jinja el stream suele devolver vacío.
+        "--jinja",
       ];
 
       const child = spawn(exe, args, {
@@ -188,51 +190,19 @@ class LlamaEngine {
     const timer = setTimeout(() => controller.abort(), GENERATION_TIMEOUT_MS);
 
     try {
-      const response = await fetch(`http://${SERVER_HOST}:${SERVER_PORT}/v1/chat/completions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "onni-cerebro",
-          messages,
-          stream: true,
-          temperature: 0.65,
-          max_tokens: 256,
-        }),
-        signal: controller.signal,
-      });
-
-      if (!response.ok || !response.body) {
-        throw new Error(`Cerebro de Onni falló (${response.status}).`);
+      let answer = "";
+      try {
+        answer = await this.chatStreaming(messages, onPartial, controller.signal);
+      } catch (streamError) {
+        console.warn(
+          "[Onni cerebro] stream falló, reintento sin stream:",
+          streamError instanceof Error ? streamError.message : streamError,
+        );
       }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let answer = "";
-
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const parts = buffer.split("\n");
-        buffer = parts.pop() ?? "";
-
-        for (const part of parts) {
-          const line = part.trim();
-          if (!line.startsWith("data:")) continue;
-          const payload = line.slice(5).trim();
-          if (!payload || payload === "[DONE]") continue;
-          try {
-            const chunk = JSON.parse(payload);
-            const piece = chunk?.choices?.[0]?.delta?.content ?? "";
-            if (piece) {
-              answer += piece;
-              onPartial?.(answer);
-            }
-          } catch {
-            /* ignore malformed SSE chunk */
-          }
-        }
+      if (!answer.trim()) {
+        answer = await this.chatPlain(messages, controller.signal);
+        if (answer.trim()) onPartial?.(answer.trim());
       }
 
       const finalAnswer = answer.trim();
@@ -243,6 +213,86 @@ class LlamaEngine {
     } finally {
       clearTimeout(timer);
     }
+  }
+
+  /**
+   * @param {Array<{ role: string, content: string }>} messages
+   * @param {(text: string) => void} [onPartial]
+   * @param {AbortSignal} signal
+   */
+  async chatStreaming(messages, onPartial, signal) {
+    const response = await fetch(`http://${SERVER_HOST}:${SERVER_PORT}/v1/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "onni-cerebro",
+        messages,
+        stream: true,
+        temperature: 0.65,
+        max_tokens: 256,
+      }),
+      signal,
+    });
+
+    if (!response.ok || !response.body) {
+      throw new Error(`Cerebro de Onni falló (${response.status}).`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let answer = "";
+
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split("\n");
+      buffer = parts.pop() ?? "";
+
+      for (const part of parts) {
+        const line = part.trim();
+        if (!line.startsWith("data:")) continue;
+        const payload = line.slice(5).trim();
+        if (!payload || payload === "[DONE]") continue;
+        try {
+          const chunk = JSON.parse(payload);
+          const piece = chunk?.choices?.[0]?.delta?.content ?? "";
+          if (piece) {
+            answer += piece;
+            onPartial?.(answer);
+          }
+        } catch {
+          /* ignore malformed SSE chunk */
+        }
+      }
+    }
+
+    return answer;
+  }
+
+  /**
+   * @param {Array<{ role: string, content: string }>} messages
+   * @param {AbortSignal} signal
+   */
+  async chatPlain(messages, signal) {
+    const response = await fetch(`http://${SERVER_HOST}:${SERVER_PORT}/v1/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "onni-cerebro",
+        messages,
+        stream: false,
+        temperature: 0.65,
+        max_tokens: 256,
+      }),
+      signal,
+    });
+    if (!response.ok) {
+      throw new Error(`Cerebro de Onni falló (${response.status}).`);
+    }
+    const json = await response.json();
+    return String(json?.choices?.[0]?.message?.content ?? "");
   }
 }
 
