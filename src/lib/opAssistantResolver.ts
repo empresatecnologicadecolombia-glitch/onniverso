@@ -277,14 +277,23 @@ function matchSocial(text: string): OpResolveResult | null {
   if (/\b(gracias|thank)\b/.test(text)) {
     return { answer: sayOnni("De nada. Aquí estoy si necesitas otra cosa en OnniVerso.") };
   }
-  if (/\b(hola|buenas|hey|que tal)\b/.test(text) && !/\b(llevame|abre|entra)\b/.test(text)) {
+  // No tragar saludos que también preguntan por IA/cerebro/modelo.
+  const asksAboutBrain =
+    /\b(cerebro|modelo|gemini|ia local|inteligencia artificial)\b/.test(text) ||
+    /\b(que|cuál|cual)\s+(ia|modelo|cerebro)\b/.test(text) ||
+    /\b(que ia|que modelo|que cerebro|usas gemini|eres gemini)\b/.test(text);
+  if (
+    /\b(hola|buenas|hey|que tal)\b/.test(text) &&
+    !/\b(llevame|abre|entra)\b/.test(text) &&
+    !asksAboutBrain
+  ) {
     const wake = parseOnniWakePhrase(text);
     if (wake.heard) {
       return { answer: getOnniIntroduction() };
     }
     return { answer: sayOnni("¡Hola! Dime adónde quieres ir o qué necesitas.") };
   }
-  if (/\b(como estas|como vas)\b/.test(text)) {
+  if (/\b(como estas|como vas)\b/.test(text) && !asksAboutBrain) {
     return { answer: sayOnni("Todo bien por aquí, listo para ayudarte. ¿A dónde vamos?") };
   }
   return null;
