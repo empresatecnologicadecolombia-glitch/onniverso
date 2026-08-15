@@ -56,9 +56,12 @@ class LlamaEngine {
     this.availableCache = Boolean(
       server &&
         model &&
+        fs.existsSync(server) &&
+        fs.statSync(server).size > 1_000 &&
         fs.existsSync(model) &&
         fs.statSync(model).size > 50_000_000 &&
         fs.existsSync(impl) &&
+        fs.statSync(impl).size > 100_000 &&
         fs.existsSync(ggml),
     );
     return this.availableCache;

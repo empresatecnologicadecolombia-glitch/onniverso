@@ -21,6 +21,13 @@ for (const name of REQUIRED) {
   if (!fs.existsSync(full)) {
     fail(`Falta ${name} en electron/llama/publish. Ejecuta: npm run desktop:llama-build`);
   }
+  const size = fs.statSync(full).size;
+  if (name.endsWith(".exe") && size < 1_000) {
+    fail(`${name} está vacío/corrupto (${size} bytes). Borra electron/llama/publish y ejecuta: npm run desktop:llama-build`);
+  }
+  if (name.endsWith(".dll") && name.includes("impl") && size < 100_000) {
+    fail(`${name} está incompleto (${size} bytes). Reinstala con: npm run desktop:llama-build`);
+  }
 }
 
 const modelPath = path.join(publishDir, MODEL);
