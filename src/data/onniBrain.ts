@@ -90,7 +90,7 @@ export const ONNI_FAQ: FaqEntry[] = [
     id: "gemini-ia",
     patterns: [/\b(gemini|chatgpt|openai|ia externa|conectad[ao]?\s+a?\s*gemini)\b/],
     answer:
-      "Sí: para preguntas libres uso Google Gemini. Los comandos de la app (lobby, videos educativos, menú, ayuda) siguen con reglas rápidas de OnniVerso.",
+      "En la web/APK uso Google Gemini para preguntas libres. En OnniVers PC (.exe) uso solo el cerebro local instalado en tu máquina. Los comandos de la app (lobby, menú, ayuda) siempre van con reglas rápidas de OnniVerso.",
   },
   {
     id: "favorito",

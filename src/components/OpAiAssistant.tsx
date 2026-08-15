@@ -253,11 +253,13 @@ export default function OpAiAssistant() {
           return result.answer;
         }
 
-        // En el .exe con cerebro local, la conversación libre la responde primero
-        // la IA embebida (los comandos/navegación ya se resolvieron arriba).
-        const ollamaTakesOver = isElectronDesktopApp() && (await isOnniOllamaAvailable());
+        // Conversación libre:
+        // - .exe (OnniVers PC): SOLO cerebro local (llama.cpp). Nunca Gemini.
+        // - Web/Chrome/APK: Gemini (nube) cuando el resolver no entiende.
+        const onDesktopExe = isElectronDesktopApp();
+        const localBrainReady = onDesktopExe && (await isOnniOllamaAvailable());
 
-        if (!shouldAskOnniGemini(result) && !ollamaTakesOver) {
+        if (!shouldAskOnniGemini(result) && !localBrainReady) {
           sessionRef.current.lastAnswer = result.answer;
           appendAssistantAnswer(setMessages, sessionRef, result.answer, speakAnswer);
           return result.answer;
@@ -265,9 +267,16 @@ export default function OpAiAssistant() {
 
         const conversationHistory = buildOnniAiHistory(messagesRef.current);
 
-        // Solo .exe: intenta primero el cerebro local (llama.cpp) con streaming.
-        // Si falla, sigue el flujo Gemini de siempre.
-        if (ollamaTakesOver) {
+        if (onDesktopExe) {
+          if (!localBrainReady) {
+            const missingBrain =
+              "Estoy en OnniVers PC y solo uso mi cerebro local (no Gemini). " +
+              "Ahora mismo el cerebro no está instalado en este equipo. " +
+              "Reinstala OnniVers o copia onni-cerebro-v1.gguf y llama-server en la carpeta resources/llama.";
+            appendAssistantAnswer(setMessages, sessionRef, missingBrain, speakAnswer);
+            return missingBrain;
+          }
+
           let streamStarted = false;
           const ollamaAnswer = await askOnniOllama(
             { message: trimmed, contextPath: location.pathname, history: conversationHistory },
@@ -305,8 +314,15 @@ export default function OpAiAssistant() {
             }
             return ollamaAnswer;
           }
+
+          const brainFailed =
+            "Mi cerebro local no respondió. Cierra OnniVers PC por completo y ábrelo de nuevo. " +
+            "Si sigue igual, falta el modelo en resources/llama (onni-cerebro-v1.gguf).";
+          appendAssistantAnswer(setMessages, sessionRef, brainFailed, speakAnswer);
+          return brainFailed;
         }
 
+        // Solo web / APK: Gemini
         const geminiAnswer = await askOnniGemini({
           message: trimmed,
           contextPath: location.pathname,
@@ -328,7 +344,7 @@ export default function OpAiAssistant() {
 
         if (asksAboutGemini) {
           const fallbackGemini =
-            "Sí, estoy conectada a Google Gemini para preguntas libres. Ahora mismo la API no respondió (cuota o red); inténtalo de nuevo en un minuto.";
+            "Sí, en la versión web estoy conectada a Google Gemini para preguntas libres. Ahora mismo la API no respondió (cuota o red); inténtalo de nuevo en un minuto.";
           appendAssistantAnswer(setMessages, sessionRef, fallbackGemini, speakAnswer, { fromGemini: true });
           return fallbackGemini;
         }
