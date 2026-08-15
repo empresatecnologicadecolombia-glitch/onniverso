@@ -121,6 +121,16 @@ class LlamaEngine {
       throw new Error("Cerebro de Onni no instalado. Reinstala OnniVers.");
     }
 
+    // Si ya hay un llama-server sano en 8765, reutilizarlo (no matarlo).
+    if (!forceRestart) {
+      try {
+        await this.waitForHealth(2_500);
+        return;
+      } catch {
+        /* hay que arrancar */
+      }
+    }
+
     if (forceRestart) {
       this.stopServer();
       this.freeServerPort();
@@ -132,12 +142,13 @@ class LlamaEngine {
         return;
       } catch {
         this.stopServer();
-        this.freeServerPort();
       }
     }
 
     if (this.startingPromise) {
       await this.startingPromise;
+      // Tras el arranque, confirmar health (aunque el child interno haya fallado el bind).
+      await this.waitForHealth(5_000);
       return;
     }
 

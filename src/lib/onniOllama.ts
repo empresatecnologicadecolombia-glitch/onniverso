@@ -53,8 +53,8 @@ export async function isOnniOllamaAvailable(): Promise<boolean> {
 }
 
 /**
- * Pregunta al cerebro local con streaming. Devuelve null si falla
- * (fallback a Gemini en el flujo del asistente).
+ * Pregunta al cerebro local con streaming. Devuelve null si falla.
+ * En .exe: IPC Electron primero; si falla, HTTP directo a llama-server (127.0.0.1:8765).
  */
 export async function askOnniOllama(
   body: OnniOllamaRequest,
@@ -74,14 +74,51 @@ export async function askOnniOllama(
         ? crypto.randomUUID()
         : `onni-${Date.now()}`;
 
-    return await askOnniElectronBrain(
+    const viaIpc = await askOnniElectronBrain(
       {
         requestId,
         messages: buildBrainMessages(body),
       },
       onPartial,
     );
+    if (viaIpc) return viaIpc;
+
+    // Fallback: el server local a veces ya está vivo aunque el IPC falle.
+    const viaHttp = await askLlamaHttpDirect(buildBrainMessages(body), onPartial);
+    return viaHttp;
   } finally {
     window.clearTimeout(timer);
+  }
+}
+
+async function askLlamaHttpDirect(
+  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
+  onPartial?: (accumulatedText: string) => void,
+): Promise<string | null> {
+  try {
+    const response = await fetch("http://127.0.0.1:8765/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "onni-cerebro",
+        messages,
+        stream: false,
+        temperature: 0.45,
+        max_tokens: 128,
+      }),
+      signal: AbortSignal.timeout(GENERATION_TIMEOUT_MS),
+    });
+    if (!response.ok) return null;
+    const json = (await response.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    const text = String(json?.choices?.[0]?.message?.content ?? "").trim();
+    if (!text) return null;
+    onPartial?.(text);
+    console.info("[Onni cerebro] http-local", text.slice(0, 80));
+    return text;
+  } catch (error) {
+    console.warn("[Onni cerebro] http-local falló", error);
+    return null;
   }
 }
