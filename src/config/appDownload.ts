@@ -4,7 +4,7 @@ export const APP_APK_DOWNLOAD_URL =
 
 /** OnniVers Educación — plataforma principal (aulas, ecosistema, Mi Mundo). */
 export const ONNIVERS_EDUCATION_EXE_URL =
-  "https://drive.google.com/file/d/1KfAonOmR6-oQz0n_6m35eGDEjBcVGkgp/view?usp=sharing";
+  "https://drive.google.com/file/d/1SVWSI1SZDIVnInaCzn45bylV3zMsj0V0/view?usp=drive_link";
 export const ONNIVERS_EDUCATION_APK_URL = APP_APK_DOWNLOAD_URL;
 /** Instalador portable o build alternativo (opcional). */
 export const ONNIVERS_EDUCATION_PORTABLE_EXE_URL = "";
