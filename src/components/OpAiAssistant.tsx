@@ -277,6 +277,24 @@ export default function OpAiAssistant() {
             return missingBrain;
           }
 
+          // Preguntas de identidad del cerebro: respuesta local garantizada (no depende de llama-server).
+          const asksBrainIdentity =
+            /\b(cerebro|modelo|gemini|inteligencia artificial)\b/i.test(trimmed) ||
+            /\b(que|cuál|cual)\s+ia\b/i.test(trimmed) ||
+            /\b(que ia|usas gemini|eres gemini|ia local)\b/i.test(trimmed);
+          if (asksBrainIdentity) {
+            const localIdentity =
+              "Uso el cerebro local de OnniVers PC (onni-cerebro-v1 + llama.cpp en tu máquina). No uso Gemini ni IA en la nube.";
+            appendAssistantAnswer(setMessages, sessionRef, localIdentity, speakAnswer);
+            // Calienta el motor en segundo plano para las siguientes preguntas libres.
+            void askOnniOllama({
+              message: "responde solo: ok",
+              contextPath: location.pathname,
+              history: [],
+            }).catch(() => undefined);
+            return localIdentity;
+          }
+
           let streamStarted = false;
           const ollamaAnswer = await askOnniOllama(
             { message: trimmed, contextPath: location.pathname, history: conversationHistory },
@@ -316,8 +334,8 @@ export default function OpAiAssistant() {
           }
 
           const brainFailed =
-            "Mi cerebro local no respondió. Cierra OnniVers PC por completo y ábrelo de nuevo. " +
-            "Si sigue igual, falta el modelo en resources/llama (onni-cerebro-v1.gguf).";
+            "Mi cerebro local tardo en arrancar. Espera 20 segundos y vuelve a preguntar (sin cerrar la app). " +
+            "Si persiste: cierra todos los procesos OnniVers en el Administrador de tareas y abre de nuevo.";
           appendAssistantAnswer(setMessages, sessionRef, brainFailed, speakAnswer);
           return brainFailed;
         }

@@ -74,7 +74,7 @@ interface Window {
       chat?: (payload: {
         requestId: string;
         messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
-      }) => Promise<{ text?: string }>;
+      }) => Promise<{ text?: string; error?: string }>;
       onPartial?: (callback: (requestId: string, text: string) => void) => () => void;
     };
   };
