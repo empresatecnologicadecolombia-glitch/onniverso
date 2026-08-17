@@ -262,14 +262,27 @@ app.whenReady().then(async () => {
   registerLlamaIpc();
   configureMediaPermissions(session.defaultSession);
   await ensureOsMediaAccess();
-  await createWindow();
 
+  // Precarga el cerebro ANTES de la ventana: evita matar un 503 a mitad de carga.
   const brain = getLlamaEngine();
   if (brain?.isReady()) {
-    void brain.ensureServerRunning().catch((error) => {
-      console.warn("[Onni cerebro] precarga falló:", error instanceof Error ? error.message : error);
-    });
+    try {
+      await Promise.race([
+        brain.ensureServerRunning(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("timeout precarga cerebro")), 100_000),
+        ),
+      ]);
+      console.info("[Onni cerebro] precarga OK");
+    } catch (error) {
+      console.warn(
+        "[Onni cerebro] precarga falló:",
+        error instanceof Error ? error.message : error,
+      );
+    }
   }
+
+  await createWindow();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -285,7 +298,7 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
-  getLlamaEngine()?.stopServer();
+  // No matar llama-server: debe sobrevivir reinicios de la ventana.
   if (localWeb) {
     void localWeb.close();
     localWeb = null;

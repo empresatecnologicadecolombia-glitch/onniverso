@@ -10,7 +10,7 @@ import { getOnniIntroduction } from "@/data/onniBrain";
 import { toast } from "sonner";
 import { getOpAssistantHint, resolveOpCommand, shouldAskOnniGemini } from "@/lib/opAssistantResolver";
 import { askOnniGemini, isOnniNavigationResult } from "@/lib/onniGemini";
-import { askOnniOllama, isOnniOllamaAvailable } from "@/lib/onniOllama";
+import { askOnniOllamaDetailed, isOnniOllamaAvailable } from "@/lib/onniOllama";
 import { invokeOpenGalleryDirect } from "@/lib/galleryOpenDirect";
 import { invokeOpenColiceoDirect } from "@/lib/coliseoOpenDirect";
 import { publishOnniAulaKnowledge } from "@/lib/onniAulaKnowledgeBoard";
@@ -259,7 +259,9 @@ export default function OpAiAssistant() {
         const onDesktopExe = isElectronDesktopApp();
         const localBrainReady = onDesktopExe && (await isOnniOllamaAvailable());
 
-        if (!shouldAskOnniGemini(result) && !localBrainReady) {
+        // Web/APK: si el resolver ya entendió, úsalo.
+        // .exe: el chat libre va al cerebro local (no respuestas prefabricadas de charla).
+        if (!shouldAskOnniGemini(result) && !onDesktopExe) {
           sessionRef.current.lastAnswer = result.answer;
           appendAssistantAnswer(setMessages, sessionRef, result.answer, speakAnswer);
           return result.answer;
@@ -277,43 +279,50 @@ export default function OpAiAssistant() {
             return missingBrain;
           }
 
-          // Preguntas de identidad del cerebro: respuesta local garantizada (no depende de llama-server).
+          // Solo identidad del cerebro queda fija (el modelo base a veces dice "Google").
           const asksBrainIdentity =
             /\b(cerebro|modelo|gemini|inteligencia artificial)\b/i.test(trimmed) ||
             /\b(que|cuál|cual)\s+ia\b/i.test(trimmed) ||
-            /\b(que ia|usas gemini|eres gemini|ia local)\b/i.test(trimmed);
+            /\b(que ia|usas gemini|eres gemini|ia local)\b/i.test(trimmed) ||
+            /\b(como se que usas|que usas|qué usas|que cerebro|qué cerebro)\b/i.test(trimmed);
           if (asksBrainIdentity) {
             const localIdentity =
               "Uso el cerebro local de OnniVers PC (onni-cerebro-v1 + llama.cpp en tu máquina). No uso Gemini ni IA en la nube.";
             appendAssistantAnswer(setMessages, sessionRef, localIdentity, speakAnswer);
-            // Calienta el motor en segundo plano para las siguientes preguntas libres.
-            void askOnniOllama({
-              message: "responde solo: ok",
-              contextPath: location.pathname,
-              history: [],
-            }).catch(() => undefined);
             return localIdentity;
           }
 
           let streamStarted = false;
-          const ollamaAnswer = await askOnniOllama(
-            { message: trimmed, contextPath: location.pathname, history: conversationHistory },
-            (partial) => {
-              if (!streamStarted) {
-                streamStarted = true;
-                setMessages((prev) => [...prev, { role: "assistant", text: partial }]);
-              } else {
-                setMessages((prev) => {
-                  const next = [...prev];
-                  const last = next[next.length - 1];
-                  if (last?.role === "assistant") {
-                    next[next.length - 1] = { role: "assistant", text: partial };
-                  }
-                  return next;
-                });
-              }
-            },
-          );
+          const applyPartial = (partial: string) => {
+            if (!streamStarted) {
+              streamStarted = true;
+              setMessages((prev) => [...prev, { role: "assistant", text: partial }]);
+            } else {
+              setMessages((prev) => {
+                const next = [...prev];
+                const last = next[next.length - 1];
+                if (last?.role === "assistant") {
+                  next[next.length - 1] = { role: "assistant", text: partial };
+                }
+                return next;
+              });
+            }
+          };
+          applyPartial("Pensando con el cerebro local…");
+
+          const askOnce = () =>
+            askOnniOllamaDetailed(
+              { message: trimmed, contextPath: location.pathname, history: conversationHistory },
+              applyPartial,
+            );
+
+          let detailed = await askOnce();
+          if (!detailed.text) {
+            applyPartial("Reintentando cerebro local…");
+            await new Promise((r) => window.setTimeout(r, 1500));
+            detailed = await askOnce();
+          }
+          const ollamaAnswer = detailed.text;
           if (ollamaAnswer) {
             sessionRef.current.lastAnswer = ollamaAnswer;
             sessionRef.current.lastAnswerFromGemini = false;
@@ -334,9 +343,21 @@ export default function OpAiAssistant() {
           }
 
           const brainFailed =
-            "Mi cerebro local tardo en arrancar. Espera 20 segundos y vuelve a preguntar (sin cerrar la app). " +
-            "Si persiste: cierra todos los procesos OnniVers en el Administrador de tareas y abre de nuevo.";
-          appendAssistantAnswer(setMessages, sessionRef, brainFailed, speakAnswer);
+            `No pude usar el cerebro local ahora. ${detailed.error || "Sin detalle."} ` +
+            "Deja OnniVers abierto 30 segundos y prueba de nuevo.";
+          if (streamStarted) {
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              if (last?.role === "assistant") {
+                next[next.length - 1] = { role: "assistant", text: brainFailed };
+              }
+              return next;
+            });
+            speakAnswer(brainFailed);
+          } else {
+            appendAssistantAnswer(setMessages, sessionRef, brainFailed, speakAnswer);
+          }
           return brainFailed;
         }
 

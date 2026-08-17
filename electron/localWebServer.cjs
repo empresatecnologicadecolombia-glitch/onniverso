@@ -35,6 +35,10 @@ function startLocalWebServer(webRoot) {
     const server = http.createServer(async (req, res) => {
       try {
         const reqUrl = new URL(req.url || "/", "http://127.0.0.1");
+        if (reqUrl.pathname === "/api/onni-brain" || reqUrl.pathname === "/api/onni-brain/") {
+          await proxyOnniBrain(req, res);
+          return;
+        }
         if (reqUrl.pathname.startsWith("/api/")) {
           await proxyApi(req, res, reqUrl);
           return;
@@ -63,6 +67,35 @@ function startLocalWebServer(webRoot) {
 
     server.on("error", reject);
   });
+}
+
+/** Proxy same-origin → llama-server local (evita CORS del renderer). */
+async function proxyOnniBrain(req, res) {
+  const chunks = [];
+  for await (const chunk of req) chunks.push(chunk);
+  const body = Buffer.concat(chunks);
+
+  let upstream;
+  try {
+    upstream = await fetch("http://127.0.0.1:8765/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+      signal: AbortSignal.timeout(90_000),
+    });
+  } catch (error) {
+    res.writeHead(503, { "Content-Type": "application/json; charset=utf-8" });
+    res.end(
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "cerebro local no disponible",
+      }),
+    );
+    return;
+  }
+
+  const outHeaders = { "Content-Type": "application/json; charset=utf-8" };
+  res.writeHead(upstream.status, outHeaders);
+  res.end(Buffer.from(await upstream.arrayBuffer()));
 }
 
 async function proxyApi(req, res, reqUrl) {

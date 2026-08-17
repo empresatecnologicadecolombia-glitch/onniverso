@@ -10,6 +10,11 @@ export type OnniElectronBrainChatPayload = {
   messages: OnniBrainMessage[];
 };
 
+export type OnniElectronBrainResult = {
+  text: string | null;
+  error: string;
+};
+
 export function isOnniElectronBrainBridgePresent(): boolean {
   return typeof window.onniversDesktop?.brain?.chat === "function";
 }
@@ -27,12 +32,14 @@ export async function isOnniElectronBrainAvailable(): Promise<boolean> {
 }
 
 /** Chat con cerebro embebido vía IPC (llama.cpp). */
-export async function askOnniElectronBrain(
+export async function askOnniElectronBrainDetailed(
   payload: OnniElectronBrainChatPayload,
   onPartial?: (accumulatedText: string) => void,
-): Promise<string | null> {
+): Promise<OnniElectronBrainResult> {
   const brain = window.onniversDesktop?.brain;
-  if (!brain?.chat) return null;
+  if (!brain?.chat) {
+    return { text: null, error: "Puente IPC del cerebro no disponible." };
+  }
 
   const requestId = payload.requestId;
   const unsubscribe =
@@ -47,18 +54,32 @@ export async function askOnniElectronBrain(
       requestId,
       messages: payload.messages,
     });
-    const text = String(result?.text ?? "").trim();
+    // Compatible con { text } o string crudo.
+    const text = String(
+      typeof result === "string" ? result : (result?.text ?? ""),
+    ).trim();
     if (text) {
       console.info("[Onni cerebro] local", text.slice(0, 80));
-      return text;
+      return { text, error: "" };
     }
-    const err = String(result?.error ?? "").trim();
+    const err = String(
+      typeof result === "object" && result ? (result.error ?? "") : "",
+    ).trim();
     if (err) console.warn("[Onni cerebro] falló", err);
-    return null;
+    return { text: null, error: err || "Respuesta vacía del cerebro." };
   } catch (error) {
-    console.warn("[Onni cerebro] falló", error);
-    return null;
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn("[Onni cerebro] falló", message);
+    return { text: null, error: message };
   } finally {
     unsubscribe();
   }
+}
+
+export async function askOnniElectronBrain(
+  payload: OnniElectronBrainChatPayload,
+  onPartial?: (accumulatedText: string) => void,
+): Promise<string | null> {
+  const result = await askOnniElectronBrainDetailed(payload, onPartial);
+  return result.text;
 }

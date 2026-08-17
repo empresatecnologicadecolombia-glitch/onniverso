@@ -3,14 +3,43 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { app } = require("electron");
+const { normalizeMessages, minimalMessages } = require("./onniBrainMessages.cjs");
 
 const ONNI_BRAIN_MODEL = "onni-cerebro-v1.gguf";
 const SERVER_HOST = "127.0.0.1";
 const SERVER_PORT = 8765;
 const SERVER_START_TIMEOUT_MS = 120_000;
 const GENERATION_TIMEOUT_MS = 90_000;
-const CHAT_MAX_TOKENS = 128;
-const CHAT_RETRIES = 3;
+const CHAT_MAX_TOKENS = 160;
+const CHAT_RETRIES = 2;
+const LOG_PATH = path.join(os.tmpdir(), "onni-cerebro.log");
+
+function brainLog(msg, extra) {
+  const line = `[${new Date().toISOString()}] ${msg}${extra ? ` ${extra}` : ""}`;
+  try {
+    fs.appendFileSync(LOG_PATH, `${line}\n`, "utf8");
+  } catch {
+    /* ignore */
+  }
+  console.info(line);
+}
+
+function extractContent(raw) {
+  if (raw == null) return "";
+  if (typeof raw === "string") return raw;
+  if (Array.isArray(raw)) {
+    return raw
+      .map((part) => {
+        if (typeof part === "string") return part;
+        if (part && typeof part.text === "string") return part.text;
+        if (part && typeof part.content === "string") return part.content;
+        return "";
+      })
+      .join("");
+  }
+  if (typeof raw === "object" && typeof raw.text === "string") return raw.text;
+  return String(raw);
+}
 
 class LlamaEngine {
   /** @type {boolean | null} */
@@ -19,6 +48,8 @@ class LlamaEngine {
   serverProcess = null;
   /** @type {Promise<void> | null} */
   startingPromise = null;
+  /** @type {Promise<unknown>} */
+  chatChain = Promise.resolve();
 
   getLlamaDir() {
     if (app.isPackaged) {
@@ -40,8 +71,12 @@ class LlamaEngine {
       const full = path.join(dir, name);
       if (fs.existsSync(full)) return full;
     }
-    const match = fs.readdirSync(dir).find((name) => name.toLowerCase().endsWith(".gguf"));
-    return match ? path.join(dir, match) : null;
+    try {
+      const match = fs.readdirSync(dir).find((name) => name.toLowerCase().endsWith(".gguf"));
+      return match ? path.join(dir, match) : null;
+    } catch {
+      return null;
+    }
   }
 
   getThreadCount() {
@@ -66,10 +101,13 @@ class LlamaEngine {
         fs.statSync(impl).size > 100_000 &&
         fs.existsSync(ggml),
     );
+    brainLog(
+      `isReady=${this.availableCache} dir=${this.getLlamaDir()} model=${model || "none"}`,
+    );
     return this.availableCache;
   }
 
-  /** Mata procesos ajenos en el puerto del cerebro (causa típica de "no respondió"). */
+  /** Solo mata listeners ajenos si el puerto está ocupado y NO responde health/loading. */
   freeServerPort() {
     if (process.platform !== "win32") return;
     try {
@@ -91,6 +129,7 @@ class LlamaEngine {
             windowsHide: true,
             stdio: "ignore",
           });
+          brainLog(`freeServerPort killed pid=${pid}`);
         } catch {
           /* ignore */
         }
@@ -100,17 +139,24 @@ class LlamaEngine {
     }
   }
 
+  async probeHealth() {
+    try {
+      const response = await fetch(`http://${SERVER_HOST}:${SERVER_PORT}/health`, {
+        signal: AbortSignal.timeout(2_000),
+      });
+      if (response.ok) return "ok";
+      if (response.status === 503) return "loading";
+      return "error";
+    } catch {
+      return "down";
+    }
+  }
+
   async waitForHealth(timeoutMs = SERVER_START_TIMEOUT_MS) {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
-      try {
-        const response = await fetch(`http://${SERVER_HOST}:${SERVER_PORT}/health`, {
-          signal: AbortSignal.timeout(2_000),
-        });
-        if (response.ok) return;
-      } catch {
-        /* retry */
-      }
+      const status = await this.probeHealth();
+      if (status === "ok") return;
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
     throw new Error("El cerebro de Onni tardó demasiado en iniciar.");
@@ -121,34 +167,33 @@ class LlamaEngine {
       throw new Error("Cerebro de Onni no instalado. Reinstala OnniVers.");
     }
 
-    // Si ya hay un llama-server sano en 8765, reutilizarlo (no matarlo).
     if (!forceRestart) {
-      try {
-        await this.waitForHealth(2_500);
+      const status = await this.probeHealth();
+      brainLog(`ensureServer status=${status}`);
+      if (status === "ok") return;
+      if (status === "loading") {
+        brainLog("waiting for loading (503) — not killing");
+        await this.waitForHealth(SERVER_START_TIMEOUT_MS);
         return;
-      } catch {
-        /* hay que arrancar */
       }
-    }
-
-    if (forceRestart) {
+      if (this.serverProcess && !this.serverProcess.killed) {
+        await this.waitForHealth(SERVER_START_TIMEOUT_MS);
+        return;
+      }
+      if (this.startingPromise) {
+        await this.startingPromise;
+        await this.waitForHealth(SERVER_START_TIMEOUT_MS);
+        return;
+      }
+    } else {
+      brainLog("forceRestart");
       this.stopServer();
       this.freeServerPort();
     }
 
-    if (this.serverProcess && !this.serverProcess.killed && !forceRestart) {
-      try {
-        await this.waitForHealth(3_000);
-        return;
-      } catch {
-        this.stopServer();
-      }
-    }
-
     if (this.startingPromise) {
       await this.startingPromise;
-      // Tras el arranque, confirmar health (aunque el child interno haya fallado el bind).
-      await this.waitForHealth(5_000);
+      await this.waitForHealth(SERVER_START_TIMEOUT_MS);
       return;
     }
 
@@ -161,11 +206,17 @@ class LlamaEngine {
   }
 
   startServer() {
-    return new Promise((resolve, reject) => {
+    return (async () => {
       const exe = this.getServerPath();
       const model = this.getModelPath();
       if (!exe || !model) {
-        reject(new Error("Faltan archivos del cerebro de Onni."));
+        throw new Error("Faltan archivos del cerebro de Onni.");
+      }
+
+      const status = await this.probeHealth();
+      if (status === "ok" || status === "loading") {
+        brainLog(`startServer skipped; already ${status}`);
+        await this.waitForHealth();
         return;
       }
 
@@ -187,90 +238,120 @@ class LlamaEngine {
         "--jinja",
       ];
 
+      brainLog(`spawn ${exe}`);
       const child = spawn(exe, args, {
         windowsHide: true,
         cwd: path.dirname(exe),
         stdio: ["ignore", "ignore", "pipe"],
+        detached: true,
       });
+      try {
+        child.unref();
+      } catch {
+        /* ignore */
+      }
       this.serverProcess = child;
 
       let stderr = "";
-      child.stderr.on("data", (chunk) => {
+      child.stderr?.on("data", (chunk) => {
         stderr += chunk.toString("utf8");
       });
 
       child.on("error", (error) => {
         this.serverProcess = null;
-        reject(error);
+        brainLog(`spawn error ${error.message}`);
       });
 
       child.on("exit", (code) => {
-        if (this.serverProcess === child) {
-          this.serverProcess = null;
-        }
-        if (code !== 0 && code !== null) {
-          console.warn("[Onni cerebro] llama-server salió:", code, stderr.slice(-500));
-        }
+        if (this.serverProcess === child) this.serverProcess = null;
+        brainLog(`child exit code=${code} stderr=${stderr.slice(-400)}`);
       });
 
-      void this.waitForHealth()
-        .then(resolve)
-        .catch((error) => {
-          this.stopServer();
-          this.freeServerPort();
-          const detail = stderr.trim().slice(-300);
-          reject(
-            detail
-              ? new Error(`${error.message} Detalle: ${detail}`)
-              : error,
-          );
-        });
-    });
+      try {
+        await this.waitForHealth();
+        brainLog("server healthy");
+      } catch (error) {
+        this.killServerHard();
+        this.freeServerPort();
+        const detail = stderr.trim().slice(-300);
+        throw detail
+          ? new Error(
+              `${error instanceof Error ? error.message : error} Detalle: ${detail}`,
+            )
+          : error;
+      }
+    })();
   }
 
   stopServer() {
-    if (!this.serverProcess) return;
-    try {
-      this.serverProcess.kill();
-    } catch {
-      /* ignore */
-    }
+    // No matar el proceso detached del sistema: solo soltar la referencia.
+    // Así el cerebro sigue vivo entre reinicios de la UI.
     this.serverProcess = null;
   }
 
-  /**
-   * @param {Array<{ role: string, content: string }>} messages
-   * @param {(text: string) => void} [onPartial]
-   */
+  killServerHard() {
+    if (this.serverProcess) {
+      try {
+        process.kill(this.serverProcess.pid);
+      } catch {
+        /* ignore */
+      }
+      this.serverProcess = null;
+    }
+  }
+
   async chat(messages, onPartial) {
+    const run = () => this.chatExclusive(messages, onPartial);
+    const next = this.chatChain.then(run, run);
+    this.chatChain = next.then(
+      () => undefined,
+      () => undefined,
+    );
+    return next;
+  }
+
+  async chatExclusive(messages, onPartial) {
     let lastError = null;
+    const cleanMessages = normalizeMessages(messages);
+    const fallbackMessages = minimalMessages(messages);
+    brainLog(
+      `chat start msgs=${cleanMessages.length} roles=${cleanMessages
+        .map((m) => m.role[0])
+        .join("")}`,
+    );
 
     for (let attempt = 1; attempt <= CHAT_RETRIES; attempt += 1) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), GENERATION_TIMEOUT_MS);
+      // 2º intento: sin historial (blinda contra choques de plantilla).
+      const payload = attempt === 1 ? cleanMessages : fallbackMessages;
       try {
-        await this.ensureServerRunning({ forceRestart: attempt > 1 });
+        const health = await this.probeHealth();
+        await this.ensureServerRunning({
+          forceRestart: attempt > 1 && health === "down",
+        });
 
-        // Plain primero: más estable que SSE en Electron/Windows.
         let answer = "";
         try {
-          answer = await this.chatPlain(messages, controller.signal);
+          answer = await this.chatPlain(payload, controller.signal);
+          brainLog(`plain attempt=${attempt} len=${answer.trim().length}`);
         } catch (plainError) {
           lastError = plainError;
-          console.warn(
-            `[Onni cerebro] plain intento ${attempt} falló:`,
-            plainError instanceof Error ? plainError.message : plainError,
+          brainLog(
+            `plain fail attempt=${attempt}`,
+            plainError instanceof Error ? plainError.message : String(plainError),
           );
         }
 
         if (!answer.trim()) {
           try {
-            answer = await this.chatStreaming(messages, onPartial, controller.signal);
+            answer = await this.chatStreaming(payload, onPartial, controller.signal);
+            brainLog(`stream attempt=${attempt} len=${answer.trim().length}`);
           } catch (streamError) {
             lastError = streamError;
-            console.warn(
-              `[Onni cerebro] stream intento ${attempt} falló:`,
-              streamError instanceof Error ? streamError.message : streamError,
+            brainLog(
+              `stream fail attempt=${attempt}`,
+              streamError instanceof Error ? streamError.message : String(streamError),
             );
           }
         } else if (onPartial) {
@@ -278,34 +359,33 @@ class LlamaEngine {
         }
 
         const finalAnswer = answer.trim();
-        if (finalAnswer) return finalAnswer;
+        if (finalAnswer) {
+          brainLog(`chat OK len=${finalAnswer.length}`);
+          return finalAnswer;
+        }
 
         lastError = new Error("El cerebro de Onni no generó respuesta.");
       } catch (error) {
         lastError = error;
-        console.warn(
-          `[Onni cerebro] intento ${attempt}/${CHAT_RETRIES} falló:`,
-          error instanceof Error ? error.message : error,
+        brainLog(
+          `chat attempt fail ${attempt}`,
+          error instanceof Error ? error.message : String(error),
         );
       } finally {
         clearTimeout(timer);
       }
 
-      this.stopServer();
-      this.freeServerPort();
-      await new Promise((r) => setTimeout(r, 400));
+      await new Promise((r) => setTimeout(r, 800));
     }
 
-    throw lastError instanceof Error
-      ? lastError
-      : new Error("El cerebro de Onni no respondió tras varios intentos.");
+    const err =
+      lastError instanceof Error
+        ? lastError
+        : new Error("El cerebro de Onni no respondió tras varios intentos.");
+    brainLog(`chat GIVE UP ${err.message}`);
+    throw err;
   }
 
-  /**
-   * @param {Array<{ role: string, content: string }>} messages
-   * @param {(text: string) => void} [onPartial]
-   * @param {AbortSignal} signal
-   */
   async chatStreaming(messages, onPartial, signal) {
     const response = await fetch(`http://${SERVER_HOST}:${SERVER_PORT}/v1/chat/completions`, {
       method: "POST",
@@ -314,7 +394,7 @@ class LlamaEngine {
         model: "onni-cerebro",
         messages,
         stream: true,
-        temperature: 0.55,
+        temperature: 0.4,
         max_tokens: CHAT_MAX_TOKENS,
       }),
       signal,
@@ -343,13 +423,13 @@ class LlamaEngine {
         if (!payload || payload === "[DONE]") continue;
         try {
           const chunk = JSON.parse(payload);
-          const piece = chunk?.choices?.[0]?.delta?.content ?? "";
+          const piece = extractContent(chunk?.choices?.[0]?.delta?.content ?? "");
           if (piece) {
             answer += piece;
             onPartial?.(answer);
           }
         } catch {
-          /* ignore malformed SSE chunk */
+          /* ignore */
         }
       }
     }
@@ -357,10 +437,6 @@ class LlamaEngine {
     return answer;
   }
 
-  /**
-   * @param {Array<{ role: string, content: string }>} messages
-   * @param {AbortSignal} signal
-   */
   async chatPlain(messages, signal) {
     const response = await fetch(`http://${SERVER_HOST}:${SERVER_PORT}/v1/chat/completions`, {
       method: "POST",
@@ -369,17 +445,25 @@ class LlamaEngine {
         model: "onni-cerebro",
         messages,
         stream: false,
-        temperature: 0.55,
+        temperature: 0.4,
         max_tokens: CHAT_MAX_TOKENS,
       }),
       signal,
     });
     if (!response.ok) {
-      throw new Error(`Cerebro de Onni falló (${response.status}).`);
+      const errText = await response.text().catch(() => "");
+      brainLog(`chatPlain HTTP ${response.status}`, errText.slice(0, 300));
+      throw new Error(`Cerebro de Onni falló (${response.status}). ${errText.slice(0, 160)}`);
     }
     const json = await response.json();
-    return String(json?.choices?.[0]?.message?.content ?? "");
+    return extractContent(json?.choices?.[0]?.message?.content).trim();
   }
 }
 
-module.exports = { LlamaEngine, ONNI_BRAIN_MODEL };
+module.exports = {
+  LlamaEngine,
+  ONNI_BRAIN_MODEL,
+  LOG_PATH,
+  normalizeMessages,
+  minimalMessages,
+};

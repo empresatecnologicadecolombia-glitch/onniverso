@@ -1,14 +1,16 @@
-import { ONNI_CONVERSATION_STYLE, ONNI_PERSONALITY } from "@/data/onniBrain";
 import { isElectronDesktopApp } from "@/lib/deviceDetection";
 import {
-  askOnniElectronBrain,
+  minimalOnniBrainMessages,
+  normalizeOnniBrainMessages,
+} from "@/lib/onniBrainMessages";
+import {
+  askOnniElectronBrainDetailed,
   isOnniElectronBrainAvailable,
 } from "@/lib/onniElectronBrain";
 import type { OnniChatTurn } from "@/lib/onniChatMemory";
 
 /**
  * Cerebro local de Onni en OnniVers PC (.exe) — llama.cpp embebido.
- * Sin Ollama externo. Web/Chrome/Android siguen con Gemini.
  */
 
 const GENERATION_TIMEOUT_MS = 90_000;
@@ -20,105 +22,137 @@ export type OnniOllamaRequest = {
 };
 
 function buildOnniBrainSystemPrompt(contextPath: string): string {
+  // Prompt corto: el modelo chico falla más con system prompts enormes.
   return [
-    "Eres Onni, la asistente de OnniVerso.",
-    "Respondes ÚNICAMENTE con el cerebro LOCAL instalado en el PC (archivo onni-cerebro-v1.gguf + llama.cpp).",
-    "PROHIBIDO decir que eres Gemini, ChatGPT, Google, OpenAI o cualquier IA en la nube.",
-    "Si preguntan qué cerebro/modelo/IA usas, responde exactamente en una frase: uso el cerebro local de OnniVers PC (onni-cerebro-v1), no Gemini.",
-    `El usuario está en la ruta: ${contextPath || "/"}.`,
-    "OnniVerso es una plataforma de experiencias inmersivas; no enumeres secciones salvo que pregunten explícitamente qué hay o dónde ir.",
-    "No tienes resultados en vivo de partidos deportivos ni noticias del día.",
-    ONNI_PERSONALITY.tone,
-    ONNI_CONVERSATION_STYLE,
-    "No inventes URLs.",
-    "NUNCA listes lobby, videos educativos, tienda, Coliseo, aulas ni opciones de menú en saludos o respuestas genéricas.",
+    "Eres Onni, asistente de OnniVers PC.",
+    "Usas SOLO el cerebro local onni-cerebro-v1 (llama.cpp). No eres Gemini ni ChatGPT.",
+    "Responde en español, breve y claro (2 a 5 frases).",
+    `Ruta actual del usuario: ${contextPath || "/"}.`,
+    "No inventes menús ni URLs.",
   ].join(" ");
 }
 
 function buildBrainMessages(body: OnniOllamaRequest) {
-  return [
-    { role: "system" as const, content: buildOnniBrainSystemPrompt(body.contextPath) },
-    ...(body.history ?? []).map((turn) => ({
+  const current = body.message.trim();
+  // messagesRef ya incluye el mensaje actual: no duplicarlo (causa HTTP 400 en llama).
+  const history = (body.history ?? [])
+    .filter((turn) => turn.text.trim())
+    .filter((turn, idx, arr) => {
+      const isLast = idx === arr.length - 1;
+      if (!isLast) return true;
+      return !(turn.role === "user" && turn.text.trim() === current);
+    })
+    .slice(-6);
+
+  return normalizeOnniBrainMessages([
+    { role: "system", content: buildOnniBrainSystemPrompt(body.contextPath) },
+    ...history.map((turn) => ({
       role: turn.role === "assistant" ? ("assistant" as const) : ("user" as const),
       content: turn.text,
     })),
-    { role: "user" as const, content: body.message.trim() },
-  ];
+    { role: "user", content: current },
+  ]);
 }
 
-/** True si el .exe tiene el cerebro embebido listo (onni-cerebro-v1.gguf + llama-server). */
 export async function isOnniOllamaAvailable(): Promise<boolean> {
   if (!isElectronDesktopApp()) return false;
   return isOnniElectronBrainAvailable();
 }
 
+export type OnniOllamaAskResult = {
+  text: string | null;
+  error: string;
+};
+
 /**
- * Pregunta al cerebro local con streaming. Devuelve null si falla.
- * En .exe: IPC Electron primero; si falla, HTTP directo a llama-server (127.0.0.1:8765).
+ * Pregunta al cerebro local. Devuelve texto o error explícito.
  */
+export async function askOnniOllamaDetailed(
+  body: OnniOllamaRequest,
+  onPartial?: (accumulatedText: string) => void,
+): Promise<OnniOllamaAskResult> {
+  const message = body.message.trim();
+  if (!message) return { text: null, error: "Mensaje vacío." };
+  if (!(await isOnniOllamaAvailable())) {
+    return { text: null, error: "Cerebro local no detectado en este OnniVers." };
+  }
+
+  const requestId =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `onni-${Date.now()}`;
+
+  const full = buildBrainMessages(body);
+  const minimal = minimalOnniBrainMessages(full);
+
+  const viaIpc = await askOnniElectronBrainDetailed(
+    { requestId, messages: full },
+    onPartial,
+  );
+  if (viaIpc.text) return viaIpc;
+
+  const viaHttp = await askLlamaHttpDirect(full, onPartial);
+  if (viaHttp.text) return viaHttp;
+
+  // Último recurso: sin historial (evita cualquier choque de plantilla).
+  const viaMinimal = await askLlamaHttpDirect(minimal, onPartial);
+  if (viaMinimal.text) return viaMinimal;
+
+  return {
+    text: null,
+    error:
+      viaIpc.error || viaHttp.error || viaMinimal.error || "Cerebro local sin respuesta.",
+  };
+}
+
+/** Compat: solo texto o null. */
 export async function askOnniOllama(
   body: OnniOllamaRequest,
   onPartial?: (accumulatedText: string) => void,
 ): Promise<string | null> {
-  const message = body.message.trim();
-  if (!message) return null;
-  if (!(await isOnniOllamaAvailable())) return null;
-
-  const timer = window.setTimeout(() => {
-    console.warn("[Onni cerebro] timeout de generación");
-  }, GENERATION_TIMEOUT_MS);
-
-  try {
-    const requestId =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `onni-${Date.now()}`;
-
-    const viaIpc = await askOnniElectronBrain(
-      {
-        requestId,
-        messages: buildBrainMessages(body),
-      },
-      onPartial,
-    );
-    if (viaIpc) return viaIpc;
-
-    // Fallback: el server local a veces ya está vivo aunque el IPC falle.
-    const viaHttp = await askLlamaHttpDirect(buildBrainMessages(body), onPartial);
-    return viaHttp;
-  } finally {
-    window.clearTimeout(timer);
-  }
+  const result = await askOnniOllamaDetailed(body, onPartial);
+  return result.text;
 }
 
 async function askLlamaHttpDirect(
   messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
   onPartial?: (accumulatedText: string) => void,
-): Promise<string | null> {
+): Promise<OnniOllamaAskResult> {
   try {
-    const response = await fetch("http://127.0.0.1:8765/v1/chat/completions", {
+    const response = await fetch("/api/onni-brain", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "onni-cerebro",
         messages,
         stream: false,
-        temperature: 0.45,
-        max_tokens: 128,
+        temperature: 0.4,
+        max_tokens: 160,
       }),
       signal: AbortSignal.timeout(GENERATION_TIMEOUT_MS),
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      const errBody = await response.text().catch(() => "");
+      return {
+        text: null,
+        error: `HTTP cerebro ${response.status}${errBody ? `: ${errBody.slice(0, 120)}` : ""}`,
+      };
+    }
     const json = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
+      choices?: Array<{ message?: { content?: unknown } }>;
+      error?: string;
     };
-    const text = String(json?.choices?.[0]?.message?.content ?? "").trim();
-    if (!text) return null;
+    const raw = json?.choices?.[0]?.message?.content;
+    const text = (typeof raw === "string" ? raw : String(raw ?? "")).trim();
+    if (!text) {
+      return { text: null, error: json?.error || "HTTP cerebro vacío." };
+    }
     onPartial?.(text);
     console.info("[Onni cerebro] http-local", text.slice(0, 80));
-    return text;
+    return { text, error: "" };
   } catch (error) {
-    console.warn("[Onni cerebro] http-local falló", error);
-    return null;
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn("[Onni cerebro] http-local falló", message);
+    return { text: null, error: message };
   }
 }
