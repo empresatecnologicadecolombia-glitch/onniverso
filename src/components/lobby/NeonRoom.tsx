@@ -1515,15 +1515,11 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
           ) : (
             <>
               {!mobileLiteScene && <LobbyAnatomiaHumanaWallPanel />}
-              {!mobileLiteScene && (
-                <LobbyDecorEarthMoon position={[ROOM_SIZE / 2 - 2.15, WALL_HEIGHT * 0.45, 0]} scale={2.52} />
-              )}
-              {!mobileLiteScene && (
-                <LobbyDecorHeartWall
-                  position={[0, WALL_HEIGHT / 2, ROOM_SIZE / 2 - 0.45]}
-                  scaleMultiplier={1.28}
-                />
-              )}
+              <LobbyDecorEarthMoon position={[ROOM_SIZE / 2 - 2.15, WALL_HEIGHT * 0.45, 0]} scale={2.52} />
+              <LobbyDecorHeartWall
+                position={[0, WALL_HEIGHT / 2, ROOM_SIZE / 2 - 0.45]}
+                scaleMultiplier={1.28}
+              />
               {!mobileLiteScene && (
                 <LobbyDecorFarolLantern position={[-5, WALL_HEIGHT * 0.55, -ROOM_SIZE / 2 + 0.45]} />
               )}
