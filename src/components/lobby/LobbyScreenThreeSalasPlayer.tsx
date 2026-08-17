@@ -11,6 +11,7 @@ declare global {
       hideLobbyPantalla2WebView?(): void;
       updateLobbyBounds?(): void;
       loadLobbyPantalla2Url?(url: string): void;
+      loadLobbyPantalla2Player?(playlistJson: string): void;
     };
   }
 }
@@ -18,7 +19,6 @@ declare global {
 const LOBBY_NATIVE_WEBVIEW_SLOT_ID = "lobby-screen-2";
 const LOBBY_NATIVE_WEBVIEW_SLOT_LEGACY_ID = "onni-native-webview-lobby-screen-2";
 const LOBBY_SALAS_PLAYER_PATH = "/lobby-salas-player.html";
-
 function defaultPlaylistItems(): LocalVideoItem[] {
   return getLobbySalaVideoPlaylist().map((item) => ({
     kind: "url" as const,
@@ -39,14 +39,25 @@ function buildNativePlayerUrl(items: LocalVideoItem[]): string {
   const payload = items.map((item) => ({ id: item.id, name: item.name, url: item.url }));
   const json = JSON.stringify(payload);
   const b64 = btoa(unescape(encodeURIComponent(json)));
-  // Capacitor sirve public/ en https://localhost/
   return `https://localhost${LOBBY_SALAS_PLAYER_PATH}#b64=${encodeURIComponent(b64)}`;
+}
+
+function readSlotRect(el: HTMLElement | null): { x: number; y: number; w: number; h: number } | null {
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  if (r.width < 8 || r.height < 8) return null;
+  return {
+    x: Math.round(r.left),
+    y: Math.round(r.top),
+    w: Math.round(r.width),
+    h: Math.round(r.height),
+  };
 }
 
 /**
  * Pantalla de videos educativos en lobby.
  * - PC / navegador: &lt;video&gt; HTML.
- * - APK: WebView nativo encima del slot 3D (mismo muro, sin decodificar MP4 dentro de Three.js).
+ * - APK: WebView nativo encima del slot 3D; si falla el overlay, cae a &lt;video&gt; HTML.
  */
 export const LobbyScreenThreeSalasPlayer = memo(function LobbyScreenThreeSalasPlayer({
   width,
@@ -59,16 +70,22 @@ export const LobbyScreenThreeSalasPlayer = memo(function LobbyScreenThreeSalasPl
   const isNativeAndroidSlot = isNativeAndroidLobby();
   const playlistRef = useRef<LocalVideoItem[]>(defaultPlaylistItems());
 
-  // Android: mostrar WebView nativo con player liviano + playlist.
+  // Android: WebView nativo encima del slot; el <video> HTML queda como respaldo debajo.
   useEffect(() => {
     if (!isNativeAndroidSlot) return;
     const android = window.Android;
     if (!android) return;
 
-    const url = buildNativePlayerUrl(playlistRef.current);
+    const payload = playlistRef.current.map((item) => ({
+      id: item.id,
+      name: item.name,
+      url: item.url,
+    }));
     try {
-      if (typeof android.loadLobbyPantalla2Url === "function") {
-        android.loadLobbyPantalla2Url(url);
+      if (typeof android.loadLobbyPantalla2Player === "function") {
+        android.loadLobbyPantalla2Player(JSON.stringify(payload));
+      } else if (typeof android.loadLobbyPantalla2Url === "function") {
+        android.loadLobbyPantalla2Url(buildNativePlayerUrl(playlistRef.current));
       } else {
         android.showLobbyPantalla2WebView?.();
       }
@@ -86,7 +103,7 @@ export const LobbyScreenThreeSalasPlayer = memo(function LobbyScreenThreeSalasPl
     };
     sync();
     window.requestAnimationFrame(sync);
-    const retryIds = [120, 300, 600, 1200, 2400].map((ms) => window.setTimeout(sync, ms));
+    const retryIds = [80, 160, 320, 640, 1200, 2400].map((ms) => window.setTimeout(sync, ms));
     const intervalId = window.setInterval(sync, 250);
     window.addEventListener("resize", sync);
     window.addEventListener("orientationchange", sync);
@@ -106,21 +123,12 @@ export const LobbyScreenThreeSalasPlayer = memo(function LobbyScreenThreeSalasPl
 
   useEffect(() => {
     if (!isNativeAndroidSlot) return;
-    const getRect = () => {
-      const el =
+    const getRect = () =>
+      readSlotRect(
         document.getElementById(LOBBY_NATIVE_WEBVIEW_SLOT_ID) ??
-        document.getElementById(LOBBY_NATIVE_WEBVIEW_SLOT_LEGACY_ID) ??
-        nativeSlotRef.current;
-      if (!el) return null;
-      const r = el.getBoundingClientRect();
-      if (r.width < 8 || r.height < 8) return null;
-      return {
-        x: Math.round(r.left),
-        y: Math.round(r.top),
-        w: Math.round(r.width),
-        h: Math.round(r.height),
-      };
-    };
+          document.getElementById(LOBBY_NATIVE_WEBVIEW_SLOT_LEGACY_ID) ??
+          nativeSlotRef.current,
+      );
     window.__onniversoGetLobbyScreen2Rect = getRect;
     window.__onniversoGetNativeWebViewSlotRect = (slotId?: string) => {
       if (
@@ -140,28 +148,17 @@ export const LobbyScreenThreeSalasPlayer = memo(function LobbyScreenThreeSalasPl
     };
   }, [isNativeAndroidSlot]);
 
-  if (isNativeAndroidSlot) {
-    return (
-      <div
-        ref={nativeSlotRef}
-        id={LOBBY_NATIVE_WEBVIEW_SLOT_ID}
-        data-native-webview-slot={LOBBY_NATIVE_WEBVIEW_SLOT_ID}
-        style={{
-          width,
-          height,
-          background: "#02030a",
-          borderRadius: 10,
-          border: "1px solid rgba(34,211,238,0.2)",
-          boxSizing: "border-box",
-          userSelect: "none",
-          pointerEvents: "none",
-        }}
-        aria-hidden
-      />
-    );
-  }
-
-  return <LobbyHtmlVideoPlayer width={width} height={height} />;
+  return (
+    <div
+      ref={nativeSlotRef}
+      id={isNativeAndroidSlot ? LOBBY_NATIVE_WEBVIEW_SLOT_ID : undefined}
+      data-native-webview-slot={isNativeAndroidSlot ? LOBBY_NATIVE_WEBVIEW_SLOT_ID : undefined}
+      data-lobby-screen="salas"
+      style={{ width, height }}
+    >
+      <LobbyHtmlVideoPlayer width={width} height={height} />
+    </div>
+  );
 });
 
 function LobbyHtmlVideoPlayer({ width, height }: { width: number; height: number }) {
@@ -238,7 +235,7 @@ function LobbyHtmlVideoPlayer({ width, height }: { width: number; height: number
         playsInline
         controls
         controlsList="nodownload"
-        preload="metadata"
+        preload="auto"
         onEnded={() => void onNext()}
         style={{
           width: "100%",

@@ -77,9 +77,9 @@ public class MainActivity extends BridgeActivity {
   private static final String LOBBY_IMMERSIVE_URL = "https://localhost/lobby-inmersivo";
 
   /** Lobby Pantalla 2 — YouTube móvil en WebView nativo sobre el slot 3D. */
-  /** Player liviano de videos educativos (public/lobby-salas-player.html) sobre el slot 3D. */
+  /** Player liviano empaquetado (assets/public) — el 2.º WebView no usa el server de Capacitor. */
   private static final String LOBBY_SCREEN2_DEFAULT_URL =
-      "https://localhost/lobby-salas-player.html";
+      "file:///android_asset/public/lobby-salas-player.html";
 
   /** Coliseo — YouTube escritorio en WebView nativo (UA de PC para evitar bloqueos móviles). */
   private static final String COLOSSEO_BROWSER_DEFAULT_URL = "https://www.youtube.com/";
@@ -962,10 +962,19 @@ public class MainActivity extends BridgeActivity {
       activity.runOnUiThread(() -> activity.hideLobbyPantalla2WebViewInternal());
     }
 
-    /** Carga URL en el WebView nativo de la pantalla del lobby (p. ej. player + playlist en hash). */
+    /** Carga URL en el WebView nativo de la pantalla del lobby. */
     @JavascriptInterface
     public void loadLobbyPantalla2Url(String url) {
       activity.runOnUiThread(() -> activity.loadLobbyPantalla2UrlInternal(url));
+    }
+
+    /**
+     * Player de videos educativos embebido (loadData): el 2.º WebView no usa el asset server de
+     * Capacitor, así que no cargar https://localhost/... (pantalla negra).
+     */
+    @JavascriptInterface
+    public void loadLobbyPantalla2Player(String playlistJson) {
+      activity.runOnUiThread(() -> activity.loadLobbyPantalla2PlayerInternal(playlistJson));
     }
 
     /** Actualiza posición/tamaño del WebView nativo al slot {@code lobby-screen-2} en la pared 3D. */
@@ -1293,8 +1302,9 @@ public class MainActivity extends BridgeActivity {
 
     WebView wv = new WebView(this);
     wv.setTag("lobby_pantalla2_wv");
-    FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(1, 1);
-    lp.gravity = Gravity.TOP | Gravity.START;
+    // Tamaño inicial razonable: si el rect JS tarda, no queda 1×1 (pantalla negra).
+    FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(480, 270);
+    lp.gravity = Gravity.CENTER;
     wv.setLayoutParams(lp);
     wv.setVisibility(View.GONE);
     wv.setElevation(10000f);
@@ -1319,12 +1329,8 @@ public class MainActivity extends BridgeActivity {
         new WebChromeClient() {
           @Override
           public void onPermissionRequest(final PermissionRequest request) {
-            if (!redesCam) {
-              // Redes (sin cam): no conceder captura de cámara/micrófono.
-              request.deny();
-              return;
-            }
-            MainActivity.this.runOnUiThread(() -> handleWebKitMediaPermission(request));
+            // La pantalla de videos del lobby solo reproduce MP4: nunca cámara ni micrófono.
+            request.deny();
           }
         });
     wv.setWebViewClient(new WebViewClient());
@@ -1362,7 +1368,59 @@ public class MainActivity extends BridgeActivity {
     if (target.isEmpty()) {
       target = LOBBY_SCREEN2_DEFAULT_URL;
     }
+    // file:///android_asset evita depender del interceptor de Capacitor del WebView principal.
+    if (target.startsWith("https://localhost/")) {
+      target = "file:///android_asset/public/" + target.substring("https://localhost/".length());
+    }
     lobbyPantalla2WebView.loadUrl(target);
+    lobbyPantalla2WebViewUrlLoaded = true;
+    updateLobbyPantalla2Bounds();
+    scheduleLobbyPantalla2BoundsRetries();
+    lobbyPantalla2WebView.setVisibility(View.VISIBLE);
+    lobbyPantalla2WebView.bringToFront();
+    ViewGroup parent = resolveLobbyOverlayParent();
+    if (parent != null) {
+      parent.requestLayout();
+    }
+  }
+
+  private void loadLobbyPantalla2PlayerInternal(String playlistJson) {
+    ensureLobbyPantalla2WebViewCreated();
+    if (lobbyPantalla2WebView == null) {
+      return;
+    }
+    String json = playlistJson != null ? playlistJson.trim() : "[]";
+    if (json.isEmpty()) {
+      json = "[]";
+    }
+    // Evitar romper el <script> si el JSON trajera la secuencia.
+    String safeJson = json.replace("</", "<\\/");
+    String html =
+        "<!DOCTYPE html><html lang=\"es\"><head><meta charset=\"UTF-8\"/>"
+            + "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,maximum-scale=1\"/>"
+            + "<style>html,body{margin:0;width:100%;height:100%;background:#02030a;overflow:hidden}"
+            + "video{display:block;width:100%;height:100%;object-fit:contain;background:#000}"
+            + "#s{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;"
+            + "padding:6% 8%;text-align:center;font:600 15px/1.4 system-ui,sans-serif;color:#a5f3fc;"
+            + "background:#02030a}#s.off{display:none}</style></head>"
+            + "<body><video id=\"v\" playsinline webkit-playsinline controls preload=\"auto\"></video>"
+            + "<div id=\"s\">Cargando video…</div>"
+            + "<script>(function(){var LIST="
+            + safeJson
+            + ";var i=0;var v=document.getElementById('v');var s=document.getElementById('s');"
+            + "function say(t){if(s){s.textContent=t;s.className=''}}"
+            + "function hide(){if(s)s.className='off'}"
+            + "if(!LIST||!LIST.length||!v){say('Sin videos en la lista.');return}"
+            + "function load(){var it=LIST[i%LIST.length];if(!it||!it.url){say('Video sin enlace.');return}"
+            + "say('Cargando video…');v.pause();v.src=String(it.url);v.load();"
+            + "var p=v.play();if(p&&p.catch)p.catch(function(){hide()})}"
+            + "v.addEventListener('playing',hide);v.addEventListener('loadeddata',hide);"
+            + "v.addEventListener('error',function(){say('No se pudo cargar el video. Revisa la conexión.')});"
+            + "v.addEventListener('ended',function(){i=(i+1)%LIST.length;load()});"
+            + "load();})();</script></body></html>";
+    // Origen https real: los MP4 (Cloudinary) se cargan como en cualquier página normal.
+    lobbyPantalla2WebView.loadDataWithBaseURL(
+        "https://onnivers.com/", html, "text/html", "UTF-8", null);
     lobbyPantalla2WebViewUrlLoaded = true;
     updateLobbyPantalla2Bounds();
     scheduleLobbyPantalla2BoundsRetries();
@@ -1419,13 +1477,13 @@ public class MainActivity extends BridgeActivity {
                     int h = (int) (rect.getInt("h") * scale + 0.5f);
                     int x = (int) (rect.getInt("x") * scale + 0.5f);
                     int y = (int) (rect.getInt("y") * scale + 0.5f);
-                    if (w < 48 || h < 48) {
+                    if (w < 8 || h < 8) {
                       return;
                     }
                     FrameLayout.LayoutParams lp =
                         new FrameLayout.LayoutParams(w, h);
-                    lp.leftMargin = x;
-                    lp.topMargin = y;
+                    lp.leftMargin = Math.max(0, x);
+                    lp.topMargin = Math.max(0, y);
                     lp.gravity = Gravity.TOP | Gravity.START;
                     lobbyPantalla2WebView.setLayoutParams(lp);
                     lobbyPantalla2WebView.setVisibility(View.VISIBLE);

@@ -73,6 +73,7 @@ declare global {
       showLobbyPantalla2WebView?(): void;
       hideLobbyPantalla2WebView?(): void;
       loadLobbyPantalla2Url?(url: string): void;
+      loadLobbyPantalla2Player?(playlistJson: string): void;
       updateLobbyBounds?(): void;
       /** Coliseo — WebView nativo YouTube (UA escritorio) sobre slot 2D en Android. */
       showColiseoBrowserWebView?(): void;

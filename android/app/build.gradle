@@ -10,8 +10,8 @@ android {
         applicationId "com.vivevr.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 7
-        versionName "1.0.6"
+        versionCode 9
+        versionName "1.0.7"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -54,7 +54,9 @@ dependencies {
     implementation "androidx.media3:media3-exoplayer:1.5.1"
     implementation "androidx.media3:media3-exoplayer-hls:1.5.1"
     implementation "androidx.media3:media3-ui:1.5.1"
-    implementation "com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.4.4"
+    // rtplibrary 2.4.4 ya no existe en jitpack (el repo pasó a llamarse RootEncoder) y ninguna
+    // clase Java del proyecto la importa: dejarla declarada rompe cualquier compilación.
+    // implementation "com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.4.4"
     // -----------------------------------------------------------------
     // Google Cardboard SDK (open-source, sucesor de com.google.vr:sdk-base):
     //   - Repo:     https://github.com/googlevr/cardboard

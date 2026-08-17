@@ -1059,6 +1059,7 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
   const mobileLookFallbackRef = useRef(false);
   const [mobileLookFallback, setMobileLookFallback] = useState(false);
   const [locked, setLocked] = useState(false);
+  const [glContextLost, setGlContextLost] = useState(false);
   const [escapeBarVisible, setEscapeBarVisible] = useState(true);
   const [focusedScreen, setFocusedScreen] = useState<number | null>(null);
   const [mixedRealityEnabled, setMixedRealityEnabled] = useState(false);
@@ -1111,71 +1112,19 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
     });
   }, []);
 
-  /** Móvil + ratón: intentar pointer-lock; si falla → giro con clic izquierdo. */
+  /**
+   * Móvil/tablet + ratón: mirada por arrastre, igual que el touch.
+   * Sin pointer-lock: en el WebView de Android la cámara quedaba siguiendo al
+   * cursor sin querer y no se podía soltar.
+   */
   useEffect(() => {
     if (!isMobileCoarse || !usesFinePointer) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    let failTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const clearFailTimer = () => {
-      if (failTimer !== null) {
-        clearTimeout(failTimer);
-        failTimer = null;
-      }
-    };
-
-    const onLockChange = () => {
-      if (document.pointerLockElement === canvas) {
-        clearFailTimer();
-        setMobileLookFallback(false);
-        mobileLookFallbackRef.current = false;
-        setLocked(true);
-        setEscapeBarVisible(false);
-        return;
-      }
-      setLocked(false);
-    };
-
-    const markFallback = () => {
-      clearFailTimer();
-      setMobileLookFallback(true);
-      mobileLookFallbackRef.current = true;
-      if (document.pointerLockElement) {
-        document.exitPointerLock();
-      }
-    };
-
-    const tryPointerLock = () => {
-      if (focusedScreenRef.current !== null || mobileLookFallbackRef.current) return;
-      clearFailTimer();
-      const result = canvas.requestPointerLock?.();
-      if (result && typeof (result as Promise<void>).catch === "function") {
-        (result as Promise<void>).catch(markFallback);
-      }
-      failTimer = setTimeout(() => {
-        if (document.pointerLockElement !== canvas) markFallback();
-      }, 700);
-    };
-
-    const onCanvasPointerDown = (event: PointerEvent) => {
-      if (event.pointerType !== "mouse") return;
-      if (focusedScreenRef.current !== null) return;
-      if (mobileLookFallbackRef.current) return;
-      tryPointerLock();
-    };
-
-    document.addEventListener("pointerlockchange", onLockChange);
-    document.addEventListener("pointerlockerror", markFallback);
-    canvas.addEventListener("pointerdown", onCanvasPointerDown);
-
-    return () => {
-      clearFailTimer();
-      document.removeEventListener("pointerlockchange", onLockChange);
-      document.removeEventListener("pointerlockerror", markFallback);
-      canvas.removeEventListener("pointerdown", onCanvasPointerDown);
-    };
+    setMobileLookFallback(true);
+    mobileLookFallbackRef.current = true;
+    setLocked(false);
+    if (document.pointerLockElement) {
+      document.exitPointerLock();
+    }
   }, [isMobileCoarse, usesFinePointer]);
 
   useEffect(() => {
@@ -1382,10 +1331,10 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
   const mixedRealityActive = mixedRealityEnabled;
   const gyroLookActive = gyroLookEnabled && focusedScreen === null;
   const mobileTouchLookActive = isTouchOnlyLobby && focusedScreen === null && !gyroLookEnabled;
-  const usesPointerLockControls = usesFinePointer && focusedScreen === null && !mobileLookFallback;
+  const usesPointerLockControls =
+    usesFinePointer && !isMobileCoarse && focusedScreen === null && !mobileLookFallback;
   const mobileWheelSpinActive = isMobileCoarse && usesFinePointer && focusedScreen === null;
-  const mobileMouseLookActive =
-    isMobileCoarse && usesFinePointer && !mobileLookFallback && focusedScreen === null && !locked;
+  const mobileMouseLookActive = isMobileCoarse && usesFinePointer && focusedScreen === null;
 
   return (
     <div className={`relative h-screen w-screen ${mixedRealityActive ? "bg-transparent" : isAulaVirtual ? "bg-[#EDE8DF]" : "bg-black"}`}>
@@ -1479,6 +1428,20 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
           canvasRef.current = gl.domElement;
           gl.domElement.style.touchAction = "none";
           applyPixelRatioCap(gl);
+          // En WebView de Android el contexto WebGL se pierde por memoria y el
+          // lienzo se queda negro para siempre si nadie lo avisa.
+          gl.domElement.addEventListener("webglcontextlost", (event) => {
+            event.preventDefault();
+            setGlContextLost(true);
+            try {
+              gl.forceContextRestore();
+            } catch {
+              /* no soportado en este WebView */
+            }
+          });
+          gl.domElement.addEventListener("webglcontextrestored", () =>
+            setGlContextLost(false),
+          );
         }}
       >
           <MixedRealityScene active={mixedRealityActive} />
@@ -1570,14 +1533,16 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
         )}
       </Canvas>
 
+      {/* Con ratón conectado el pad sigue disponible: es la única forma de caminar sin teclado. */}
       <MobileLobbyMovePad
-        enabled={isTouchOnlyLobby && focusedScreen === null}
+        enabled={isMobileCoarse && focusedScreen === null}
         inputRef={mobileMoveInput}
       />
 
       <LobbyMouseButtonControls
         enabled={usesFinePointer}
-        movementEnabled={focusedScreen === null}
+        /* Con ratón en celular el clic arrastra para mirar; caminar queda en el pad/WASD. */
+        movementEnabled={focusedScreen === null && !mobileMouseLookActive}
         inputRef={mouseMoveInput}
         onEscape={handleLobbyEscape}
       />
@@ -1589,6 +1554,25 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
         con el resto de la lógica del lobby (los `setEscapeBarVisible(...)`
         siguen ahí pero ahora son no-ops visuales).
       */}
+
+      {glContextLost && (
+        <div
+          data-lobby-ui
+          role="alert"
+          className="pointer-events-auto absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-slate-950/92 px-8 text-center backdrop-blur-sm"
+        >
+          <p className="max-w-sm text-sm text-cyan-100">
+            La vista 3D se cerró porque el dispositivo se quedó sin memoria de video.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="rounded-full border border-cyan-400/60 bg-slate-900 px-5 py-2 text-sm font-semibold text-cyan-100 transition hover:border-cyan-300 hover:text-white"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
 
       {(locked || mobileMouseLookActive || mobileWheelSpinActive) && focusedScreen === null && (
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/80 mix-blend-difference" />

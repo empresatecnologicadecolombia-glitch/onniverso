@@ -188,15 +188,18 @@ export function LobbyMobileWheelOrbitSpin({ enabled }: { enabled: boolean }) {
 }
 
 /**
- * Celular/tablet con ratón: intento de pointer-lock; si no hay lock, movimiento del ratón.
+ * Celular/tablet con ratón: mirada por arrastre, igual que el touch.
+ * Solo gira mientras se mantiene pulsado un botón; al soltar, la cámara se queda quieta.
  */
 export function LobbyMobileMouseLook({ enabled }: { enabled: boolean }) {
   const { camera } = useThree();
   const lastPosition = useRef<{ x: number; y: number } | null>(null);
+  const dragging = useRef(false);
 
   useEffect(() => {
     if (!enabled) {
       lastPosition.current = null;
+      dragging.current = false;
       return;
     }
 
@@ -212,42 +215,44 @@ export function LobbyMobileMouseLook({ enabled }: { enabled: boolean }) {
       camera.up.set(0, 1, 0);
     };
 
+    const reset = () => {
+      dragging.current = false;
+      lastPosition.current = null;
+    };
+
     const onPointerDown = (event: PointerEvent) => {
       if (event.pointerType !== "mouse") return;
+      if (shouldIgnoreMouseTarget(event.target)) return;
+      dragging.current = true;
       lastPosition.current = { x: event.clientX, y: event.clientY };
     };
 
     const onPointerMove = (event: PointerEvent) => {
       if (event.pointerType !== "mouse") return;
-
-      let dx = event.movementX;
-      let dy = event.movementY;
-
-      if (dx === 0 && dy === 0) {
-        if (!lastPosition.current) {
-          lastPosition.current = { x: event.clientX, y: event.clientY };
-          return;
-        }
-        dx = event.clientX - lastPosition.current.x;
-        dy = event.clientY - lastPosition.current.y;
+      if (!dragging.current) return;
+      if (event.buttons === 0) {
+        reset();
+        return;
       }
 
+      const previous = lastPosition.current;
       lastPosition.current = { x: event.clientX, y: event.clientY };
-      applyDelta(dx, dy);
-    };
-
-    const reset = () => {
-      lastPosition.current = null;
+      if (!previous) return;
+      applyDelta(event.clientX - previous.x, event.clientY - previous.y);
     };
 
     window.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", reset);
+    window.addEventListener("pointercancel", reset);
     window.addEventListener("blur", reset);
 
     return () => {
       reset();
       window.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", reset);
+      window.removeEventListener("pointercancel", reset);
       window.removeEventListener("blur", reset);
     };
   }, [camera, enabled]);
