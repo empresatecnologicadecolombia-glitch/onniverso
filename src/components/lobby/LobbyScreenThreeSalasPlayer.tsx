@@ -1,6 +1,10 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { getLobbySalaVideoPlaylist } from "@/lib/lobbySalaVideoPlaylist";
 import { resolveLocalVideoUrl, type LocalVideoItem } from "@/lib/lobbyLocalVideoPicker";
+import {
+  hasNativeLobbyVideoOverlay,
+  lobbyShouldUseMobileLiteScene,
+} from "@/lib/lobbyNativeVideoOverlay";
 
 declare global {
   interface Window {
@@ -26,13 +30,6 @@ function defaultPlaylistItems(): LocalVideoItem[] {
     name: item.name,
     url: item.url,
   }));
-}
-
-function isNativeAndroidLobby(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    (typeof window.Android !== "undefined" || typeof window.AndroidBridge !== "undefined")
-  );
 }
 
 function buildNativePlayerUrl(items: LocalVideoItem[]): string {
@@ -67,12 +64,12 @@ export const LobbyScreenThreeSalasPlayer = memo(function LobbyScreenThreeSalasPl
   height: number;
 }) {
   const nativeSlotRef = useRef<HTMLDivElement | null>(null);
-  const isNativeAndroidSlot = isNativeAndroidLobby();
+  const useNativeVideoOverlay = hasNativeLobbyVideoOverlay();
   const playlistRef = useRef<LocalVideoItem[]>(defaultPlaylistItems());
 
-  // Android: WebView nativo encima del slot; el <video> HTML queda como respaldo debajo.
+  // Solo Capacitor/ViveVR: overlay nativo. Onnivers Play Store usa <video> HTML (sin bounds ni intervalos).
   useEffect(() => {
-    if (!isNativeAndroidSlot) return;
+    if (!useNativeVideoOverlay) return;
     const android = window.Android;
     if (!android) return;
 
@@ -119,10 +116,10 @@ export const LobbyScreenThreeSalasPlayer = memo(function LobbyScreenThreeSalasPl
         /* ignore */
       }
     };
-  }, [isNativeAndroidSlot]);
+  }, [useNativeVideoOverlay]);
 
   useEffect(() => {
-    if (!isNativeAndroidSlot) return;
+    if (!useNativeVideoOverlay) return;
     const getRect = () =>
       readSlotRect(
         document.getElementById(LOBBY_NATIVE_WEBVIEW_SLOT_ID) ??
@@ -146,13 +143,13 @@ export const LobbyScreenThreeSalasPlayer = memo(function LobbyScreenThreeSalasPl
       }
       nativeSlotRef.current = null;
     };
-  }, [isNativeAndroidSlot]);
+  }, [useNativeVideoOverlay]);
 
   return (
     <div
       ref={nativeSlotRef}
-      id={isNativeAndroidSlot ? LOBBY_NATIVE_WEBVIEW_SLOT_ID : undefined}
-      data-native-webview-slot={isNativeAndroidSlot ? LOBBY_NATIVE_WEBVIEW_SLOT_ID : undefined}
+      id={useNativeVideoOverlay ? LOBBY_NATIVE_WEBVIEW_SLOT_ID : undefined}
+      data-native-webview-slot={useNativeVideoOverlay ? LOBBY_NATIVE_WEBVIEW_SLOT_ID : undefined}
       data-lobby-screen="salas"
       style={{ width, height }}
     >
@@ -162,6 +159,7 @@ export const LobbyScreenThreeSalasPlayer = memo(function LobbyScreenThreeSalasPl
 });
 
 function LobbyHtmlVideoPlayer({ width, height }: { width: number; height: number }) {
+  const mobileLite = lobbyShouldUseMobileLiteScene();
   const [playlist] = useState<LocalVideoItem[]>(() => defaultPlaylistItems());
   const [index, setIndex] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -235,7 +233,7 @@ function LobbyHtmlVideoPlayer({ width, height }: { width: number; height: number
         playsInline
         controls
         controlsList="nodownload"
-        preload="auto"
+        preload={mobileLite ? "metadata" : "auto"}
         onEnded={() => void onNext()}
         style={{
           width: "100%",

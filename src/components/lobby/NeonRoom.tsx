@@ -10,6 +10,7 @@ import {
   isMobileCoarseDevice,
   MAX_WEBGL_PIXEL_RATIO,
 } from "@/lib/webglRendererPrefs";
+import { lobbyShouldUseMobileLiteScene } from "@/lib/lobbyNativeVideoOverlay";
 import { useLobbyFinePointer } from "@/lib/useLobbyFinePointer";
 import LobbyMouseButtonControls, {
   createMouseMoveInput,
@@ -331,10 +332,13 @@ function HoloScreen({
 }) {
   const w = width;
   const h = height;
+  const mobileLite = lobbyShouldUseMobileLiteScene();
   const embedWidth =
     kind === "webpage"
       ? Math.round(560 * (w / WALL_SCREEN_WIDTH))
-      : Math.round(800 * (w / WALL_SCREEN_WIDTH));
+      : mobileLite
+        ? Math.round(420 * (w / WALL_SCREEN_WIDTH))
+        : Math.round(800 * (w / WALL_SCREEN_WIDTH));
   const embedHeight = Math.round((embedWidth * h) / w);
   const htmlScale = (w / embedWidth) * 36.225;
   const htmlZIndexRange = LOBBY_SCREEN_HTML_Z_INDEX;
@@ -1052,6 +1056,7 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
 
   const theme = ROOM_THEMES[variant];
   const isMobileCoarse = useMemo(() => isMobileCoarseDevice(), []);
+  const mobileLiteScene = isMobileCoarse && !isAulaVirtual;
   const usesFinePointer = useLobbyFinePointer();
   const isTouchOnlyLobby = isMobileCoarse && !usesFinePointer;
   const mobileMoveInput = useRef(createMobileMoveInput());
@@ -1422,8 +1427,12 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
       <Canvas
         className="relative z-10"
         camera={{ fov: 75, near: 0.1, far: 200, position: [0, PLAYER_HEIGHT, 4] }}
-        dpr={isMobileCoarse ? [1, 1.35] : [1, MAX_WEBGL_PIXEL_RATIO]}
-        gl={{ antialias: !isMobileCoarse, alpha: true }}
+        dpr={mobileLiteScene ? [1, 1] : isMobileCoarse ? [1, 1.35] : [1, MAX_WEBGL_PIXEL_RATIO]}
+        gl={{
+          antialias: !isMobileCoarse,
+          alpha: true,
+          powerPreference: mobileLiteScene ? "low-power" : "default",
+        }}
         onCreated={({ gl }) => {
           canvasRef.current = gl.domElement;
           gl.domElement.style.touchAction = "none";
@@ -1447,7 +1456,7 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
           <MixedRealityScene active={mixedRealityActive} />
           {!mixedRealityActive && <color attach="background" args={[theme.backgroundColor]} />}
 
-          {!mixedRealityActive && !isAulaVirtual && (
+          {!mixedRealityActive && !isAulaVirtual && !mobileLiteScene && (
           <Stars
             radius={80}
             depth={50}
@@ -1457,6 +1466,9 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
             fade
             speed={0.5}
           />
+          )}
+          {!mixedRealityActive && !isAulaVirtual && mobileLiteScene && (
+          <Stars radius={60} depth={40} count={500} factor={2} saturation={0} fade speed={0.25} />
           )}
 
           <ambientLight intensity={theme.ambientLightIntensity} />
@@ -1486,7 +1498,7 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
               />
             </>
           )}
-          {!isAulaVirtual && (
+          {!isAulaVirtual && !mobileLiteScene && (
             <>
               <NeonAccents />
               <LoungeSet />
@@ -1502,13 +1514,19 @@ export default function NeonRoom({ variant = "lobby" }: NeonRoomProps) {
             </>
           ) : (
             <>
-              <LobbyAnatomiaHumanaWallPanel />
-              <LobbyDecorEarthMoon position={[ROOM_SIZE / 2 - 2.15, WALL_HEIGHT * 0.45, 0]} scale={2.52} />
-              <LobbyDecorHeartWall
-                position={[0, WALL_HEIGHT / 2, ROOM_SIZE / 2 - 0.45]}
-                scaleMultiplier={1.28}
-              />
-              <LobbyDecorFarolLantern position={[-5, WALL_HEIGHT * 0.55, -ROOM_SIZE / 2 + 0.45]} />
+              {!mobileLiteScene && <LobbyAnatomiaHumanaWallPanel />}
+              {!mobileLiteScene && (
+                <LobbyDecorEarthMoon position={[ROOM_SIZE / 2 - 2.15, WALL_HEIGHT * 0.45, 0]} scale={2.52} />
+              )}
+              {!mobileLiteScene && (
+                <LobbyDecorHeartWall
+                  position={[0, WALL_HEIGHT / 2, ROOM_SIZE / 2 - 0.45]}
+                  scaleMultiplier={1.28}
+                />
+              )}
+              {!mobileLiteScene && (
+                <LobbyDecorFarolLantern position={[-5, WALL_HEIGHT * 0.55, -ROOM_SIZE / 2 + 0.45]} />
+              )}
             </>
           )}
         </Suspense>
