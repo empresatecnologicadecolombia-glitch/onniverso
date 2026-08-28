@@ -13,6 +13,7 @@ import GuestRoute from "@/components/auth/GuestRoute";
 import PrivateRoute from "@/components/auth/PrivateRoute";
 import LiveStreamingRouteGuard from "@/components/LiveStreamingRouteGuard";
 import Index from "./pages/Index.tsx";
+import CamerasLandingPage from "./pages/CamerasLandingPage.tsx";
 import { CameraBackgroundProvider } from "@/contexts/CameraBackgroundContext";
 
 /** Rutas pesadas: no entran en el bundle inicial de la home. */
@@ -132,7 +133,9 @@ const App = () => {
               <DeferredOpAiAssistant />
               <Suspense fallback={<PageLoader />}>
                 <Routes>
-                  <Route path="/" element={<Index />} />
+                  <Route path="/" element={<CamerasLandingPage />} />
+                  <Route path="/educacion" element={<Index />} />
+                  <Route path="/educacion-inicio" element={<Navigate to="/educacion" replace />} />
                   <Route path="/descargar" element={<DescargarAppsPage />} />
                   <Route path="/inicio-2" element={<Navigate to="/" replace />} />
                   <Route
@@ -294,7 +297,7 @@ const App = () => {
                     }
                   />
                   <Route
-                    path="/educacion"
+                    path="/educacion/contenidos"
                     element={
                       <PrivateRoute>
                         <EducacionPage />

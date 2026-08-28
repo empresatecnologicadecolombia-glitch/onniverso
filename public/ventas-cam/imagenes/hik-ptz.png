@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Error><Code>AccessDenied</Code><Message>User: arn:aws:iam::745401998199:user/WangsuS3-readonly-user is not authorized to perform: s3:ListBucket on resource: "arn:aws:s3:::hiknow-soft-bucket" because no identity-based policy allows the s3:ListBucket action</Message><RequestId>2Y341VGSRCSBN0JX</RequestId><HostId>Ud0aGpdhsWJ+sXeASzzyf/BzRGWQrVoxusRztOnkCKwUnDoRR7vu6w63X+B6PAdpgpbUORQJm8w=</HostId></Error>
