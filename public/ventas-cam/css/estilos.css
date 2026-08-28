@@ -515,6 +515,7 @@ header.nav .wrap {
   font-size: 0.8rem;
   white-space: nowrap;
 }
+.menu-education { display: none; }
 .btn-ghost {
   background: var(--glass);
   border-color: var(--stroke);
@@ -902,6 +903,7 @@ footer .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wr
     padding: 14px;
     min-width: 200px;
   }
+  .menu-education { display: inline-flex; }
   .menu-toggle { display: block; }
 }
 @media (max-width: 640px) {
