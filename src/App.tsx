@@ -14,6 +14,8 @@ import PrivateRoute from "@/components/auth/PrivateRoute";
 import LiveStreamingRouteGuard from "@/components/LiveStreamingRouteGuard";
 import Index from "./pages/Index.tsx";
 import CamerasLandingPage from "./pages/CamerasLandingPage.tsx";
+import SolarLandingPage from "./pages/SolarLandingPage.tsx";
+import SolarCamerasLandingPage from "./pages/SolarCamerasLandingPage.tsx";
 import { CameraBackgroundProvider } from "@/contexts/CameraBackgroundContext";
 
 /** Rutas pesadas: no entran en el bundle inicial de la home. */
@@ -134,6 +136,8 @@ const App = () => {
               <Suspense fallback={<PageLoader />}>
                 <Routes>
                   <Route path="/" element={<CamerasLandingPage />} />
+                  <Route path="/energia-solar" element={<SolarLandingPage />} />
+                  <Route path="/camaras-solares" element={<SolarCamerasLandingPage />} />
                   <Route path="/educacion" element={<Index />} />
                   <Route path="/educacion-inicio" element={<Navigate to="/educacion" replace />} />
                   <Route path="/descargar" element={<DescargarAppsPage />} />
