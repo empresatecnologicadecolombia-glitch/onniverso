@@ -486,11 +486,14 @@ header.nav .wrap {
   gap: 12px;
 }
 .brand img {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid rgba(46, 230, 214, 0.5);
+  width: auto;
+  height: 58px;
+  max-width: min(280px, 58vw);
+  border-radius: 10px;
+  object-fit: contain;
+  background: #fff;
+  padding: 5px 10px;
+  flex-shrink: 0;
 }
 .brand strong { display: block; font-size: 0.98rem; letter-spacing: 0.01em; }
 .brand span { display: block; color: var(--muted); font-size: 0.75rem; }
